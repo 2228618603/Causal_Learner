@@ -7,7 +7,17 @@ import argparse
 import os
 from typing import List
 
-from common import ApiConfig, SamplingConfig, VIDEO_EXTS, collect_videos, default_output_root
+from common import (
+    ApiConfig,
+    SamplingConfig,
+    VIDEO_EXTS,
+    collect_videos,
+    default_output_root,
+    logger,
+    now_utc_iso,
+    update_run_summary,
+    video_id_from_path,
+)
 from stage1_generate_draft import run_stage1_for_video
 from stage2_localize_and_cut import run_stage2_for_video
 from stage3_refine_and_keyframes import run_stage3_for_video
@@ -50,6 +60,16 @@ def main() -> None:
 
     parser.add_argument("--stages", default="1,2,3", help="Comma-separated subset of stages to run (e.g., 1,2 or 3).")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Continue processing the next video if one video fails; writes failure info into <video_out>/run_summary.json.",
+    )
+    parser.add_argument(
+        "--post-validate",
+        action="store_true",
+        help="After successful Stage 3, run `validate_three_stage_output.py` checks on the output folder.",
+    )
     args = parser.parse_args()
 
     stages = {s.strip() for s in args.stages.split(",") if s.strip()}
@@ -79,38 +99,114 @@ def main() -> None:
         raise SystemExit("No videos found.")
 
     for vp in videos:
-        if "1" in stages:
-            run_stage1_for_video(
-                vp,
-                args.output_root,
-                api_cfg,
-                sampling_cfg,
-                overwrite=args.overwrite,
-                max_retries=args.stage1_retries,
-            )
-        if "2" in stages:
-            run_stage2_for_video(
-                vp,
-                args.output_root,
-                api_cfg,
-                ffmpeg_bin=args.ffmpeg_bin,
-                overwrite=args.overwrite,
-                max_retries=args.stage2_retries,
-                cut_mode=args.cut_mode,
-                seek_slop_sec=args.seek_slop_sec,
-                crf=args.crf,
-                preset=args.preset,
-                keep_audio=args.keep_audio,
-            )
-        if "3" in stages:
-            run_stage3_for_video(
-                vp,
-                args.output_root,
-                api_cfg,
-                sampling_cfg,
-                overwrite=args.overwrite,
-                max_retries=args.stage3_retries,
-            )
+        vid = video_id_from_path(vp)
+        video_out = os.path.join(args.output_root, vid)
+
+        stage_failed = False
+        for sid in ("1", "2", "3"):
+            if sid not in stages:
+                continue
+            try:
+                if sid == "1":
+                    run_stage1_for_video(
+                        vp,
+                        args.output_root,
+                        api_cfg,
+                        sampling_cfg,
+                        overwrite=args.overwrite,
+                        max_retries=args.stage1_retries,
+                    )
+                elif sid == "2":
+                    run_stage2_for_video(
+                        vp,
+                        args.output_root,
+                        api_cfg,
+                        ffmpeg_bin=args.ffmpeg_bin,
+                        overwrite=args.overwrite,
+                        max_retries=args.stage2_retries,
+                        cut_mode=args.cut_mode,
+                        seek_slop_sec=args.seek_slop_sec,
+                        crf=args.crf,
+                        preset=args.preset,
+                        keep_audio=args.keep_audio,
+                    )
+                else:
+                    run_stage3_for_video(
+                        vp,
+                        args.output_root,
+                        api_cfg,
+                        sampling_cfg,
+                        overwrite=args.overwrite,
+                        max_retries=args.stage3_retries,
+                    )
+            except (Exception, SystemExit) as e:
+                stage_failed = True
+                msg = f"{type(e).__name__}: {e}"
+                logger.exception(f"[pipeline] video_id={vid} stage={sid} failed: {msg}")
+                try:
+                    update_run_summary(
+                        os.path.join(video_out, "run_summary.json"),
+                        {
+                            "updated_at_utc": now_utc_iso(),
+                            f"stage{sid}": {
+                                "status": "failed",
+                                "failed_at_utc": now_utc_iso(),
+                                "error": msg,
+                            },
+                        },
+                    )
+                except Exception:
+                    pass
+                if args.continue_on_error:
+                    break
+                raise
+
+        if stage_failed:
+            continue
+
+        if args.post_validate and "3" in stages:
+            try:
+                from validate_three_stage_output import validate_three_stage_video_output_dir
+
+                ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=False)
+                for w in warnings:
+                    logger.warning(f"[validate] video_id={vid}: {w}")
+                if not ok:
+                    raise RuntimeError(" | ".join(errors[:20]))
+                try:
+                    update_run_summary(
+                        os.path.join(video_out, "run_summary.json"),
+                        {
+                            "updated_at_utc": now_utc_iso(),
+                            "post_validate": {
+                                "status": "completed",
+                                "validated_at_utc": now_utc_iso(),
+                                "warnings_count": len(warnings),
+                                "warnings_sample": warnings[:10],
+                            },
+                        },
+                    )
+                except Exception:
+                    pass
+            except Exception as e:
+                msg = f"{type(e).__name__}: {e}"
+                logger.exception(f"[pipeline] post-validate failed for video_id={vid}: {msg}")
+                try:
+                    update_run_summary(
+                        os.path.join(video_out, "run_summary.json"),
+                        {
+                            "updated_at_utc": now_utc_iso(),
+                            "post_validate": {
+                                "status": "failed",
+                                "failed_at_utc": now_utc_iso(),
+                                "error": msg,
+                            },
+                        },
+                    )
+                except Exception:
+                    pass
+                if not args.continue_on_error:
+                    raise
 
 
 if __name__ == "__main__":

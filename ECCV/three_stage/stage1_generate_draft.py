@@ -356,6 +356,8 @@ def _can_resume_stage1(draft_path: str, manifest_path: str) -> bool:
     if not (int(manifest.get("num_frames", 0)) > 0 and isinstance(manifest.get("frames"), list)):
         return False
 
+    if _stage1_raw_schema_errors(draft):
+        return False
     return not _draft_hard_errors(draft)
 
 

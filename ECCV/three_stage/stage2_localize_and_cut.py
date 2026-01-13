@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 from typing import Any, Dict, List, Optional
 
 from common import (
@@ -179,6 +180,12 @@ def run_stage2_for_video(
     if not overwrite and _can_resume_stage2(segments_path, draft_path, stage2_dir):
         return video_out
 
+    # Fail fast before any model call.
+    if shutil.which(ffmpeg_bin) is None:
+        raise FileNotFoundError(
+            f"ffmpeg binary not found: '{ffmpeg_bin}'. Install ffmpeg or pass a valid path via --ffmpeg-bin."
+        )
+
     if not os.path.exists(draft_path):
         raise FileNotFoundError(f"Stage 1 draft not found: {draft_path}")
     if not os.path.exists(manifest_path):
@@ -225,57 +232,105 @@ def run_stage2_for_video(
 
     frames = load_frames_from_manifest(manifest_path)
     num_frames = len(frames)
-
-    client = initialize_api_client(api_cfg)
-    if not client:
-        raise SystemExit("Failed to initialize API client.")
+    ts_list = [float(fr.get("timestamp_sec", 0.0)) for fr in frames]
 
     base_prompt = build_stage2_user_prompt(high_level_goal, draft_plan_outline, num_frames)
     system_text = "You are an expert video step temporal localization assistant. Return strict JSON only (no markdown, no extra text)."
-    write_text(sys_prompt_path, system_text)
-    write_text(user_prompt_path, base_prompt)
-    frames_content = build_api_content(frames, api_cfg.embed_index_on_api_images, include_manifest=False)
-    base_user_content = [{"type": "text", "text": base_prompt}] + frames_content
-    system_msg = {"role": "system", "content": system_text}
 
     last_content = ""
     last_errors: List[str] = []
     localization: Optional[Dict[str, Any]] = None
     loc_by_id: Dict[int, Dict[str, int]] = {}
-    for attempt in range(1, max_retries + 1):
-        if attempt == 1:
-            user_content = base_user_content
-        else:
-            prefix = build_retry_prefix(last_errors, last_content)
-            user_content = [{"type": "text", "text": prefix + base_prompt}] + frames_content
-
-        messages = [system_msg, {"role": "user", "content": user_content}]
-        content = call_chat_completion(client, api_cfg, messages, max_tokens=min(api_cfg.max_tokens, 12000))
-        last_content = content
-
+    localization_from_cache = False
+    # If a previous run produced a valid localization JSON but failed during ffmpeg cutting,
+    # reuse it to avoid re-calling the model.
+    if not overwrite and os.path.exists(loc_path):
         try:
-            clean = extract_json_from_response(content)
-            localization = json.loads(clean)
+            loc_mtime = float(os.path.getmtime(loc_path))
+            input_mtime = max(float(os.path.getmtime(draft_path)), float(os.path.getmtime(manifest_path)))
+            if loc_mtime + 1e-6 < input_mtime:
+                logger.warning(
+                    f"[stage2] Cached localization is older than current Stage1 inputs; ignoring: {os.path.relpath(loc_path, video_out)}"
+                )
+            else:
+                cached_loc = read_json(loc_path)
+                ok, errors, by_id = validate_stage2_localization(
+                    draft_plan, cached_loc, num_frames, frame_timestamps=ts_list
+                )
+                if ok:
+                    localization = cached_loc
+                    loc_by_id = by_id
+                    localization_from_cache = True
+                    if not os.path.exists(sys_prompt_path):
+                        write_text(sys_prompt_path, system_text)
+                    if not os.path.exists(user_prompt_path):
+                        write_text(user_prompt_path, base_prompt)
+                    logger.info(f"[stage2] Reusing cached localization: {os.path.relpath(loc_path, video_out)}")
+                else:
+                    last_errors = errors
         except Exception as e:
-            last_errors = [f"JSON parse error: {e}"]
-            localization = None
-            continue
-
-        ts_list = [float(fr.get("timestamp_sec", 0.0)) for fr in frames]
-        ok, errors, by_id = validate_stage2_localization(draft_plan, localization, num_frames, frame_timestamps=ts_list)
-        if ok:
-            loc_by_id = by_id
-            break
-        last_errors = errors
-        localization = None
+            last_errors = [f"Failed to load cached localization: {e}"]
 
     if localization is None:
-        write_text(raw_path, last_content)
+        # If step clips already exist but we don't have a valid cached localization to match them,
+        # fail fast to avoid writing mismatched segments metadata.
+        if not overwrite and os.path.isdir(clips_dir):
+            existing = [n for n in os.listdir(clips_dir) if n.lower().endswith(".mp4")]
+            if existing:
+                raise RuntimeError(
+                    f"Found existing stage2 clips under {clips_dir} but no valid cached localization at {loc_path}. "
+                    "To avoid mismatched clips/segments, delete stage2/step_clips or re-run with --overwrite."
+                )
+
+        client = initialize_api_client(api_cfg)
+        if not client:
+            raise SystemExit("Failed to initialize API client.")
+
+        # Persist the prompts used for THIS localization run.
+        write_text(sys_prompt_path, system_text)
+        write_text(user_prompt_path, base_prompt)
+
+        frames_content = build_api_content(frames, api_cfg.embed_index_on_api_images, include_manifest=False)
+        base_user_content = [{"type": "text", "text": base_prompt}] + frames_content
+        system_msg = {"role": "system", "content": system_text}
+
+        for attempt in range(1, max_retries + 1):
+            if attempt == 1:
+                user_content = base_user_content
+            else:
+                prefix = build_retry_prefix(last_errors, last_content)
+                user_content = [{"type": "text", "text": prefix + base_prompt}] + frames_content
+
+            messages = [system_msg, {"role": "user", "content": user_content}]
+            content = call_chat_completion(client, api_cfg, messages, max_tokens=min(api_cfg.max_tokens, 12000))
+            last_content = content
+
+            try:
+                clean = extract_json_from_response(content)
+                localization = json.loads(clean)
+            except Exception as e:
+                last_errors = [f"JSON parse error: {e}"]
+                localization = None
+                continue
+
+            ok, errors, by_id = validate_stage2_localization(draft_plan, localization, num_frames, frame_timestamps=ts_list)
+            if ok:
+                loc_by_id = by_id
+                break
+            last_errors = errors
+            localization = None
+
+    if localization is None:
+        if last_content:
+            write_text(raw_path, last_content)
         raise RuntimeError(f"Stage 2 failed after {max_retries} attempts: " + " | ".join(last_errors[:10]))
 
     # Persist raw outputs
-    write_text(raw_path, last_content)
-    write_json(loc_path, localization)
+    if last_content:
+        write_text(raw_path, last_content)
+        write_json(loc_path, localization)
+    elif overwrite or not os.path.exists(loc_path):
+        write_json(loc_path, localization)
 
     # Build step segments + cut clips
     manifest = read_json(manifest_path)
@@ -285,7 +340,7 @@ def run_stage2_for_video(
 
     segments: List[Dict[str, Any]] = []
 
-    timestamps = [float(fr.get("timestamp_sec", 0.0)) for fr in frames]
+    timestamps = ts_list
     min_delta_sec = _estimate_min_positive_delta_sec(timestamps)
 
     bounds: List[Dict[str, Any]] = []
@@ -332,21 +387,35 @@ def run_stage2_for_video(
         slug = sanitize_filename(goal)
         clip_name = f"step{sid:02d}_{slug}.mp4"
         clip_path = os.path.join(clips_dir, clip_name)
-        cut_video_segment_ffmpeg(
-            ffmpeg_bin,
-            video_path,
-            start_sec,
-            end_sec,
-            clip_path,
-            overwrite=overwrite,
-            mode=cut_mode,
-            seek_slop_sec=seek_slop_sec,
-            crf=crf,
-            preset=preset,
-            keep_audio=keep_audio,
-        )
-        if not os.path.exists(clip_path) or os.path.getsize(clip_path) <= 0:
-            raise RuntimeError(f"ffmpeg produced an empty clip: {clip_path}")
+        if (
+            not overwrite
+            and localization_from_cache
+            and os.path.exists(clip_path)
+            and os.path.getsize(clip_path) > 0
+        ):
+            logger.info(f"[stage2] Reusing existing clip (overwrite disabled): {os.path.relpath(clip_path, video_out)}")
+        elif not overwrite and os.path.exists(clip_path):
+            raise RuntimeError(
+                f"Found an existing clip but overwrite is disabled: {clip_path}. "
+                "This usually means a previous Stage-2 run was interrupted and you are now generating a NEW localization; "
+                "to avoid mismatched clips/segments, delete stage2/step_clips or re-run with --overwrite."
+            )
+        else:
+            cut_video_segment_ffmpeg(
+                ffmpeg_bin,
+                video_path,
+                start_sec,
+                end_sec,
+                clip_path,
+                overwrite=overwrite,
+                mode=cut_mode,
+                seek_slop_sec=seek_slop_sec,
+                crf=crf,
+                preset=preset,
+                keep_audio=keep_audio,
+            )
+            if not os.path.exists(clip_path) or os.path.getsize(clip_path) <= 0:
+                raise RuntimeError(f"ffmpeg produced an empty clip: {clip_path}")
 
         segments.append(
             {

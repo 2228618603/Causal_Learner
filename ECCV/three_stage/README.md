@@ -107,7 +107,9 @@ python3 three_stage/stage3_refine_and_keyframes.py --input-video /abs/path/video
 ## 常用参数（影响质量/速度/可复现性）
 
 - `--overwrite`：强制重跑（默认会“断点续跑”，只有当缓存产物通过严格检查才会跳过模型调用）
+- `--continue-on-error`：批量跑目录时，单个视频失败不阻塞后续视频（失败会写入该视频的 `run_summary.json`）
 - `--stages 1,2,3`：选择运行阶段子集
+- `--post-validate`：在 Stage3 成功后自动对 `<video_id>/` 做一次输出校验（等价于运行 `validate_three_stage_output.py`）
 - `--max-frames`：默认 50；建议保持 `<= 50`（与常见 VLM 图片限制匹配）
 - `--temperature`：采样温度（默认 0.2；更低通常更稳、更易输出严格 JSON）
 - `--api-call-retries/--api-call-retry-backoff-sec`：单次模型请求的重试次数与退避（用于应对偶发网络/服务错误）
@@ -124,6 +126,8 @@ python3 three_stage/stage3_refine_and_keyframes.py --input-video /abs/path/video
 - 索引与时间映射：
   - full video：`stage1/frame_manifest.json`
   - step clip：`<step_folder>/frame_manifest.json`
+- Step 级元信息（用于断点续跑一致性与校验）：
+  - `step_meta.json`（clip 路径 + start/end 秒 + 帧池信息）
 - 运行元信息：`run_summary.json`
 
 ## 输出核验（推荐跑完后做一次）

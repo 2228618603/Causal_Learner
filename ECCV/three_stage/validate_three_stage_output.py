@@ -290,6 +290,7 @@ def _check_stage3_and_final(
         if not os.path.isdir(step_folder):
             errors.append(f"Missing step folder: {step_folder}")
             continue
+        step_meta_path = os.path.join(step_folder, "step_meta.json")
         manifest_path = os.path.join(step_folder, "frame_manifest.json")
         step_out_path = os.path.join(step_folder, "step_final.json")
         if not os.path.exists(manifest_path):
@@ -297,6 +298,9 @@ def _check_stage3_and_final(
             continue
         if not os.path.exists(step_out_path):
             errors.append(f"Missing: {step_out_path}")
+            continue
+        if not os.path.exists(step_meta_path):
+            errors.append(f"Missing: {step_meta_path}")
             continue
 
         try:
@@ -316,6 +320,54 @@ def _check_stage3_and_final(
         if not _is_step_schema_canonical(step_final):
             errors.append(f"Non-canonical keys detected in step_final.json for step_id={sid} (causal_chain/hotspot)")
             continue
+
+        # Ensure step_meta.json matches Stage2 segment metadata (clip + start/end seconds).
+        seg = seg_by_id.get(sid)
+        if not isinstance(seg, dict):
+            errors.append(f"Missing Stage2 segment for step_id={sid} (cannot validate step_meta.json).")
+            continue
+        stage2_dir = os.path.join(video_out, "stage2")
+        clip_rel = seg.get("clip_relpath")
+        if not isinstance(clip_rel, str) or not clip_rel:
+            errors.append(f"Stage2 segment missing clip_relpath for step_id={sid} (cannot validate step_meta.json).")
+            continue
+        clip_abs = os.path.join(stage2_dir, clip_rel)
+        try:
+            seg_start_sec = float(seg.get("start_sec"))
+            seg_end_sec = float(seg.get("end_sec"))
+        except Exception:
+            errors.append(f"Stage2 segment missing/invalid start_sec/end_sec for step_id={sid} (cannot validate step_meta.json).")
+            continue
+        try:
+            meta = read_json(step_meta_path)
+        except Exception:
+            errors.append(f"Failed to read: {step_meta_path}")
+            continue
+        try:
+            if int(meta.get("step_id")) != int(sid):
+                errors.append(f"step_meta.json step_id mismatch for step_id={sid}: got {meta.get('step_id')}")
+        except Exception:
+            errors.append(f"step_meta.json missing/non-int step_id for step_id={sid}")
+        if str(meta.get("step_goal", "")).strip() != str(goal).strip():
+            errors.append(f"step_meta.json step_goal mismatch for step_id={sid}: expected '{goal}', got '{meta.get('step_goal')}'")
+        rel = meta.get("clip_path")
+        if not isinstance(rel, str) or not rel:
+            errors.append(f"step_meta.json missing clip_path for step_id={sid}")
+        else:
+            meta_clip_abs = os.path.abspath(os.path.join(step_folder, rel))
+            if os.path.abspath(clip_abs) != meta_clip_abs:
+                errors.append(
+                    f"step_meta.json clip_path mismatch for step_id={sid}: expected '{clip_abs}', got '{meta_clip_abs}'"
+                )
+        try:
+            meta_s = float(meta.get("clip_start_sec"))
+            meta_e = float(meta.get("clip_end_sec"))
+            if abs(meta_s - seg_start_sec) > 1e-3 or abs(meta_e - seg_end_sec) > 1e-3:
+                errors.append(
+                    f"step_meta.json start/end sec mismatch for step_id={sid}: meta=[{meta_s:.3f},{meta_e:.3f}] vs seg=[{seg_start_sec:.3f},{seg_end_sec:.3f}]"
+                )
+        except Exception:
+            errors.append(f"step_meta.json missing/invalid clip_start_sec/clip_end_sec for step_id={sid}")
 
         # Validate keyframe timestamp consistency against step manifest (after rounding to 2 decimals).
         frames = manifest.get("frames", [])
@@ -356,18 +408,11 @@ def _check_stage3_and_final(
                 warnings.append(f"frame_index={fi} not found in step manifest for step_id={sid}")
 
             # Optional: check timestamp is within Stage2 segment [start_sec, end_sec].
-            seg = seg_by_id.get(sid)
-            if isinstance(seg, dict):
-                try:
-                    start_sec = float(seg.get("start_sec"))
-                    end_sec = float(seg.get("end_sec"))
-                    if float(ts_from_name) + 0.05 < start_sec or float(ts_from_name) - 0.05 > end_sec:
-                        warnings.append(
-                            f"Keyframe ts outside Stage2 segment for step_id={sid}: "
-                            f"ts={ts_from_name:.2f}, seg=[{start_sec:.2f},{end_sec:.2f}]"
-                        )
-                except Exception:
-                    pass
+            if float(ts_from_name) + 0.05 < seg_start_sec or float(ts_from_name) - 0.05 > seg_end_sec:
+                warnings.append(
+                    f"Keyframe ts outside Stage2 segment for step_id={sid}: "
+                    f"ts={ts_from_name:.2f}, seg=[{seg_start_sec:.2f},{seg_end_sec:.2f}]"
+                )
 
     return errors, warnings
 
@@ -618,6 +663,19 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
             ],
         }
         write_json(os.path.join(step_folder, "step_final.json"), step_final)
+        write_json(
+            os.path.join(step_folder, "step_meta.json"),
+            {
+                "step_id": sid,
+                "step_goal": goal,
+                "clip_path": os.path.relpath(os.path.join(stage2_dir, str(seg.get("clip_relpath"))), step_folder),
+                "clip_start_sec": float(seg.get("start_sec")),
+                "clip_end_sec": float(seg.get("end_sec")),
+                "num_frames": 5,
+                "generated_at_utc": "1970-01-01T00:00:00Z",
+                "manifest_path": "frame_manifest.json",
+            },
+        )
         final_steps.append(step_final)
 
     write_json(os.path.join(video_out, "causal_plan_with_keyframes.json"), {"high_level_goal": draft["high_level_goal"], "steps": final_steps})
@@ -647,7 +705,7 @@ def main() -> None:
     if args.self_test:
         with tempfile.TemporaryDirectory(prefix="three_stage_selftest_", dir=os.path.dirname(__file__)) as tmp:
             video_out = _make_minimal_selftest_dir(tmp)
-            ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=False)
+            ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=args.check_deps)
             if warnings:
                 print("WARNINGS:")
                 for w in warnings:

@@ -45,6 +45,41 @@ _CANONICAL_CAUSAL_CHAIN_KEYS = {
 _CANONICAL_HOTSPOT_KEYS = {"description", "affordance_type", "mechanism"}
 
 
+def _step_meta_matches_segment(
+    step_meta_path: str,
+    expected_clip_abs: str,
+    expected_clip_start_sec: float,
+    expected_clip_end_sec: float,
+    *,
+    tol_sec: float = 1e-3,
+) -> bool:
+    if not os.path.exists(step_meta_path):
+        return False
+    try:
+        meta = read_json(step_meta_path)
+    except Exception:
+        return False
+
+    rel = meta.get("clip_path")
+    if not isinstance(rel, str) or not rel:
+        return False
+    step_folder = os.path.dirname(step_meta_path)
+    meta_clip_abs = os.path.abspath(os.path.join(step_folder, rel))
+    if os.path.abspath(expected_clip_abs) != meta_clip_abs:
+        return False
+
+    try:
+        s = float(meta.get("clip_start_sec"))
+        e = float(meta.get("clip_end_sec"))
+    except Exception:
+        return False
+    if abs(s - float(expected_clip_start_sec)) > float(tol_sec):
+        return False
+    if abs(e - float(expected_clip_end_sec)) > float(tol_sec):
+        return False
+    return True
+
+
 def _upgrade_step_schema_inplace(step: Dict[str, Any]) -> bool:
     """Upgrade legacy keys in-place to the canonical ECCV schema.
 
@@ -186,6 +221,7 @@ def _validate_step_final_dict(
 def _can_resume_stage3_final_plan(
     final_path: str,
     draft_path: str,
+    segments_path: str,
     video_out: str,
     *,
     max_frames_fallback: int,
@@ -245,10 +281,52 @@ def _can_resume_stage3_final_plan(
     if expected_by_id is not None and expected_by_id != got_by_id:
         return False
 
+    # Ensure Stage-2 segments still match the cached Stage-3 outputs to avoid
+    # producing a final plan that is inconsistent with the current clips.
+    if not os.path.exists(segments_path):
+        return False
+    try:
+        seg_data = read_json(segments_path)
+    except Exception:
+        return False
+    segs = seg_data.get("segments", [])
+    if not isinstance(segs, list) or not segs:
+        return False
+    stage2_dir = os.path.join(video_out, "stage2")
+    seg_by_id: Dict[int, Dict[str, Any]] = {}
+    for seg in segs:
+        if not isinstance(seg, dict) or seg.get("step_id") is None:
+            continue
+        try:
+            sid = int(seg.get("step_id"))
+        except Exception:
+            continue
+        seg_by_id[sid] = seg
+    if not seg_by_id:
+        return False
+
     # Validate per-step structure and ensure keyframe images exist.
     for sid, goal in got_by_id.items():
+        if sid not in seg_by_id:
+            return False
+        seg = seg_by_id[sid]
+        try:
+            clip_start_sec = float(seg.get("start_sec"))
+            clip_end_sec = float(seg.get("end_sec"))
+        except Exception:
+            return False
+        clip_rel = seg.get("clip_relpath")
+        if not isinstance(clip_rel, str) or not clip_rel:
+            return False
+        clip_abs = os.path.join(stage2_dir, clip_rel)
+        if not os.path.exists(clip_abs):
+            return False
+
         num_frames = int(max_frames_fallback)
         step_folder = os.path.join(video_out, f"{sid:02d}_{sanitize_filename(goal)}")
+        step_meta_path = os.path.join(step_folder, "step_meta.json")
+        if not _step_meta_matches_segment(step_meta_path, clip_abs, clip_start_sec, clip_end_sec):
+            return False
         manifest_path = os.path.join(step_folder, "frame_manifest.json")
         if os.path.exists(manifest_path):
             try:
@@ -273,13 +351,19 @@ def _can_resume_stage3_final_plan(
 def _load_valid_cached_step_final(
     step_out_path: str,
     manifest_path: str,
+    step_meta_path: str,
     step_id: int,
     step_goal: str,
+    expected_clip_abs: str,
+    expected_clip_start_sec: float,
+    expected_clip_end_sec: float,
     *,
     max_frames_fallback: int,
 ) -> Optional[Dict[str, Any]]:
     """Load a cached step_final.json if it is consistent and its keyframe images exist."""
     if not os.path.exists(step_out_path):
+        return None
+    if not _step_meta_matches_segment(step_meta_path, expected_clip_abs, expected_clip_start_sec, expected_clip_end_sec):
         return None
     try:
         num_frames = int(max_frames_fallback)
@@ -320,18 +404,18 @@ def run_stage3_for_video(
     final_path = os.path.join(video_out, "causal_plan_with_keyframes.json")
     run_summary_path = os.path.join(video_out, "run_summary.json")
 
-    if not overwrite and _can_resume_stage3_final_plan(
-        final_path,
-        draft_path,
-        video_out,
-        max_frames_fallback=sampling_cfg.max_frames,
-    ):
-        return video_out
-
     if not os.path.exists(draft_path):
         raise FileNotFoundError(f"Stage 1 draft not found: {draft_path}")
     if not os.path.exists(segments_path):
         raise FileNotFoundError(f"Stage 2 segments not found: {segments_path}")
+    if not overwrite and _can_resume_stage3_final_plan(
+        final_path,
+        draft_path,
+        segments_path,
+        video_out,
+        max_frames_fallback=sampling_cfg.max_frames,
+    ):
+        return video_out
 
     draft = read_json(draft_path)
     high_level_goal = str(draft.get("high_level_goal", "")).strip()
@@ -391,6 +475,7 @@ def run_stage3_for_video(
         manifest_path = os.path.join(step_folder, "frame_manifest.json")
         raw_path = os.path.join(step_folder, "stage3_raw_response.txt")
         step_out_path = os.path.join(step_folder, "step_final.json")
+        step_meta_path = os.path.join(step_folder, "step_meta.json")
 
         # Step-level resume: if a valid step_final.json exists (and its keyframe images exist),
         # reuse it to avoid re-calling the model.
@@ -398,8 +483,12 @@ def run_stage3_for_video(
             cached = _load_valid_cached_step_final(
                 step_out_path,
                 manifest_path,
+                step_meta_path,
                 sid,
                 goal,
+                expected_clip_abs=clip_path,
+                expected_clip_start_sec=clip_start_sec,
+                expected_clip_end_sec=clip_end_sec,
                 max_frames_fallback=sampling_cfg.max_frames,
             )
             if cached is not None:
@@ -468,7 +557,7 @@ def run_stage3_for_video(
 
         write_json(step_out_path, normalized_step)
         write_json(
-            os.path.join(step_folder, "step_meta.json"),
+            step_meta_path,
             {
                 "step_id": sid,
                 "step_goal": goal,
