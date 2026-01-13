@@ -1,0 +1,483 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from typing import Any, Dict, List, Optional
+
+from common import (
+    ApiConfig,
+    VIDEO_EXTS,
+    build_api_content,
+    build_retry_prefix,
+    call_chat_completion,
+    collect_videos,
+    cut_video_segment_ffmpeg,
+    default_output_root,
+    extract_json_from_response,
+    initialize_api_client,
+    logger,
+    load_frames_from_manifest,
+    now_utc_iso,
+    read_json,
+    sanitize_filename,
+    update_run_summary,
+    validate_stage2_localization,
+    video_id_from_path,
+    write_json,
+    write_text,
+)
+from prompts import build_stage2_user_prompt
+
+
+def _estimate_min_positive_delta_sec(timestamps: List[float]) -> float:
+    uniq = sorted({float(x) for x in (timestamps or [])})
+    deltas = [b - a for a, b in zip(uniq, uniq[1:]) if b > a]
+    if not deltas:
+        return 0.1
+    # Avoid epsilon too close to 0 which may produce empty clips after seeking/rounding.
+    return max(min(deltas), 0.05)
+
+
+def _adjust_end_sec_if_needed(
+    *,
+    step_id: int,
+    start_sec: float,
+    end_sec: float,
+    min_delta_sec: float,
+    next_step_start_sec: Optional[float],
+    timestamps: List[float],
+    end_index_1based: int,
+) -> float:
+    if end_sec > start_sec:
+        return end_sec
+
+    raw_start = float(start_sec)
+    raw_end = float(end_sec)
+
+    # If the next step begins later, we can allocate a small, non-overlapping duration window.
+    if next_step_start_sec is not None and float(next_step_start_sec) > raw_start:
+        budget = float(next_step_start_sec) - raw_start
+        eps = min(max(min_delta_sec, 0.05), budget * 0.9)
+        adjusted = raw_start + eps
+        logger.warning(
+            f"[stage2] Adjusted non-positive duration for step_id={step_id}: "
+            f"start={raw_start:.3f}, end={raw_end:.3f} -> end={adjusted:.3f} (budget to next step={budget:.3f})"
+        )
+        return adjusted
+
+    # Fallback: search for the next strictly larger timestamp after the provided end boundary.
+    for t in (timestamps or [])[max(0, int(end_index_1based) - 1) :]:
+        tt = float(t)
+        if tt > raw_start:
+            logger.warning(
+                f"[stage2] Adjusted non-positive duration for step_id={step_id}: "
+                f"start={raw_start:.3f}, end={raw_end:.3f} -> end={tt:.3f} (next available timestamp)"
+            )
+            return tt
+
+    # Last resort: extend by epsilon.
+    adjusted = raw_start + max(min_delta_sec, 0.1)
+    logger.warning(
+        f"[stage2] Adjusted non-positive duration for step_id={step_id}: "
+        f"start={raw_start:.3f}, end={raw_end:.3f} -> end={adjusted:.3f} (epsilon fallback)"
+    )
+    return adjusted
+
+
+def _extract_step_goals_by_id(items: Any) -> Dict[int, str]:
+    """Parse a list of step-like dicts into {step_id: step_goal}."""
+    out: Dict[int, str] = {}
+    if not isinstance(items, list):
+        return out
+    for obj in items:
+        if not isinstance(obj, dict) or obj.get("step_id") is None:
+            continue
+        try:
+            sid = int(obj.get("step_id"))
+        except Exception:
+            continue
+        goal = str(obj.get("step_goal", "")).strip()
+        if sid > 0 and goal:
+            out[sid] = goal
+    return out
+
+
+def _can_resume_stage2(segments_path: str, draft_path: str, stage2_dir: str) -> bool:
+    """Return True if cached Stage-2 segments and clips match the current Stage-1 draft."""
+    if not (os.path.exists(segments_path) and os.path.exists(draft_path)):
+        return False
+    try:
+        segments_data = read_json(segments_path)
+        segs = segments_data.get("segments", [])
+        if not isinstance(segs, list) or not segs:
+            return False
+        draft = read_json(draft_path)
+    except Exception:
+        return False
+
+    # Ensure the cached segments were produced from the same Stage-1 frame pool.
+    try:
+        video_out = os.path.dirname(stage2_dir)
+        manifest_path = os.path.join(video_out, "stage1", "frame_manifest.json")
+        manifest = read_json(manifest_path)
+        seg_num = int(segments_data.get("num_frames", -1))
+        man_num = int(manifest.get("num_frames", -1))
+        if seg_num <= 0 or man_num <= 0 or seg_num != man_num:
+            return False
+    except Exception:
+        return False
+
+    expected = _extract_step_goals_by_id(draft.get("steps", []))
+    got = _extract_step_goals_by_id(segs)
+    if not expected or expected != got:
+        return False
+
+    for seg in segs:
+        if not isinstance(seg, dict):
+            return False
+        rel = seg.get("clip_relpath")
+        if not rel:
+            return False
+        clip_abs = os.path.join(stage2_dir, rel)
+        if not os.path.exists(clip_abs) or os.path.getsize(clip_abs) <= 0:
+            return False
+    return True
+
+
+def run_stage2_for_video(
+    video_path: str,
+    output_root: str,
+    api_cfg: ApiConfig,
+    ffmpeg_bin: str,
+    overwrite: bool,
+    max_retries: int,
+    *,
+    cut_mode: str = "reencode",
+    seek_slop_sec: float = 1.0,
+    crf: int = 18,
+    preset: str = "veryfast",
+    keep_audio: bool = False,
+) -> str:
+    vid = video_id_from_path(video_path)
+    video_out = os.path.join(output_root, vid)
+    stage1_dir = os.path.join(video_out, "stage1")
+    stage2_dir = os.path.join(video_out, "stage2")
+    manifest_path = os.path.join(stage1_dir, "frame_manifest.json")
+    draft_path = os.path.join(stage1_dir, "draft_plan.json")
+    raw_path = os.path.join(stage2_dir, "stage2_raw_response.txt")
+    loc_path = os.path.join(stage2_dir, "localization_raw.json")
+    segments_path = os.path.join(stage2_dir, "step_segments.json")
+    clips_dir = os.path.join(stage2_dir, "step_clips")
+    sys_prompt_path = os.path.join(stage2_dir, "stage2_system_prompt.txt")
+    user_prompt_path = os.path.join(stage2_dir, "stage2_user_prompt.txt")
+    run_summary_path = os.path.join(video_out, "run_summary.json")
+
+    if not overwrite and _can_resume_stage2(segments_path, draft_path, stage2_dir):
+        return video_out
+
+    if not os.path.exists(draft_path):
+        raise FileNotFoundError(f"Stage 1 draft not found: {draft_path}")
+    if not os.path.exists(manifest_path):
+        raise FileNotFoundError(f"Stage 1 manifest not found: {manifest_path}")
+
+    draft_plan = read_json(draft_path)
+    high_level_goal = str(draft_plan.get("high_level_goal", "")).strip()
+    steps_for_count = draft_plan.get("steps", [])
+    if not isinstance(steps_for_count, list) or not (4 <= len(steps_for_count) <= 9):
+        raise RuntimeError(
+            f"Draft step count must be within [4, 9] for the three-stage pipeline (got {len(steps_for_count) if isinstance(steps_for_count, list) else 'N/A'}). "
+            "Re-run Stage 1 with a better prompt (or use --overwrite)."
+        )
+
+    steps = draft_plan.get("steps", [])
+    ordered_steps = sorted([s for s in steps if isinstance(s, dict)], key=lambda x: int(x.get("step_id", 0)))
+    outline_lines: List[str] = []
+    for st in ordered_steps:
+        try:
+            sid = int(st.get("step_id", 0))
+        except Exception:
+            continue
+        goal = str(st.get("step_goal", "")).strip()
+        if sid > 0 and goal:
+            tu = st.get("tool_and_material_usage")
+            tools: List[str] = []
+            materials: List[str] = []
+            if isinstance(tu, dict):
+                raw_tools = tu.get("tools", [])
+                raw_mats = tu.get("materials", [])
+                if isinstance(raw_tools, list):
+                    tools = [str(x).strip() for x in raw_tools if isinstance(x, str) and x.strip()]
+                if isinstance(raw_mats, list):
+                    materials = [str(x).strip() for x in raw_mats if isinstance(x, str) and x.strip()]
+
+            hints: List[str] = []
+            if tools:
+                hints.append("tools: " + ", ".join(tools[:6]))
+            if materials:
+                hints.append("materials: " + ", ".join(materials[:6]))
+            hint_text = f" [{'; '.join(hints)}]" if hints else ""
+            outline_lines.append(f"- Step {sid}: {goal}{hint_text}")
+    draft_plan_outline = "\n".join(outline_lines)
+
+    frames = load_frames_from_manifest(manifest_path)
+    num_frames = len(frames)
+
+    client = initialize_api_client(api_cfg)
+    if not client:
+        raise SystemExit("Failed to initialize API client.")
+
+    base_prompt = build_stage2_user_prompt(high_level_goal, draft_plan_outline, num_frames)
+    system_text = "You are an expert video step temporal localization assistant. Return strict JSON only (no markdown, no extra text)."
+    write_text(sys_prompt_path, system_text)
+    write_text(user_prompt_path, base_prompt)
+    frames_content = build_api_content(frames, api_cfg.embed_index_on_api_images, include_manifest=False)
+    base_user_content = [{"type": "text", "text": base_prompt}] + frames_content
+    system_msg = {"role": "system", "content": system_text}
+
+    last_content = ""
+    last_errors: List[str] = []
+    localization: Optional[Dict[str, Any]] = None
+    loc_by_id: Dict[int, Dict[str, int]] = {}
+    for attempt in range(1, max_retries + 1):
+        if attempt == 1:
+            user_content = base_user_content
+        else:
+            prefix = build_retry_prefix(last_errors, last_content)
+            user_content = [{"type": "text", "text": prefix + base_prompt}] + frames_content
+
+        messages = [system_msg, {"role": "user", "content": user_content}]
+        content = call_chat_completion(client, api_cfg, messages, max_tokens=min(api_cfg.max_tokens, 12000))
+        last_content = content
+
+        try:
+            clean = extract_json_from_response(content)
+            localization = json.loads(clean)
+        except Exception as e:
+            last_errors = [f"JSON parse error: {e}"]
+            localization = None
+            continue
+
+        ts_list = [float(fr.get("timestamp_sec", 0.0)) for fr in frames]
+        ok, errors, by_id = validate_stage2_localization(draft_plan, localization, num_frames, frame_timestamps=ts_list)
+        if ok:
+            loc_by_id = by_id
+            break
+        last_errors = errors
+        localization = None
+
+    if localization is None:
+        write_text(raw_path, last_content)
+        raise RuntimeError(f"Stage 2 failed after {max_retries} attempts: " + " | ".join(last_errors[:10]))
+
+    # Persist raw outputs
+    write_text(raw_path, last_content)
+    write_json(loc_path, localization)
+
+    # Build step segments + cut clips
+    manifest = read_json(manifest_path)
+    frames_meta = {int(e["frame_index_1based"]): e for e in manifest.get("frames", []) if isinstance(e, dict) and "frame_index_1based" in e}
+
+    os.makedirs(clips_dir, exist_ok=True)
+
+    segments: List[Dict[str, Any]] = []
+
+    timestamps = [float(fr.get("timestamp_sec", 0.0)) for fr in frames]
+    min_delta_sec = _estimate_min_positive_delta_sec(timestamps)
+
+    bounds: List[Dict[str, Any]] = []
+    for step in ordered_steps:
+        sid = int(step.get("step_id", 0))
+        goal = str(step.get("step_goal", "")).strip()
+        seg_idx = loc_by_id.get(sid)
+        if not seg_idx:
+            raise RuntimeError(f"Missing localization for step_id={sid} after validation.")
+        bounds.append(
+            {
+                "step_id": sid,
+                "step_goal": goal,
+                "start_frame_index": int(seg_idx["start_frame_index"]),
+                "end_frame_index": int(seg_idx["end_frame_index"]),
+            }
+        )
+
+    for i, b in enumerate(bounds):
+        sid = int(b["step_id"])
+        goal = str(b["step_goal"])
+        sidx = int(b["start_frame_index"])
+        eidx = int(b["end_frame_index"])
+        start_sec = float(timestamps[sidx - 1])
+        end_sec = float(timestamps[eidx - 1])
+        next_start_sec: Optional[float] = None
+        if i + 1 < len(bounds):
+            next_sidx = int(bounds[i + 1]["start_frame_index"])
+            next_start_sec = float(timestamps[next_sidx - 1])
+        end_sec = _adjust_end_sec_if_needed(
+            step_id=sid,
+            start_sec=start_sec,
+            end_sec=end_sec,
+            min_delta_sec=min_delta_sec,
+            next_step_start_sec=next_start_sec,
+            timestamps=timestamps,
+            end_index_1based=eidx,
+        )
+        if not (end_sec > start_sec):
+            raise RuntimeError(
+                f"Invalid (non-positive) clip duration after adjustment for step_id={sid}: start_sec={start_sec}, end_sec={end_sec}"
+            )
+
+        slug = sanitize_filename(goal)
+        clip_name = f"step{sid:02d}_{slug}.mp4"
+        clip_path = os.path.join(clips_dir, clip_name)
+        cut_video_segment_ffmpeg(
+            ffmpeg_bin,
+            video_path,
+            start_sec,
+            end_sec,
+            clip_path,
+            overwrite=overwrite,
+            mode=cut_mode,
+            seek_slop_sec=seek_slop_sec,
+            crf=crf,
+            preset=preset,
+            keep_audio=keep_audio,
+        )
+        if not os.path.exists(clip_path) or os.path.getsize(clip_path) <= 0:
+            raise RuntimeError(f"ffmpeg produced an empty clip: {clip_path}")
+
+        segments.append(
+            {
+                "step_id": sid,
+                "step_goal": goal,
+                "start_frame_index": sidx,
+                "end_frame_index": eidx,
+                "start_sec": start_sec,
+                "end_sec": end_sec,
+                "start_image_relpath": frames_meta.get(sidx, {}).get("image_relpath"),
+                "end_image_relpath": frames_meta.get(eidx, {}).get("image_relpath"),
+                "clip_relpath": os.path.relpath(clip_path, stage2_dir),
+            }
+        )
+
+    write_json(
+        segments_path,
+        {
+            "source_video": os.path.abspath(video_path),
+            "video_id": vid,
+            "generated_at_utc": now_utc_iso(),
+            "num_frames": num_frames,
+            "cut": {
+                "mode": cut_mode,
+                "seek_slop_sec": float(seek_slop_sec),
+                "crf": int(crf),
+                "preset": preset,
+                "keep_audio": bool(keep_audio),
+                "ffmpeg_bin": ffmpeg_bin,
+            },
+            "segments": segments,
+        },
+    )
+
+    update_run_summary(
+        run_summary_path,
+        {
+            "updated_at_utc": now_utc_iso(),
+            "stage2": {
+                "status": "completed",
+                "generated_at_utc": now_utc_iso(),
+                "localization_raw_path": os.path.relpath(loc_path, video_out),
+                "segments_path": os.path.relpath(segments_path, video_out),
+                "clips_dir": os.path.relpath(clips_dir, video_out),
+                "system_prompt_path": os.path.relpath(sys_prompt_path, video_out),
+                "user_prompt_path": os.path.relpath(user_prompt_path, video_out),
+                "api_config": {
+                    "api_base_url": api_cfg.api_base_url,
+                    "model_provider_id": api_cfg.model_provider_id,
+                    "model_name": api_cfg.model_name,
+                    "max_tokens": int(api_cfg.max_tokens),
+                    "temperature": float(getattr(api_cfg, "temperature", 0.2)),
+                    "api_call_retries": int(getattr(api_cfg, "api_call_retries", 1)),
+                    "api_call_retry_backoff_sec": float(getattr(api_cfg, "api_call_retry_backoff_sec", 1.0)),
+                },
+            },
+        },
+    )
+
+    return video_out
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Stage 2: localize steps and cut per-step clips.")
+    src = parser.add_mutually_exclusive_group(required=True)
+    src.add_argument("--input-video", help="Path to one video file.")
+    src.add_argument("--input-video-dir", help="Directory of videos to process.")
+    parser.add_argument("--output-root", default=default_output_root(), help="Output root under ECCV/three_stage/...")
+
+    parser.add_argument("--api-key", default=os.environ.get("API_KEY", "EMPTY"))
+    parser.add_argument("--api-base", default=os.environ.get("API_BASE_URL", "http://model.mify.ai.srv/v1"))
+    parser.add_argument("--provider", default=os.environ.get("MODEL_PROVIDER_ID", "vertex_ai"))
+    parser.add_argument("--model", default=os.environ.get("MODEL_NAME", "gemini-3-pro-preview"))
+    parser.add_argument("--max-tokens", type=int, default=int(os.environ.get("MAX_TOKENS", "30000")))
+    parser.add_argument("--temperature", type=float, default=float(os.environ.get("TEMPERATURE", "0.2")))
+    parser.add_argument("--api-call-retries", type=int, default=int(os.environ.get("API_CALL_RETRIES", "3")))
+    parser.add_argument(
+        "--api-call-retry-backoff-sec",
+        type=float,
+        default=float(os.environ.get("API_CALL_RETRY_BACKOFF_SEC", "1.0")),
+    )
+    parser.add_argument("--no-embed-index", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+
+    parser.add_argument("--ffmpeg-bin", default="ffmpeg")
+    parser.add_argument("--cut-mode", choices=["copy", "reencode"], default="reencode", help="ffmpeg cut mode (copy is fast but may snap to keyframes).")
+    parser.add_argument("--seek-slop-sec", type=float, default=1.0, help="Re-encode mode: pre-seek slop (seconds) for hybrid accurate seek.")
+    parser.add_argument("--crf", type=int, default=18, help="Re-encode mode: x264 CRF (lower=better quality).")
+    parser.add_argument("--preset", default="veryfast", help="Re-encode mode: x264 preset.")
+    parser.add_argument("--keep-audio", action="store_true", help="Keep/re-encode audio into the clip (default: drop audio).")
+    parser.add_argument("--max-retries", type=int, default=3)
+    parser.add_argument("--overwrite", action="store_true")
+    args = parser.parse_args()
+
+    api_cfg = ApiConfig(
+        api_key=args.api_key,
+        api_base_url=args.api_base,
+        model_provider_id=args.provider,
+        model_name=args.model,
+        max_tokens=args.max_tokens,
+        temperature=args.temperature,
+        api_call_retries=args.api_call_retries,
+        api_call_retry_backoff_sec=args.api_call_retry_backoff_sec,
+        embed_index_on_api_images=not args.no_embed_index,
+        verbose=args.verbose,
+    )
+
+    videos: List[str] = []
+    if args.input_video:
+        videos = [args.input_video]
+    else:
+        videos = collect_videos(args.input_video_dir, VIDEO_EXTS)
+
+    if not videos:
+        raise SystemExit("No videos found.")
+
+    for vp in videos:
+        run_stage2_for_video(
+            vp,
+            args.output_root,
+            api_cfg,
+            ffmpeg_bin=args.ffmpeg_bin,
+            overwrite=args.overwrite,
+            max_retries=args.max_retries,
+            cut_mode=args.cut_mode,
+            seek_slop_sec=args.seek_slop_sec,
+            crf=args.crf,
+            preset=args.preset,
+            keep_audio=args.keep_audio,
+        )
+
+
+if __name__ == "__main__":
+    main()

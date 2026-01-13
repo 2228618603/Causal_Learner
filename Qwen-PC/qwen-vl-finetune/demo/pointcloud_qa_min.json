@@ -1,0 +1,11 @@
+[
+  {
+    "data_path": "qwen-vl-finetune/demo",
+    "point_cloud": "points/scene0000_01_vh_clean.ply",
+    "conversations": [
+      { "from": "human", "value": "Please describe this point cloud." },
+      { "from": "gpt", "value": "A sample indoor scene point cloud." }
+    ]
+  }
+]
+

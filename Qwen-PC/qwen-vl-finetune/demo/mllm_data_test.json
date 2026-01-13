@@ -1,0 +1,27 @@
+[
+  {
+    "image": "qwen-vl-finetune/demo/images/10095.png",
+    "conversations": [
+      { "from": "human", "value": "<image>\n请根据图片回答：图中是否有折线图？" },
+      { "from": "gpt", "value": "是的，有折线图。" }
+    ]
+  },
+  {
+    "image": [
+      "qwen-vl-finetune/demo/images/10095.png",
+      "qwen-vl-finetune/demo/images/10149.png"
+    ],
+    "conversations": [
+      { "from": "human", "value": "<image>\n<image>\n请比较两张图：两张图的趋势是否一致？" },
+      { "from": "gpt", "value": "总体趋势一致。" }
+    ]
+  },
+  {
+    "video": "qwen-vl-finetune/demo/videos/v_7bUu05RIksU.mp4",
+    "conversations": [
+      { "from": "human", "value": "<video>\n请用一句话概括视频内容。" },
+      { "from": "gpt", "value": "视频展示了停车场内多人对车辆进行清洗的过程。" }
+    ]
+  }
+]
+
