@@ -65,13 +65,18 @@ Step：
 
 CriticalFrame：
 - `frame_index: int`（1-based；三阶段产物中为该 step clip 帧池的局部序号，不再与根目录 `sampled_frames/` 的序号对齐；跨 step 的时间顺序/对齐请以 `keyframe_image_path` 文件名的 `ts_XX.XXs` 为准）
-- `keyframe_image_path: str`（绝对或相对；建议归一为绝对路径）
+- `keyframe_image_path: str`（绝对或相对；推荐在生成侧归一为 **相对 item_dir 的路径** 以便可移植；本地调试可在 `meta.abs_path_debug` 保留绝对路径）
 - `action_description: str`
 - `state_change_description: str`
 - `spatial_preconditions: List[{relation:str, objects:[str], truth:bool}]`
 - `affordance_preconditions: List[{object_name:str, affordance_types:[str], reasons:str}]`
-- `causal_chain: {agent, action, patient, causal_effect_on_patient, causal_effect_on_environment}`
-- `affordance_hotspot: {description, affordance_type, mechanism}`
+- `causal_chain: {agent, action, patient, causal_effect_on_patient, causal_effect_on_environment}`（常见扩展字段：`causal_spatial_precondition`, `causal_affordance_focus_detail`）
+- `affordance_hotspot: {description, affordance_type, mechanism}`（见下方兼容说明）
+
+补充（兼容旧产物，建议生成侧做归一化）：
+- `keyframe_image_path` 可能写入了生成机器相关的绝对路径，换机器后不可读；生成侧应做 resolve：**优先原路径可读**，否则回退到 `<item_dir>/` 下同名文件（可用 glob）。
+- 有些产物中 `affordance_hotspot` 只有 `{description, affordance_type, causal_role}`，不含 `mechanism`；机制/物理解释通常位于 `causal_chain.causal_affordance_focus_detail`。
+- 推荐统一派生 `mechanism`：`mechanism := affordance_hotspot.mechanism` 若存在，否则 `mechanism := causal_chain.causal_affordance_focus_detail`，并在 `meta.schema_fallbacks` 记录来源。
 
 ---
 
@@ -145,6 +150,30 @@ CriticalFrame：
 - **证据形态**：`text_only / keyframe_single / images_uniform_scene / images_uniform_clip / video_clip / video_prefix`；
 - **必要约束**：如负样本构造、输出格式与一致性要求。
 
+### 5.0 主题聚焦：因果规划（causal planning）与失败反思（failure reflecting）
+
+如果最终核心严格落在 “**因果规划 + 失败反思**”，建议把 Task_01–Task_30 分层使用（不强行改编号，优先在数据配比与评测指标层面裁剪）：
+
+- **核心 · 因果规划（Causal Planning）**：`Task_06/12/13/16/17/23/24/26/29/30`
+  - 覆盖：局部因果（关键帧因果链/机制）、跨步依赖（precondition↔effect）、长时序规划（prefix→next / reordering / infill）。
+- **核心 · 失败反思（Failure Reflecting）**：`Task_14/15/22/28`（可配合 `Task_18/19` 做证据核验）
+  - 覆盖：反事实挑战、失败原因与恢复、计划-执行不一致检测、错误计划诊断（flaw type）。
+- **支撑 · 因果落地的感知对齐（Grounding）**：`Task_03/04/05/27`（`Task_01` 可选）
+  - 目标是让后续规划/反思任务的解释能“落到对象/空间关系/可供性机制”上，而不是纯文本空转。
+
+优先级最高的重复/低增益点（建议合并/降权）：
+- `Task_02` 与 `Task_27` 高度重叠：若追求稳定训练/评测，建议以 `Task_27` 的 **Yes/No 核验**为主；`Task_02` 仅在你明确需要“开放式空间关系抽取”时保留。
+- `Task_08` 与 `Task_17` 重叠：`Task_17` 已覆盖 Why/How，建议将 `Task_08` 降权或合并为 `Task_17` 的子变体。
+- `Task_07` 与 `Task_23` 功能相近：若有 `video_prefix`，优先 `Task_23`；`Task_07` 作为“无视频/仅全局抽帧”的 fallback。
+- `Task_11` 与 `Task_19` 都围绕“效果”：若强调失败反思与证据闭环，优先 `Task_19`；`Task_11` 更偏计划文本监督，可作为补充而非核心指标。
+- `Task_20/21/25` 更偏辅助能力（边界、关键帧解释、进度总结），可不作为核心任务或降低比例。
+
+从 `causal_plan_with_keyframes.json` 可直接构建、且更贴合“因果规划/失败反思”的候选补充（建议优先做成客观题变体）：
+- **Spatial Postcondition Check（建议新增）**：用 `steps[i].spatial_postconditions_detail[*].truth` 生成 Yes/No，证据用 step i 尾关键帧；它比自由文本 `expected_effects` 更可对齐，更贴近“因果后置状态”。
+- **Affordance Postcondition Check（建议新增）**：用 `steps[i].affordance_postconditions_detail` 生成 MCQ/Yes-No（对象在该步后获得/保持的 affordance），用于“动作 → 可操作性改变”的因果学习。
+- **Counterfactual Outcome MCQ（Task_14 变体）**：用 `expected_challenge_outcome` 做 4 选 1（干扰项来自其他 step/item），强化反事实结果辨析。
+- **Recovery Strategy MCQ（Task_15 变体）**：用 `failure_handling.recovery_strategy` 做 4 选 1（干扰项来自其他 step/item），强化失败后的纠错动作选择。
+- **Failure-Driven Replanning / Recovery Insertion（建议新增）**：给定 `high_level_goal` + 前缀证据 + 某步失败描述，要求输出“先恢复、再继续”的后续计划（第一步需体现 `recovery_strategy`）；可用 `failure_handling.recovery_strategy` + 原 `steps[i+1:]` 作为弱监督，或拆成“选 recovery_strategy + 选 next step_goal”的两段客观题。
 
 ### Task_01_Macro_Anchor_Extraction（场景锚点/关键可交互对象）
 - **任务定义**：抽取任务相关的稳定锚点对象（工具/材料/关键实体）。
@@ -165,7 +194,7 @@ CriticalFrame：
 
 ### Task_03_Micro_Affordance_Visual_Semantics（微观可供性热点语义）
 - **任务定义**：描述关键帧中的可供性热点区域 + 类别 + 物理机制。
-- **字段**：`critical_frames[*].affordance_hotspot.description/affordance_type/mechanism`
+- **字段**：`critical_frames[*].affordance_hotspot.description/affordance_type` +（可选）`mechanism`（见第 2 节兼容映射）
 - **证据形态**：`keyframe_single`
 
 ### Task_04_Entity_Role_Identification（工具/材料角色区分）
@@ -224,7 +253,7 @@ CriticalFrame：
 - **证据形态**：`keyframe_single`
 
 ### Task_17_Holistic_Step_Synthesis_Why_How（步级综合：Why/How）
-- **字段**：Why=`steps[*].rationale`；How=`critical_frames[*].causal_chain.*` 或 `affordance_hotspot.mechanism`
+- **字段**：Why=`steps[*].rationale`；How=`critical_frames[*].causal_chain.*` 或 `mechanism`（见第 2 节兼容映射）
 - **证据形态**：`keyframe_single`（选择同时含“机制/因果链”的关键帧）
 
 
@@ -494,7 +523,7 @@ A: The person is holding and rubbing the cucumber under running water, which imm
 
 - **字段（JSONPath）**：
   - `critical_frames[j].causal_chain.agent/action/patient/causal_effect_on_patient/causal_effect_on_environment`
-  - （可选支撑）`critical_frames[j].spatial_preconditions`, `critical_frames[j].affordance_preconditions`, `critical_frames[j].affordance_hotspot.mechanism`
+  - （可选支撑）`critical_frames[j].spatial_preconditions`, `critical_frames[j].affordance_preconditions`, `mechanism`（见第 2 节兼容映射）
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：每个关键帧最多 1 条。
 - **meta.fields（建议最小集）**：`agent`, `action`, `patient`, `eff_pat`, `eff_env`, `mechanism`, `spatial_preconditions`, `affordance_preconditions`
@@ -698,9 +727,9 @@ A: Spatially, the hand is within reach of and in contact with the wall-mounted l
 
 - **字段（JSONPath）**：
   - Why：`steps[i].rationale`
-  - How：从该 step 的某个关键帧取 `causal_chain.*` 或 `affordance_hotspot.mechanism`
+  - How：从该 step 的某个关键帧取 `causal_chain.*` 或 `mechanism`（见第 2 节兼容映射）
 - **证据来源**：`keyframe_single`（选择 mechanism 最丰富的关键帧）
-- **样本构造规则**：每个 step 最多 1 条（优先选含 `affordance_hotspot.mechanism` 的帧）。
+- **样本构造规则**：每个 step 最多 1 条（优先选能派生 `mechanism` 的帧：`affordance_hotspot.mechanism` 或 `causal_chain.causal_affordance_focus_detail`）。
 - **meta.fields（建议最小集）**：`rationale`, `mechanism`, `step_goal`
 - **范例（Step 1, frame 2）**：
 
