@@ -66,7 +66,7 @@
 如果训练与评测最终核心严格落在 “因果规划 + 失败反思”，建议按如下分层使用（不强行改编号，优先在配比与指标层面裁剪）：
 
 - **核心 · 因果规划（Causal Planning）**
-  - `Task_12/16/18/24/29/30/35/37/38/39/42`
+  - `Task_12/13/16/18/24/29/30/35/37/38/39/42`
 - **核心 · 失败反思（Failure Reflecting）**
   - `Task_22/28/40/41/44`
 - **支撑 · Grounding（对象/机制/动作短语）**
@@ -150,6 +150,13 @@
   - 允许列 2–5 个可观测微动作；看不清则写 `not clearly observable`。
 - **备注**：严格可评分版本请用 `Task_31`（step_goal 四选一匹配）。
 
+### Task_11_Expected_Physical_Effects（期望效果/后置状态：自由文本补充）
+
+- **字段（JSONPath）**：`steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
+- **证据形态**：`keyframe_single`（step-end 关键帧）
+- **输出约束**：自由文本列出 2–6 条“期望效果”；对不可观测效果必须显式写 `not directly observable`。
+- **备注**：v6 的核心可评分核验请使用 `Task_38/39`；本任务仅作为表达补充，不建议作为核心评测指标。
+
 ### Task_12_Inter_Step_Dependency_Analysis（跨步依赖解释）
 
 - **字段（JSONPath）**：
@@ -158,6 +165,15 @@
   - 上下文：`steps[i].step_goal`, `steps[i+1].step_goal`, `high_level_goal`
 - **证据形态**：`keyframe_single`（建议 step i 尾关键帧）
 - **输出约束**：必须引用“重合对象/affordance”作为依赖证据；无重合则不生成样本。
+
+### Task_13_Next_Action_Prediction（下一步 step_goal 预测：计划/弱监督 baseline）
+
+- **字段（JSONPath）**：
+  - 输入侧：`steps[i].step_goal`（可选）
+  - 标签侧：`steps[i+1].step_goal`
+- **证据形态**：`keyframe_single`（step i 尾关键帧；可选）或 `video_prefix`
+- **输出约束**：严格只输出下一步 `step_goal`（不输出其它步骤文本）。
+- **备注**：若有 `video_prefix`，优先使用 `Task_24`；本任务更适合作为“计划文本/弱监督”对照组。
 
 ### Task_14_Counterfactual_Prediction（反事实挑战与结果；自由文本）
 
@@ -505,6 +521,23 @@ Q: Describe the observable micro-actions required to execute this step.
 A: The person moves the vegetables to the sink, turns on the faucet, rinses and rubs the surfaces under running water, then transfers the vegetables to the countertop.
 ```
 
+### Task_11_Expected_Physical_Effects
+
+- **字段（JSONPath）**：`steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
+- **证据来源**：`keyframe_single`（该 step 最后一张关键帧 `critical_frames[-1]`）
+- **样本构造规则**：
+  - 每个 step 0–1 条（建议只取“可观测/可部分观测”的 effect）；
+  - 对明显不可从单帧判断的 effect（如 clean/ready），答案必须显式写 `not directly observable`，避免硬判导致噪声。
+- **meta.fields**：`expected_effects`, `step_goal`
+- **范例**：
+
+```text
+Image (step-end keyframe): <ITEM_DIR>/04_wash_the_cucumber_and_carrot_under_running_water_and_place_them_on_the_countertop/frame_025_ts_86.39s.jpg
+fields.step_goal = "Wash the cucumber and carrot under running water and place them on the countertop."
+Q: Upon completion of this step, what physical effects should be expected for the environment and objects?
+A: The vegetables should end up on the countertop if their placement is visible. Whether they are fully clean can be not directly observable from a single frame.
+```
+
 ### Task_12_Inter_Step_Dependency_Analysis
 
 - **字段（JSONPath）**：同 `## 5`
@@ -519,6 +552,26 @@ fields.step_n_goal = "Enter the kitchen and turn on the light to illuminate the 
 fields.step_next_goal = "Retrieve a carrot and a cucumber from the refrigerator."
 Q: How does the outcome of the previous step satisfy the preconditions for the next step?
 A: Turning on the light makes the workspace visible and safe, enabling the person to locate and access the refrigerator to retrieve the vegetables.
+```
+
+### Task_13_Next_Action_Prediction
+
+- **字段（JSONPath）**：
+  - 输入侧：`steps[i].step_goal`（可选）
+  - 标签侧：`steps[i+1].step_goal`
+- **证据来源**：
+  - 计划版本：`keyframe_single`（step i 尾关键帧）
+  - 视觉版本：若已有 prefix，优先用 `Task_24`（本任务不重复造轮子）
+- **样本构造规则**：严格只输出下一步 `step_goal`（完全匹配，不输出多余文本）。
+- **meta.fields**：`current_step_goal`, `next_step_goal`
+- **范例**：
+
+```text
+Image: <ITEM_DIR>/01_enter_the_kitchen_and_turn_on_the_light_to_illuminate_the_workspace/frame_002_ts_3.59s.jpg
+fields.current_step_goal = "Enter the kitchen and turn on the light to illuminate the workspace."
+label.next_step_goal = "Retrieve a carrot and a cucumber from the refrigerator."
+Q: What is the next planned action?
+A: Retrieve a carrot and a cucumber from the refrigerator.
 ```
 
 ### Task_14_Counterfactual_Prediction
@@ -1042,11 +1095,23 @@ A (label): A
 - Q: Describe the observable micro-actions for this step.
 - A: The person moves vegetables to the sink, turns on water, rinses and rubs them, then transfers them to the countertop.
 
+### Task_11_Expected_Physical_Effects（自由文本示例）
+
+- Evidence（`keyframe_single`）：`<ITEM_DIR>/04_wash_the_cucumber_and_carrot_under_running_water_and_place_them_on_the_countertop/frame_025_ts_86.39s.jpg`
+- Q: What physical effects should be expected upon completion of this step?
+- A: The vegetables should end up on the countertop if their placement is visible, while claims like “fully clean” can be not directly observable from a single image.
+
 ### Task_12_Inter_Step_Dependency_Analysis（自由文本示例）
 
 - Evidence（`keyframe_single`）：step i 尾关键帧
 - Q: How does the outcome of step i enable step i+1?
 - A: Step i produces the spatial/affordance state required by step i+1, such as making the workspace visible or making an object available for manipulation.
+
+### Task_13_Next_Action_Prediction（自由文本示例）
+
+- Evidence（`keyframe_single`）：`<ITEM_DIR>/01_enter_the_kitchen_and_turn_on_the_light_to_illuminate_the_workspace/frame_002_ts_3.59s.jpg`
+- Q: What is the next planned action after turning on the light?
+- A: Retrieve a carrot and a cucumber from the refrigerator.
 
 ### Task_14_Counterfactual_Prediction（自由文本示例）
 
@@ -1203,4 +1268,3 @@ A (label): A
 - Evidence（`video_prefix`）
 - Q: After recovering from the failure, what should happen next?
 - A: The agent should resume the intended step that was previously unstable, such as continuing slicing after stabilizing the cutting board.
-
