@@ -10,22 +10,11 @@ import shutil
 import tempfile
 from typing import Any, Dict, List, Optional, Tuple
 
-from common import read_json, sanitize_filename, validate_stage2_localization, write_json
+from common import normalize_stage3_step_output, read_json, sanitize_filename, validate_stage2_localization, write_json
 from stage1_generate_draft import _draft_hard_errors, _stage1_raw_schema_errors
-from stage3_refine_and_keyframes import _is_step_schema_canonical, _validate_step_final_dict
 
-
-_TS_RE = re.compile(r"_ts_([0-9]+(?:\.[0-9]+)?)s\.jpg$", re.IGNORECASE)
-
-
-def _parse_ts_from_filename(path: str) -> Optional[float]:
-    m = _TS_RE.search(os.path.basename(path or ""))
-    if not m:
-        return None
-    try:
-        return float(m.group(1))
-    except Exception:
-        return None
+def _keyframe_filename(frame_index_1based: int, timestamp_sec: float) -> str:
+    return f"frame_{int(frame_index_1based):03d}_ts_{float(timestamp_sec):.2f}s.jpg"
 
 
 def _looks_like_two_stage_output(video_out: str) -> bool:
@@ -260,6 +249,7 @@ def _check_stage3_and_final(
 
     expected = _draft_outline_by_id(draft)
     got: Dict[int, str] = {}
+    step_in_final_by_id: Dict[int, Dict[str, Any]] = {}
     for st in steps:
         if not isinstance(st, dict) or st.get("step_id") is None:
             errors.append("Final plan contains a non-object step.")
@@ -274,6 +264,7 @@ def _check_stage3_and_final(
             errors.append(f"Final plan duplicate step_id={sid}")
             continue
         got[sid] = goal
+        step_in_final_by_id[sid] = st
         if expected.get(sid) != goal:
             errors.append(f"Final plan step_goal mismatch step_id={sid}: expected '{expected.get(sid)}', got '{goal}'")
 
@@ -313,12 +304,45 @@ def _check_stage3_and_final(
             errors.append(f"Invalid step manifest num_frames for step_id={sid}: {num_frames}")
             continue
 
-        step_final = read_json(step_out_path)
-        if not _validate_step_final_dict(step_final, sid, goal, num_frames=num_frames, require_keyframe_paths=True):
-            errors.append(f"Invalid step_final.json schema or missing keyframe images for step_id={sid}")
+        frames = manifest.get("frames", [])
+        if not isinstance(frames, list) or len(frames) != num_frames:
+            errors.append(f"Invalid step manifest frames list for step_id={sid} (len(frames) != num_frames).")
             continue
-        if not _is_step_schema_canonical(step_final):
-            errors.append(f"Non-canonical keys detected in step_final.json for step_id={sid} (causal_chain/hotspot)")
+        by_idx: Dict[int, float] = {}
+        frame_timestamps: List[float] = []
+        for i, fr in enumerate(frames, start=1):
+            if not isinstance(fr, dict):
+                frame_timestamps.append(0.0)
+                continue
+            try:
+                idx1 = int(fr.get("frame_index_1based"))
+            except Exception:
+                idx1 = i
+            try:
+                ts = float(fr.get("timestamp_sec", 0.0))
+            except Exception:
+                ts = 0.0
+            by_idx[idx1] = ts
+            frame_timestamps.append(ts)
+
+        step_final = read_json(step_out_path)
+        normalized_step_final, step_final_errors = normalize_stage3_step_output(
+            step_final, sid, goal, num_frames, frame_timestamps=frame_timestamps
+        )
+        if normalized_step_final is None:
+            errors.extend([f"Stage3 step_final.json error step_id={sid}: {e}" for e in step_final_errors[:30]])
+            continue
+
+        # Validate that the step object embedded in the final plan matches the per-step file on disk.
+        step_in_final = step_in_final_by_id.get(sid) or {}
+        normalized_in_final, in_final_errors = normalize_stage3_step_output(
+            step_in_final, sid, goal, num_frames, frame_timestamps=frame_timestamps
+        )
+        if normalized_in_final is None:
+            errors.extend([f"Final plan step schema error step_id={sid}: {e}" for e in in_final_errors[:30]])
+            continue
+        if normalized_in_final != normalized_step_final:
+            errors.append(f"Final plan step differs from {step_out_path} for step_id={sid} (schema-normalized mismatch).")
             continue
 
         # Ensure step_meta.json matches Stage2 segment metadata (clip + start/end seconds).
@@ -369,49 +393,31 @@ def _check_stage3_and_final(
         except Exception:
             errors.append(f"step_meta.json missing/invalid clip_start_sec/clip_end_sec for step_id={sid}")
 
-        # Validate keyframe timestamp consistency against step manifest (after rounding to 2 decimals).
-        frames = manifest.get("frames", [])
-        by_idx: Dict[int, float] = {}
-        if isinstance(frames, list):
-            for fr in frames:
-                if not isinstance(fr, dict):
-                    continue
-                try:
-                    idx1 = int(fr.get("frame_index_1based"))
-                    ts = float(fr.get("timestamp_sec", 0.0))
-                except Exception:
-                    continue
-                by_idx[idx1] = ts
-
-        for i, cf in enumerate(step_final.get("critical_frames") or []):
+        # Validate that keyframe images exist and are consistent with the step manifest.
+        for i, cf in enumerate(normalized_step_final.get("critical_frames") or []):
             if not isinstance(cf, dict):
                 continue
-            fi = int(cf.get("frame_index", -1))
-            kfp = str(cf.get("keyframe_image_path") or "")
-            if not kfp:
-                errors.append(f"Missing keyframe_image_path in step_final step_id={sid}, critical_frames[{i}]")
+            try:
+                fi = int(cf.get("frame_index", -1))
+            except Exception:
+                fi = -1
+            if fi not in by_idx:
+                errors.append(f"critical_frames[{i}].frame_index={fi} not found in step manifest for step_id={sid}")
                 continue
-            if not os.path.isabs(kfp):
-                warnings.append(f"keyframe_image_path is not absolute (step_id={sid}, frame_index={fi}): {kfp}")
-            ts_from_name = _parse_ts_from_filename(kfp)
-            if ts_from_name is None:
-                warnings.append(f"Cannot parse _ts_*.jpg timestamp from keyframe_image_path: {kfp}")
+            ts = float(by_idx[fi])
+            expected_name = _keyframe_filename(fi, ts)
+            expected_path = os.path.join(step_folder, expected_name)
+            if not os.path.exists(expected_path):
+                errors.append(f"Missing keyframe image for step_id={sid}, frame_index={fi}: {expected_path}")
                 continue
-            if fi in by_idx:
-                expected_ts_2dp = round(float(by_idx[fi]), 2)
-                if abs(float(ts_from_name) - expected_ts_2dp) > 1e-6:
-                    warnings.append(
-                        f"Keyframe filename ts mismatch step_id={sid}, frame_index={fi}: "
-                        f"name={ts_from_name:.2f} vs manifest={expected_ts_2dp:.2f}"
-                    )
-            else:
-                warnings.append(f"frame_index={fi} not found in step manifest for step_id={sid}")
+            if os.path.getsize(expected_path) <= 0:
+                errors.append(f"Keyframe image is empty for step_id={sid}, frame_index={fi}: {expected_path}")
 
-            # Optional: check timestamp is within Stage2 segment [start_sec, end_sec].
-            if float(ts_from_name) + 0.05 < seg_start_sec or float(ts_from_name) - 0.05 > seg_end_sec:
+            # Optional: check timestamp is within Stage2 segment [start_sec, end_sec] (tolerance for rounding).
+            ts_2dp = round(ts, 2)
+            if float(ts_2dp) + 0.05 < seg_start_sec or float(ts_2dp) - 0.05 > seg_end_sec:
                 warnings.append(
-                    f"Keyframe ts outside Stage2 segment for step_id={sid}: "
-                    f"ts={ts_from_name:.2f}, seg=[{seg_start_sec:.2f},{seg_end_sec:.2f}]"
+                    f"Keyframe ts outside Stage2 segment for step_id={sid}: ts={ts_2dp:.2f}, seg=[{seg_start_sec:.2f},{seg_end_sec:.2f}]"
                 )
 
     return errors, warnings
@@ -517,17 +523,32 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
                 "step_id": sid,
                 "step_goal": f"do_step_{sid}",
                 "rationale": "A minimal rationale grounded in the sequence.",
-                "preconditions": ["a precondition"],
-                "expected_effects": ["an expected effect"],
-                "spatial_postconditions_detail": [{"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}],
-                "affordance_postconditions_detail": [
-                    {"object_name": "obj_a", "affordance_types": ["movable"], "reasons": "Object state changes."}
-                ],
-                "predicted_next_actions": ["next_action_a", "next_action_b"],
-                "tool_and_material_usage": {"tools": ["hands"], "materials": []},
-                "causal_challenge_question": "What if the object is missing?",
+                "causal_chain": {
+                    "agent": "hands",
+                    "action": "move",
+                    "patient": "obj_a",
+                    "causal_precondition_on_spatial": [
+                        {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
+                    ],
+                    "causal_precondition_on_affordance": [
+                        {
+                            "object_name": "obj_a",
+                            "affordance_types": ["graspable"],
+                            "reasons": "The object is reachable and can be grasped.",
+                        }
+                    ],
+                    "causal_effect_on_spatial": [{"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}],
+                    "causal_effect_on_affordance": [
+                        {
+                            "object_name": "obj_a",
+                            "affordance_types": ["positioned"],
+                            "reasons": "After moving, the object ends up in the new position.",
+                        }
+                    ],
+                },
+                "counterfactual_challenge_question": "What if obj_a is missing?",
                 "expected_challenge_outcome": "The step cannot be completed.",
-                "failure_handling": {"reason": "Missing object", "recovery_strategy": "Find a substitute."},
+                "failure_reflecting": {"reason": "obj_a is missing.", "recovery_strategy": "Find a replacement object."},
             }
         )
     write_json(os.path.join(stage1_dir, "draft_plan.json"), draft)
@@ -615,50 +636,117 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
             _write_dummy_file(os.path.join(step_folder, rel), data=b"jpg")
         write_json(os.path.join(step_folder, "frame_manifest.json"), {"num_frames": 5, "note": "selftest", "frames": step_frames})
 
-        # One keyframe at frame_index=3.
-        fi = 3
-        kf_ts = float(step_frames[fi - 1]["timestamp_sec"])
-        kf_name = f"frame_{fi:03d}_ts_{kf_ts:.2f}s.jpg"
-        kf_path = os.path.abspath(os.path.join(step_folder, kf_name))
-        _write_dummy_file(kf_path, data=b"jpg")
+        # Two keyframes saved in the step folder root (matches stage3_refine_and_keyframes.py).
+        fi1, fi2 = 2, 5
+        for fi in (fi1, fi2):
+            kf_ts = float(step_frames[fi - 1]["timestamp_sec"])
+            kf_path = os.path.abspath(os.path.join(step_folder, _keyframe_filename(fi, kf_ts)))
+            _write_dummy_file(kf_path, data=b"jpg")
 
         step_final = {
             "step_id": sid,
             "step_goal": goal,
             "rationale": "Refined rationale.",
-            "preconditions": ["a precondition"],
-            "expected_effects": ["an expected effect"],
-            "spatial_postconditions_detail": [{"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}],
-            "affordance_postconditions_detail": [
-                {"object_name": "obj_a", "affordance_types": ["movable"], "reasons": "Object state changes."}
-            ],
-            "predicted_next_actions": ["next_action_a", "next_action_b"],
-            "tool_and_material_usage": {"tools": ["hands"], "materials": []},
-            "causal_challenge_question": "What if the object is missing?",
+            "causal_chain": {
+                "agent": "hands",
+                "action": "move",
+                "patient": "obj_a",
+                "causal_precondition_on_spatial": [{"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}],
+                "causal_precondition_on_affordance": [
+                    {
+                        "object_name": "obj_a",
+                        "affordance_types": ["graspable"],
+                        "reasons": "The object is reachable and can be grasped.",
+                    }
+                ],
+                "causal_effect_on_spatial": [{"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}],
+                "causal_effect_on_affordance": [
+                    {
+                        "object_name": "obj_a",
+                        "affordance_types": ["positioned"],
+                        "reasons": "After moving, the object ends up in the new position.",
+                    }
+                ],
+            },
+            "counterfactual_challenge_question": "What if obj_a is missing?",
             "expected_challenge_outcome": "The step cannot be completed.",
-            "failure_handling": {"reason": "Missing object", "recovery_strategy": "Find a substitute."},
+            "failure_reflecting": {"reason": "obj_a is missing.", "recovery_strategy": "Find a replacement object."},
             "critical_frames": [
                 {
-                    "frame_index": fi,
-                    "action_description": "Perform the action.",
-                    "state_change_description": "State changes.",
-                    "spatial_preconditions": [{"relation": "contacting", "objects": ["hand", "obj_a"], "truth": True}],
-                    "affordance_preconditions": [
-                        {"object_name": "obj_a", "affordance_types": ["movable"], "reasons": "It is reachable."}
-                    ],
+                    "frame_index": fi1,
+                    "action_state_change_description": "Initiate moving obj_a using hands; motion begins.",
                     "causal_chain": {
-                        "agent": "hand",
+                        "agent": "hands",
                         "action": "move",
                         "patient": "obj_a",
-                        "causal_effect_on_patient": "The object changes position.",
-                        "causal_effect_on_environment": "The scene configuration changes.",
+                        "causal_precondition_on_spatial": [
+                            {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
+                        ],
+                        "causal_precondition_on_affordance": [
+                            {
+                                "object_name": "obj_a",
+                                "affordance_types": ["graspable"],
+                                "reasons": "The object is reachable and can be grasped.",
+                            }
+                        ],
+                        "causal_effect_on_spatial": [
+                            {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
+                        ],
+                        "causal_effect_on_affordance": [
+                            {
+                                "object_name": "obj_a",
+                                "affordance_types": ["moving"],
+                                "reasons": "The object is being moved by the applied force.",
+                            }
+                        ],
                     },
-                    "affordance_hotspot": {
-                        "description": "The graspable region.",
-                        "affordance_type": "graspable",
-                        "mechanism": "Grip force transfers motion to the object.",
+                    "interaction": {
+                        "tools": ["hands"],
+                        "materials": ["obj_a"],
+                        "hotspot": {
+                            "description": "The graspable region of obj_a.",
+                            "affordance_type": "graspable",
+                            "mechanism": "Grip force transfers motion to the object.",
+                        },
                     },
-                    "keyframe_image_path": kf_path,
+                },
+                {
+                    "frame_index": fi2,
+                    "action_state_change_description": "Complete the movement; obj_a reaches the new position on obj_b.",
+                    "causal_chain": {
+                        "agent": "hands",
+                        "action": "move_and_place",
+                        "patient": "obj_a",
+                        "causal_precondition_on_spatial": [
+                            {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
+                        ],
+                        "causal_precondition_on_affordance": [
+                            {
+                                "object_name": "obj_a",
+                                "affordance_types": ["movable"],
+                                "reasons": "The object can be repositioned by applied force.",
+                            }
+                        ],
+                        "causal_effect_on_spatial": [
+                            {"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}
+                        ],
+                        "causal_effect_on_affordance": [
+                            {
+                                "object_name": "obj_a",
+                                "affordance_types": ["positioned"],
+                                "reasons": "The object ends in the target placement location.",
+                            }
+                        ],
+                    },
+                    "interaction": {
+                        "tools": ["hands"],
+                        "materials": ["obj_a"],
+                        "hotspot": {
+                            "description": "The region of obj_a contacted by the fingers/palm.",
+                            "affordance_type": "graspable",
+                            "mechanism": "Applied force controls the final placement against gravity.",
+                        },
+                    },
                 }
             ],
         }

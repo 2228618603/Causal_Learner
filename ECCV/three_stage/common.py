@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -112,6 +113,26 @@ def _contains_frame_ref(text: Any) -> bool:
     return bool(_FRAME_REF_RE.search(s) or _FRAME_REF_ORDINAL_RE.search(s))
 
 
+_TIME_REF_RE = re.compile(
+    r"(?:"
+    # Explicit timestamp assignment like "t=3.2s"
+    r"\bt\s*=\s*\d+(?:\.\d+)?\s*(?:s|sec|secs|second|seconds|ms|msec|milliseconds?)\b"
+    r"|"
+    # Numeric duration like "3.2s", "3 seconds"
+    r"\b\d+(?:\.\d+)?\s*(?:s|sec|secs|second|seconds|ms|msec|milliseconds?)\b"
+    r"|"
+    # Timecode like "00:03" or "1:02:03.5"
+    r"\b\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _contains_time_ref(text: Any) -> bool:
+    s = str(text or "")
+    return bool(_TIME_REF_RE.search(s))
+
+
 def _text_dedupe_key(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip().lower())
 
@@ -172,15 +193,106 @@ def read_json(path: str) -> Dict[str, Any]:
 
 
 def write_json(path: str, data: Any) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    dir_path = os.path.dirname(path)
+    if dir_path:
+        os.makedirs(dir_path, exist_ok=True)
+    tmp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=dir_path or ".",
+            prefix=os.path.basename(path) + ".tmp.",
+            delete=False,
+        ) as f:
+            tmp_path = f.name
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                pass
+        os.replace(tmp_path, path)
+    finally:
+        try:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
 
 
 def write_text(path: str, text: str) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text or "")
+    dir_path = os.path.dirname(path)
+    if dir_path:
+        os.makedirs(dir_path, exist_ok=True)
+    tmp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=dir_path or ".",
+            prefix=os.path.basename(path) + ".tmp.",
+            delete=False,
+        ) as f:
+            tmp_path = f.name
+            f.write(text or "")
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                pass
+        os.replace(tmp_path, path)
+    finally:
+        try:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
+
+
+class OutputDirCollisionError(RuntimeError):
+    """Raised when the output directory is unsafe to use for the current source video."""
+
+
+def ensure_video_out_dir_safe(video_out: str, video_path: str) -> None:
+    """Fail fast if `video_out` already contains outputs for a different source video.
+
+    The pipeline uses `video_id_from_path()` (stem of filename) to name `<video_out>`. If two different
+    videos share the same stem, resuming would silently mix artifacts and corrupt outputs.
+    """
+    if not os.path.exists(video_out):
+        return
+    try:
+        entries = [x for x in os.listdir(video_out) if x not in {".", ".."}]
+    except Exception:
+        return
+    if not entries:
+        return
+
+    run_summary_path = os.path.join(video_out, "run_summary.json")
+    if os.path.exists(run_summary_path):
+        try:
+            rs = read_json(run_summary_path)
+        except Exception:
+            rs = {}
+        src = rs.get("source_video")
+        if isinstance(src, str) and src.strip():
+            cur = os.path.abspath(video_path)
+            old = os.path.abspath(src)
+            if cur != old:
+                raise OutputDirCollisionError(
+                    "Output dir collision detected.\n"
+                    f"- video_out: {os.path.abspath(video_out)}\n"
+                    f"- existing source_video: {old}\n"
+                    f"- current  source_video: {cur}\n"
+                    "Rename the video file (or use a different --output-root), or delete the existing output folder."
+                )
+            return
+
+    raise OutputDirCollisionError(
+        f"Output dir is non-empty but missing a readable `run_summary.json` with `source_video`: {os.path.abspath(video_out)}. "
+        "To avoid mixing outputs across videos, delete this folder (or pick a different --output-root) and re-run."
+    )
 
 
 def build_retry_prefix(errors: List[str], prev_output: str) -> str:
@@ -524,17 +636,10 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
         ident = sanitize_filename(s)
         return "" if ident == "unnamed" else ident
 
-    def _norm_str_list(v: Any) -> List[str]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[str] = []
-        for x in v:
-            s = _norm_str(x)
-            if s:
-                out_list.append(s)
-        return _dedupe_keep_order(out_list, key_fn=_text_dedupe_key)
-
     def _norm_identifier_list(v: Any) -> List[str]:
+        if isinstance(v, str):
+            one = _norm_identifier(v)
+            return [one] if one else []
         if not isinstance(v, list):
             return []
         out_list: List[str] = []
@@ -576,7 +681,10 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
                 truth = True
             if rel and objs_list:
                 out_list.append({"relation": rel, "objects": objs_list, "truth": truth})
-        return out_list
+        return _dedupe_keep_order(
+            out_list,
+            key_fn=lambda d: (d.get("relation"), tuple(d.get("objects") or []), bool(d.get("truth"))),
+        )
 
     def _norm_affordance_states(v: Any) -> List[Dict[str, Any]]:
         if not isinstance(v, list):
@@ -595,7 +703,22 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
             reasons = _norm_str(ap.get("reasons", ""))
             if obj and aff_list and reasons:
                 out_list.append({"object_name": obj, "affordance_types": aff_list, "reasons": reasons})
-        return out_list
+        return _dedupe_keep_order(
+            out_list,
+            key_fn=lambda d: (d.get("object_name"), tuple(d.get("affordance_types") or []), d.get("reasons")),
+        )
+
+    def _norm_causal_chain(v: Any) -> Dict[str, Any]:
+        d = v if isinstance(v, dict) else {}
+        return {
+            "agent": _norm_identifier(d.get("agent", "")),
+            "action": _norm_str(d.get("action", "")),
+            "patient": _norm_identifier(d.get("patient", "")),
+            "causal_precondition_on_spatial": _norm_spatial_relations(d.get("causal_precondition_on_spatial")),
+            "causal_precondition_on_affordance": _norm_affordance_states(d.get("causal_precondition_on_affordance")),
+            "causal_effect_on_spatial": _norm_spatial_relations(d.get("causal_effect_on_spatial")),
+            "causal_effect_on_affordance": _norm_affordance_states(d.get("causal_effect_on_affordance")),
+        }
 
     out: Dict[str, Any] = {
         "high_level_goal": _norm_str(plan.get("high_level_goal", "")),
@@ -614,20 +737,10 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
         if not isinstance(step, dict):
             warnings.append(f"Step #{idx} is not an object; skipped.")
             continue
-        if "critical_frames" in step:
-            warnings.append(f"Removed unexpected 'critical_frames' in step_id={step.get('step_id')}.")
-
-        tool_usage = step.get("tool_and_material_usage")
-        if not isinstance(tool_usage, dict):
-            tool_usage = {"tools": [], "materials": []}
-        tools = _norm_identifier_list(tool_usage.get("tools"))
-        materials = _norm_identifier_list(tool_usage.get("materials"))
-
-        fh = step.get("failure_handling")
-        if not isinstance(fh, dict):
-            fh = {"reason": "", "recovery_strategy": ""}
-        reason = _norm_str(fh.get("reason", ""))
-        recovery = _norm_str(fh.get("recovery_strategy", ""))
+        for forbidden in ("critical_frames", "frame_index", "interaction", "keyframe_image_path"):
+            if forbidden in step:
+                warnings.append(f"Removed unexpected '{forbidden}' in step_id={step.get('step_id')}.")
+                step.pop(forbidden, None)
 
         step_goal = _norm_str(step.get("step_goal", ""))
         if not step_goal:
@@ -638,16 +751,35 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
         else:
             seen_goals[step_goal] = idx
 
-        spatial_post = _norm_spatial_relations(step.get("spatial_postconditions_detail"))
-        afford_post = _norm_affordance_states(step.get("affordance_postconditions_detail"))
-        predicted_next = _norm_str_list(step.get("predicted_next_actions"))
+        cc = _norm_causal_chain(step.get("causal_chain"))
+        if not cc.get("agent") or not cc.get("action") or not cc.get("patient"):
+            warnings.append(f"Missing/empty causal_chain agent/action/patient at step #{idx}.")
+        if not cc.get("causal_precondition_on_spatial"):
+            warnings.append(f"Missing/empty causal_chain.causal_precondition_on_spatial at step #{idx}.")
+        if not cc.get("causal_precondition_on_affordance"):
+            warnings.append(f"Missing/empty causal_chain.causal_precondition_on_affordance at step #{idx}.")
+        if not cc.get("causal_effect_on_spatial"):
+            warnings.append(f"Missing/empty causal_chain.causal_effect_on_spatial at step #{idx}.")
+        if not cc.get("causal_effect_on_affordance"):
+            warnings.append(f"Missing/empty causal_chain.causal_effect_on_affordance at step #{idx}.")
 
-        if not spatial_post:
-            warnings.append(f"Missing/empty spatial_postconditions_detail at step #{idx}.")
-        if not afford_post:
-            warnings.append(f"Missing/empty affordance_postconditions_detail at step #{idx}.")
-        if not predicted_next:
-            warnings.append(f"Missing/empty predicted_next_actions at step #{idx}.")
+        counterfactual_q = _norm_str(step.get("counterfactual_challenge_question", ""))
+        if not counterfactual_q:
+            warnings.append(f"Missing/empty counterfactual_challenge_question at step #{idx}.")
+
+        expected_outcome = _norm_str(step.get("expected_challenge_outcome", ""))
+        if not expected_outcome:
+            warnings.append(f"Missing/empty expected_challenge_outcome at step #{idx}.")
+
+        fr = step.get("failure_reflecting")
+        if not isinstance(fr, dict):
+            fr = {"reason": "", "recovery_strategy": ""}
+        fr_reason = _norm_str(fr.get("reason", ""))
+        fr_recovery = _norm_str(fr.get("recovery_strategy", ""))
+        if not fr_reason:
+            warnings.append(f"Missing/empty failure_reflecting.reason at step #{idx}.")
+        if not fr_recovery:
+            warnings.append(f"Missing/empty failure_reflecting.recovery_strategy at step #{idx}.")
 
         out["steps"].append(
             {
@@ -655,21 +787,10 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
                 "step_id": idx,
                 "step_goal": step_goal,
                 "rationale": _norm_str(step.get("rationale", "")),
-                "preconditions": _norm_str_list(step.get("preconditions")),
-                "expected_effects": _norm_str_list(step.get("expected_effects")),
-                "spatial_postconditions_detail": spatial_post,
-                "affordance_postconditions_detail": afford_post,
-                "predicted_next_actions": predicted_next,
-                "tool_and_material_usage": {
-                    "tools": tools,
-                    "materials": materials,
-                },
-                "causal_challenge_question": _norm_str(step.get("causal_challenge_question", "")),
-                "expected_challenge_outcome": _norm_str(step.get("expected_challenge_outcome", "")),
-                "failure_handling": {
-                    "reason": reason,
-                    "recovery_strategy": recovery,
-                },
+                "causal_chain": cc,
+                "counterfactual_challenge_question": counterfactual_q,
+                "expected_challenge_outcome": expected_outcome,
+                "failure_reflecting": {"reason": fr_reason, "recovery_strategy": fr_recovery},
             }
         )
 
@@ -789,7 +910,7 @@ def validate_stage2_localization(
     return len(errors) == 0, errors, by_id
 
 
-def normalize_stage3_step_output(
+def normalize_stage3_step_output_legacy(
     step_json: Dict[str, Any],
     expected_step_id: int,
     expected_step_goal: str,
@@ -1234,6 +1355,357 @@ def normalize_stage3_step_output(
             "reason": reason,
             "recovery_strategy": recovery,
         },
+        "critical_frames": normalized_cfs,
+    }
+
+    if errors:
+        return None, errors
+    return normalized, []
+
+
+def normalize_stage3_step_output(
+    step_json: Dict[str, Any],
+    expected_step_id: int,
+    expected_step_goal: str,
+    num_frames: int,
+    *,
+    frame_timestamps: Optional[List[float]] = None,
+) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+    errors: List[str] = []
+    if not isinstance(step_json, dict):
+        return None, ["Stage 3 output is not an object."]
+
+    allowed_top_keys = {
+        "step_id",
+        "step_goal",
+        "rationale",
+        "causal_chain",
+        "counterfactual_challenge_question",
+        "expected_challenge_outcome",
+        "failure_reflecting",
+        "critical_frames",
+    }
+    extra_top = sorted(set(step_json.keys()) - allowed_top_keys)
+    if extra_top:
+        errors.append(f"Unexpected top-level keys (not allowed): {extra_top}")
+
+    def _norm_str(v: Any) -> str:
+        s = str(v).strip() if v is not None else ""
+        return "" if _is_placeholder_str(s) else s
+
+    def _norm_identifier(v: Any) -> str:
+        s = _norm_str(v)
+        if not s:
+            return ""
+        ident = sanitize_filename(s)
+        return "" if ident == "unnamed" else ident
+
+    def _norm_identifier_list(v: Any) -> List[str]:
+        if not isinstance(v, list):
+            return []
+        out_list: List[str] = []
+        for x in v:
+            s = _norm_identifier(x)
+            if s:
+                out_list.append(s)
+        return _dedupe_keep_order(out_list)
+
+    def _parse_bool(v: Any) -> Optional[bool]:
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            t = v.strip().lower()
+            if t in {"true", "t", "yes", "y", "1"}:
+                return True
+            if t in {"false", "f", "no", "n", "0"}:
+                return False
+        if isinstance(v, (int, float)) and v in {0, 1}:
+            return bool(v)
+        return None
+
+    allowed_cc_keys = {
+        "agent",
+        "action",
+        "patient",
+        "causal_precondition_on_spatial",
+        "causal_precondition_on_affordance",
+        "causal_effect_on_spatial",
+        "causal_effect_on_affordance",
+    }
+    allowed_rel_keys = {"relation", "objects", "truth"}
+    allowed_aff_keys = {"object_name", "affordance_types", "reasons"}
+
+    def _norm_spatial_relations(v: Any, *, label: str) -> List[Dict[str, Any]]:
+        if not isinstance(v, list):
+            return []
+        out_list: List[Dict[str, Any]] = []
+        for j, sp in enumerate(v):
+            if not isinstance(sp, dict):
+                continue
+            extra_sp = sorted(set(sp.keys()) - allowed_rel_keys)
+            if extra_sp:
+                errors.append(f"{label}[{j}] contains extra keys (not allowed): {extra_sp}")
+            rel_raw = sp.get("relation", "")
+            if _contains_frame_ref(rel_raw):
+                errors.append(f"{label}[{j}].relation must not reference frame/image indices.")
+            rel = _norm_str(rel_raw)
+            objs_raw = sp.get("objects")
+            if isinstance(objs_raw, str):
+                if _contains_frame_ref(objs_raw):
+                    errors.append(f"{label}[{j}].objects must not reference frame/image indices.")
+            elif isinstance(objs_raw, list) and any(_contains_frame_ref(x) for x in objs_raw):
+                errors.append(f"{label}[{j}].objects must not reference frame/image indices.")
+            objs_list = _norm_identifier_list(objs_raw)
+            truth = _parse_bool(sp.get("truth"))
+            if truth is None:
+                truth = True
+            if not rel:
+                errors.append(f"{label}[{j}].relation is empty (expected a non-empty string).")
+            if not objs_list:
+                errors.append(f"{label}[{j}].objects is empty (expected a non-empty list of strings).")
+            if rel and objs_list:
+                out_list.append({"relation": rel, "objects": objs_list, "truth": truth})
+        return _dedupe_keep_order(
+            out_list,
+            key_fn=lambda d: (d.get("relation"), tuple(d.get("objects") or []), bool(d.get("truth"))),
+        )
+
+    def _norm_affordance_states(v: Any, *, label: str) -> List[Dict[str, Any]]:
+        if not isinstance(v, list):
+            return []
+        out_list: List[Dict[str, Any]] = []
+        for j, ap in enumerate(v):
+            if not isinstance(ap, dict):
+                continue
+            extra_ap = sorted(set(ap.keys()) - allowed_aff_keys)
+            if extra_ap:
+                errors.append(f"{label}[{j}] contains extra keys (not allowed): {extra_ap}")
+            obj_raw = ap.get("object_name", "")
+            if _contains_frame_ref(obj_raw):
+                errors.append(f"{label}[{j}].object_name must not reference frame/image indices.")
+            obj = _norm_identifier(obj_raw)
+            affs_raw = ap.get("affordance_types")
+            if isinstance(affs_raw, str):
+                if _contains_frame_ref(affs_raw):
+                    errors.append(f"{label}[{j}].affordance_types must not reference frame/image indices.")
+            elif isinstance(affs_raw, list) and any(_contains_frame_ref(x) for x in affs_raw):
+                errors.append(f"{label}[{j}].affordance_types must not reference frame/image indices.")
+            aff_list = _norm_identifier_list(affs_raw)
+            reasons_raw = ap.get("reasons", "")
+            if _contains_frame_ref(reasons_raw):
+                errors.append(f"{label}[{j}].reasons must not reference frame/image indices.")
+            reasons = _norm_str(reasons_raw)
+            if not obj:
+                errors.append(f"{label}[{j}].object_name is empty (expected a non-empty string).")
+            if not aff_list:
+                errors.append(f"{label}[{j}].affordance_types is empty (expected a non-empty list).")
+            if not reasons:
+                errors.append(f"{label}[{j}].reasons is empty (expected a non-empty grounded string).")
+            if obj and aff_list and reasons:
+                out_list.append({"object_name": obj, "affordance_types": aff_list, "reasons": reasons})
+        return _dedupe_keep_order(
+            out_list,
+            key_fn=lambda d: (d.get("object_name"), tuple(d.get("affordance_types") or []), d.get("reasons")),
+        )
+
+    def _norm_causal_chain(v: Any, *, label: str) -> Dict[str, Any]:
+        d = v if isinstance(v, dict) else {}
+        if isinstance(v, dict):
+            extra_cc = sorted(set(d.keys()) - allowed_cc_keys)
+            if extra_cc:
+                errors.append(f"{label}.causal_chain contains extra keys (not allowed): {extra_cc}")
+        if _contains_frame_ref(d.get("agent", "")) or _contains_frame_ref(d.get("action", "")) or _contains_frame_ref(
+            d.get("patient", "")
+        ):
+            errors.append(f"{label}.causal_chain agent/action/patient must not reference frame/image indices.")
+        cc = {
+            "agent": _norm_identifier(d.get("agent", "")),
+            "action": _norm_str(d.get("action", "")),
+            "patient": _norm_identifier(d.get("patient", "")),
+            "causal_precondition_on_spatial": _norm_spatial_relations(
+                d.get("causal_precondition_on_spatial"), label=f"{label}.causal_chain.causal_precondition_on_spatial"
+            ),
+            "causal_precondition_on_affordance": _norm_affordance_states(
+                d.get("causal_precondition_on_affordance"),
+                label=f"{label}.causal_chain.causal_precondition_on_affordance",
+            ),
+            "causal_effect_on_spatial": _norm_spatial_relations(
+                d.get("causal_effect_on_spatial"), label=f"{label}.causal_chain.causal_effect_on_spatial"
+            ),
+            "causal_effect_on_affordance": _norm_affordance_states(
+                d.get("causal_effect_on_affordance"), label=f"{label}.causal_chain.causal_effect_on_affordance"
+            ),
+        }
+        if not cc["agent"] or not cc["action"] or not cc["patient"]:
+            errors.append(f"{label}.causal_chain must include non-empty agent/action/patient.")
+        if not cc["causal_precondition_on_spatial"]:
+            errors.append(f"{label}.causal_chain.causal_precondition_on_spatial is empty (expected a non-empty list).")
+        if not cc["causal_precondition_on_affordance"]:
+            errors.append(f"{label}.causal_chain.causal_precondition_on_affordance is empty (expected a non-empty list).")
+        if not cc["causal_effect_on_spatial"]:
+            errors.append(f"{label}.causal_chain.causal_effect_on_spatial is empty (expected a non-empty list).")
+        if not cc["causal_effect_on_affordance"]:
+            errors.append(f"{label}.causal_chain.causal_effect_on_affordance is empty (expected a non-empty list).")
+        return cc
+
+    sid = step_json.get("step_id")
+    try:
+        sid_int = int(sid)
+    except Exception:
+        sid_int = None
+    if sid_int != expected_step_id:
+        errors.append(f"step_id mismatch: expected {expected_step_id}, got {sid}")
+
+    goal = _norm_str(step_json.get("step_goal", ""))
+    if goal != expected_step_goal:
+        errors.append(
+            "step_goal mismatch (Stage 3 is not allowed to change step_goal): "
+            f"expected '{expected_step_goal}', got '{goal}'"
+        )
+
+    rationale = _norm_str(step_json.get("rationale", ""))
+    if not rationale:
+        errors.append("Missing/empty rationale.")
+    if _contains_frame_ref(rationale):
+        errors.append("rationale must not reference frame/image indices.")
+
+    counterfactual_q = _norm_str(step_json.get("counterfactual_challenge_question", ""))
+    if not counterfactual_q:
+        errors.append("Missing/empty counterfactual_challenge_question.")
+    if _contains_frame_ref(counterfactual_q):
+        errors.append("counterfactual_challenge_question must not reference frame/image indices.")
+
+    expected_outcome = _norm_str(step_json.get("expected_challenge_outcome", ""))
+    if not expected_outcome:
+        errors.append("Missing/empty expected_challenge_outcome.")
+    if _contains_frame_ref(expected_outcome):
+        errors.append("expected_challenge_outcome must not reference frame/image indices.")
+
+    fr_raw = step_json.get("failure_reflecting")
+    if not isinstance(fr_raw, dict):
+        fr_raw = {}
+    extra_fr = sorted(set(fr_raw.keys()) - {"reason", "recovery_strategy"})
+    if extra_fr:
+        errors.append(f"failure_reflecting contains extra keys (not allowed): {extra_fr}")
+    fr_reason = _norm_str(fr_raw.get("reason", ""))
+    fr_recovery = _norm_str(fr_raw.get("recovery_strategy", ""))
+    if not fr_reason:
+        errors.append("Missing/empty failure_reflecting.reason.")
+    if not fr_recovery:
+        errors.append("Missing/empty failure_reflecting.recovery_strategy.")
+    if _contains_frame_ref(fr_reason) or _contains_frame_ref(fr_recovery):
+        errors.append("failure_reflecting fields must not reference frame/image indices.")
+
+    step_cc = _norm_causal_chain(step_json.get("causal_chain", {}), label="step")
+
+    cfs = step_json.get("critical_frames")
+    if not isinstance(cfs, list):
+        errors.append("Missing 'critical_frames' list.")
+        cfs = []
+    if len(cfs) != 2:
+        errors.append(f"critical_frames must have length exactly 2 (got {len(cfs)}).")
+
+    normalized_cfs: List[Dict[str, Any]] = []
+    prev_idx = -1
+    prev_ts: Optional[float] = None
+    for i, cf in enumerate(cfs):
+        if not isinstance(cf, dict):
+            errors.append(f"critical_frames[{i}] is not an object.")
+            continue
+
+        extra_cf = sorted(set(cf.keys()) - {"frame_index", "action_state_change_description", "causal_chain", "interaction"})
+        if extra_cf:
+            errors.append(f"critical_frames[{i}] contains extra keys (not allowed): {extra_cf}")
+
+        try:
+            fi = int(cf.get("frame_index"))
+        except Exception:
+            errors.append(f"critical_frames[{i}].frame_index missing or non-int.")
+            continue
+        if fi < 1 or fi > int(num_frames):
+            errors.append(f"critical_frames[{i}].frame_index out of range: {fi}")
+        if fi <= prev_idx:
+            errors.append("critical_frames indices must be strictly increasing within a step.")
+        prev_idx = fi
+
+        if frame_timestamps and 1 <= fi <= len(frame_timestamps):
+            ts = float(frame_timestamps[fi - 1])
+            if prev_ts is not None and not (ts > prev_ts + 1e-9):
+                if abs(ts - prev_ts) < 1e-9:
+                    errors.append(
+                        "Two critical_frames map to identical timestamps; choose a different second frame with real time progress."
+                    )
+                else:
+                    errors.append("critical_frames timestamps must be strictly increasing within a step.")
+            prev_ts = ts
+
+        desc = _norm_str(cf.get("action_state_change_description", ""))
+        if not desc:
+            errors.append(f"critical_frames[{i}].action_state_change_description is empty.")
+        if _contains_frame_ref(desc):
+            errors.append(f"critical_frames[{i}].action_state_change_description must not reference frame/image indices.")
+
+        cf_cc = _norm_causal_chain(cf.get("causal_chain", {}), label=f"critical_frames[{i}]")
+
+        interaction = cf.get("interaction")
+        if not isinstance(interaction, dict):
+            errors.append(f"critical_frames[{i}].interaction missing/invalid (expected an object).")
+            interaction = {}
+        extra_inter = sorted(set(interaction.keys()) - {"tools", "materials", "hotspot"})
+        if extra_inter:
+            errors.append(f"critical_frames[{i}].interaction contains extra keys (not allowed): {extra_inter}")
+        tools = _norm_identifier_list(interaction.get("tools"))
+        materials = _norm_identifier_list(interaction.get("materials"))
+        raw_tools = interaction.get("tools")
+        raw_materials = interaction.get("materials")
+        if _contains_frame_ref(raw_tools) or _contains_frame_ref(raw_materials):
+            errors.append(f"critical_frames[{i}].interaction.tools/materials must not reference frame/image indices.")
+        if not tools and not materials:
+            errors.append(
+                f"critical_frames[{i}].interaction.tools/materials is empty (expected at least one tool or material)."
+            )
+
+        hotspot = interaction.get("hotspot")
+        if not isinstance(hotspot, dict):
+            errors.append(f"critical_frames[{i}].interaction.hotspot missing/invalid (expected an object).")
+            hotspot = {}
+        extra_hs = sorted(set(hotspot.keys()) - {"description", "affordance_type", "mechanism"})
+        if extra_hs:
+            errors.append(f"critical_frames[{i}].interaction.hotspot contains extra keys (not allowed): {extra_hs}")
+        hs_desc_raw = hotspot.get("description", "")
+        hs_type_raw = hotspot.get("affordance_type", "")
+        hs_mech_raw = hotspot.get("mechanism", "")
+        hs_desc = _norm_str(hs_desc_raw)
+        hs_type = _norm_identifier(hs_type_raw)
+        hs_mech = _norm_str(hs_mech_raw)
+        if _contains_frame_ref(hs_desc_raw) or _contains_frame_ref(hs_type_raw) or _contains_frame_ref(hs_mech_raw):
+            errors.append(f"critical_frames[{i}].interaction.hotspot must not reference frame/image indices.")
+        if not hs_desc or not hs_type or not hs_mech:
+            errors.append(
+                f"critical_frames[{i}].interaction.hotspot must include non-empty description/affordance_type/mechanism."
+            )
+
+        normalized_cfs.append(
+            {
+                "frame_index": fi,
+                "action_state_change_description": desc,
+                "causal_chain": cf_cc,
+                "interaction": {
+                    "tools": tools,
+                    "materials": materials,
+                    "hotspot": {"description": hs_desc, "affordance_type": hs_type, "mechanism": hs_mech},
+                },
+            }
+        )
+
+    normalized = {
+        "step_id": expected_step_id,
+        "step_goal": expected_step_goal,
+        "rationale": rationale,
+        "causal_chain": step_cc,
+        "counterfactual_challenge_question": counterfactual_q,
+        "expected_challenge_outcome": expected_outcome,
+        "failure_reflecting": {"reason": fr_reason, "recovery_strategy": fr_recovery},
         "critical_frames": normalized_cfs,
     }
 

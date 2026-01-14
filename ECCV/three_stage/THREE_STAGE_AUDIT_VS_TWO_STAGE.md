@@ -4,7 +4,7 @@
 
 结论先行：
 
-- 三阶段最终产物 `causal_plan_with_keyframes.json` 的关键字段已与两阶段下游生态对齐：`affordance_hotspot.mechanism`（必填）+ `causal_chain`（5 字段 canonical）+ `keyframe_image_path`（绝对路径）。
+- 三阶段最终产物 `causal_plan_with_keyframes.json` 的 schema **以 `ECCV/three_stage/prompts.py` 为准**：`interaction.hotspot.mechanism`（必填）+ `causal_chain`（含 `causal_precondition_on_*` / `causal_effect_on_*` 列表）+ `critical_frames`（长度=2）。
 - 三阶段关键帧图片文件名中的 `ts_XX.XXs` 已明确为**原视频时间轴（global timestamp）**，可直接被 `extract_last_frame_segments.py` / `extract_cumulative_last_frame_segments.py` 用于源视频裁剪。
 - 三阶段同时生成 `<video_id>/sampled_frames/` 与 `<video_id>/frame_manifest.json` 兼容路径（默认指向/复制自 Stage1），便于复用既有“按根目录 sampled_frames”组织的工具链与数据规约。
 
@@ -32,7 +32,7 @@
 
 1) Stage1（Draft）：仅 step-level（不产出关键帧字段），输出 `stage1/draft_plan.json`。
 2) Stage2（Localize/Cut）：在 full video 50 帧池上定位每步边界（`start_frame_index/end_frame_index`），并在原视频上裁剪 step clip。
-3) Stage3（Refine+Keyframes）：在每个 step clip 的 50 帧池上精修该步并选 1–2 个关键帧，输出最终 `causal_plan_with_keyframes.json`。
+3) Stage3（Refine+Keyframes）：在每个 step clip 的 50 帧池上精修该步并选 **2 个**关键帧，输出最终 `causal_plan_with_keyframes.json`。
 
 不可避免的差异点：
 
@@ -40,7 +40,7 @@
 
 为了与既有生态“对齐可用”，三阶段做了关键对齐：
 
-- 下游主要依赖的是 `keyframe_image_path`（真实图片）与 `ts_XX.XXs`（可裁剪的全局时间），而不是把 `frame_index` 直接当作 full-video `sampled_frames/` 的索引。
+- 下游主要依赖的是关键帧 jpg 文件（`frame_###_ts_XX.XXs.jpg`）及其 `ts_XX.XXs`（可裁剪的全局时间），而不是把 `frame_index` 直接当作 full-video `sampled_frames/` 的索引。
 - 三阶段将关键帧图片的 timestamp 改为 **global timestamp**（通过 Stage2 的 `start_sec` 偏移），从而可继续用旧的裁剪工具与证据形态（segment mp4）。
 
 ---
@@ -55,7 +55,7 @@
 
 三阶段 Stage1（设计差异）：
 
-- **完全禁止**输出任何 keyframe-level 字段（`critical_frames/frame_index/keyframe_image_path`），原因是关键帧选择被推迟到 Stage3（clip 级别更可靠）。
+- **完全禁止**输出任何 keyframe-level 字段（`critical_frames/frame_index/interaction/keyframe_image_path`），原因是关键帧选择被推迟到 Stage3（clip 级别更可靠）。
 
 对齐保障（prompt ⇄ 代码）：
 
@@ -79,19 +79,26 @@
 - 代码强校验并在失败时把 error list 注入下一轮重试：`three_stage/common.py:validate_stage2_localization()` + `build_retry_prefix()`
 - 切片采用 ffmpeg，默认 reencode（更接近两阶段“时间对齐优先”的目标）：`three_stage/common.py:cut_video_segment_ffmpeg()`
 
-### 3.3 Stage3（Refine+Keyframes）——关键 schema 与两阶段完全对齐的部分
+### 3.3 Stage3（Refine+Keyframes）——schema 差异与可用性对齐
 
-两阶段最终产物的关键 schema（下游普遍依赖）：
+两阶段最终产物的关键 schema（下游常见依赖）：
 
-- `critical_frames[*].affordance_hotspot.mechanism`（自然语言机制描述）
-- `critical_frames[*].causal_chain` 只包含 5 个字段
+- `critical_frames[*].affordance_hotspot.mechanism`
+- `critical_frames[*].causal_chain`（5 字段 canonical）
+- `keyframe_image_path`
 
-三阶段 Stage3 的对齐保障：
+三阶段 Stage3（当前版本，以 `ECCV/three_stage/prompts.py` 为准）：
 
-- Prompt 要求 `affordance_hotspot.mechanism` 必填，禁止输出额外字段：`three_stage/prompts.py:build_stage3_user_prompt()`
-- 归一化/强校验强制 `causal_chain` 仅 5 字段、`mechanism` 非空、禁止 `causal_role`：`three_stage/common.py:normalize_stage3_step_output()`
-- 关键帧图片由脚本填充 `keyframe_image_path`（绝对路径），与两阶段一致：`three_stage/stage3_refine_and_keyframes.py`
-- **时间戳语义对齐两阶段**：Stage3 在写 manifest/命名关键帧前，将 clip-local timestamp 转为 global timestamp：`three_stage/stage3_refine_and_keyframes.py`
+- `critical_frames` 长度必须为 2，且每个包含 `interaction.hotspot.mechanism`
+- `causal_chain` 使用 `causal_precondition_on_*` / `causal_effect_on_*` 列表（不再是 5 字段 canonical）
+- JSON 不包含 `keyframe_image_path`；关键帧 jpg 以 `frame_###_ts_XX.XXs.jpg` 落盘（global timestamp）
+
+对齐保障（prompt ⇄ 代码）：
+
+- Prompt 严格 schema：`three_stage/prompts.py:build_stage3_user_prompt()`
+- 归一化/强校验：`three_stage/common.py:normalize_stage3_step_output()`
+- 关键帧 jpg 落盘：`three_stage/common.py:save_keyframe_images_from_manifest()` + `three_stage/stage3_refine_and_keyframes.py`
+- **时间戳语义对齐两阶段**：Stage3 将 clip-local timestamp 转为 global timestamp 后写入 `<step_folder>/frame_manifest.json` 并用于 keyframe 命名
 
 ---
 
@@ -106,20 +113,20 @@
 
 三阶段已保证：
 
-- `keyframe_image_path` 指向存在的图片
+- 每个 step 目录根下存在关键帧图片 `frame_###_ts_XX.XXs.jpg`（JSON 不包含 `keyframe_image_path`）
 - 图片文件名里的 `ts_XX.XXs` 是原视频时间轴（global timestamp）
 
-### 4.2 QA 生成脚本（依赖 mechanism 与 causal_chain canonical）
+### 4.2 QA 生成脚本（依赖 mechanism 与 causal_chain）
 
 例如 `ECCV/generate_mani_longvideo_qa_api.py` 会读取：
 
-- `affordance_hotspot.mechanism`
-- `causal_chain.agent/action/patient/causal_effect_on_patient/causal_effect_on_environment`
+- `interaction.hotspot.mechanism`
+- `causal_chain`（含 `causal_precondition_on_*` / `causal_effect_on_*` 列表）
 
 三阶段已保证：
 
 - `mechanism` 必填且非占位符
-- `causal_chain` 不包含多余字段（避免下游 dataclass/解析器因 unknown kwargs 崩溃）
+- `causal_chain` 形状严格按 `ECCV/three_stage/prompts.py`；若下游仍假设“两阶段 canonical 5 字段”，需要同步更新解析逻辑
 
 ### 4.3 根目录 `sampled_frames/` 兼容路径
 
@@ -158,4 +165,3 @@ python3 three_stage/pipeline.py --input-video /abs/path/video.mp4 --overwrite
 ```bash
 python3 three_stage/pipeline.py --input-video /abs/path/video.mp4 --stages 3
 ```
-

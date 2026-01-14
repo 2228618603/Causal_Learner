@@ -50,31 +50,33 @@ Step：
 - `step_id: int`
 - `step_goal: str`
 - `rationale: str`
-- `preconditions: List[str]`
-- `expected_effects: List[str]`
-- `spatial_postconditions_detail: List[{relation:str, objects:[str], truth:bool}]`
-- `affordance_postconditions_detail: List[{object_name:str, affordance_types:[str], reasons:str}]`
-- `predicted_next_actions: List[str]`
-- `tool_and_material_usage.tools: List[str]`
-- `tool_and_material_usage.materials: List[str]`
-- `causal_challenge_question: str`
+- `causal_chain: CausalChain`
+- `counterfactual_challenge_question: str`
 - `expected_challenge_outcome: str`
-- `failure_handling.reason: str`
-- `failure_handling.recovery_strategy: str`
+- `failure_reflecting.reason: str`
+- `failure_reflecting.recovery_strategy: str`
 - `critical_frames: List[CriticalFrame]`
+
+Step.causal_chain（CausalChain）：
+- `agent: str`
+- `action: str`
+- `patient: str`
+- `causal_precondition_on_spatial: List[{relation:str, objects:[str], truth:bool}]`
+- `causal_precondition_on_affordance: List[{object_name:str, affordance_types:[str], reasons:str}]`
+- `causal_effect_on_spatial: List[{relation:str, objects:[str], truth:bool}]`
+- `causal_effect_on_affordance: List[{object_name:str, affordance_types:[str], reasons:str}]`
 
 CriticalFrame：
 - `frame_index: int`（1-based；三阶段产物中为该 step clip 帧池的局部序号，不再与根目录 `sampled_frames/` 的序号对齐；跨 step 的时间顺序/对齐请以 step 目录内关键帧文件名的 `ts_XX.XXs` 为准：`frame_###_ts_XX.XXs.jpg`）
-- `action_description: str`
-- `state_change_description: str`
-- `spatial_preconditions: List[{relation:str, objects:[str], truth:bool}]`
-- `affordance_preconditions: List[{object_name:str, affordance_types:[str], reasons:str}]`
-- `causal_chain: {agent, action, patient, causal_effect_on_patient, causal_effect_on_environment}`
-- `affordance_hotspot: {description, affordance_type, mechanism}`
+- `action_state_change_description: str`
+- `causal_chain: CausalChain`
+- `interaction.tools: List[str]`
+- `interaction.materials: List[str]`
+- `interaction.hotspot: {description, affordance_type, mechanism}`
 
 重要说明（与 `ECCV/three_stage/prompts.py` 的 Stage3 模板一致）：
 - Stage3 模型输出不包含 `keyframe_image_path`；脚本可能会在落盘时补充该字段（路径可能是绝对路径，跨机器不可读），因此任务构造请优先用 `<item_dir>/{step_id:02d}_*/frame_{frame_index:03d}_ts_*.jpg` 解析关键帧图像。
-- `affordance_hotspot.mechanism` 在 Stage3 模板中为必填；任务构造不应依赖任何历史扩展字段（例如 `causal_chain.causal_affordance_focus_detail`、`affordance_hotspot.causal_role` 等）。
+- `interaction.hotspot.mechanism` 在 Stage3 模板中为必填；任务构造不应依赖任何历史扩展字段（例如 `causal_chain.causal_affordance_focus_detail`、`interaction.hotspot.causal_role` 等）。
 
 ---
 
@@ -167,44 +169,44 @@ CriticalFrame：
 - `Task_20/21/25` 更偏辅助能力（边界、关键帧解释、进度总结），可不作为核心任务或降低比例。
 
 从 `causal_plan_with_keyframes.json` 可直接构建、且更贴合“因果规划/失败反思”的候选补充（建议优先做成客观题变体）：
-- **Spatial Postcondition Check（建议新增）**：用 `steps[i].spatial_postconditions_detail[*].truth` 生成 Yes/No，证据用 step i 尾关键帧；它比自由文本 `expected_effects` 更可对齐，更贴近“因果后置状态”。
-- **Affordance Postcondition Check（建议新增）**：用 `steps[i].affordance_postconditions_detail` 生成 MCQ/Yes-No（对象在该步后获得/保持的 affordance），用于“动作 → 可操作性改变”的因果学习。
+- **Spatial Postcondition Check（建议新增）**：用 `steps[i].causal_chain.causal_effect_on_spatial[*].truth` 生成 Yes/No，证据用 step i 尾关键帧；它比自由文本更可对齐，更贴近“可核验的因果后置状态”。
+- **Affordance Postcondition Check（建议新增）**：用 `steps[i].causal_chain.causal_effect_on_affordance` 生成 MCQ/Yes-No（对象在该步后获得/保持的 affordance），用于“动作 → 可操作性改变”的因果学习。
 - **Counterfactual Outcome MCQ（Task_14 变体）**：用 `expected_challenge_outcome` 做 4 选 1（干扰项来自其他 step/item），强化反事实结果辨析。
-- **Recovery Strategy MCQ（Task_15 变体）**：用 `failure_handling.recovery_strategy` 做 4 选 1（干扰项来自其他 step/item），强化失败后的纠错动作选择。
-- **Failure-Driven Replanning / Recovery Insertion（建议新增）**：给定 `high_level_goal` + 前缀证据 + 某步失败描述，要求输出“先恢复、再继续”的后续计划（第一步需体现 `recovery_strategy`）；可用 `failure_handling.recovery_strategy` + 原 `steps[i+1:]` 作为弱监督，或拆成“选 recovery_strategy + 选 next step_goal”的两段客观题。
+- **Recovery Strategy MCQ（Task_15 变体）**：用 `failure_reflecting.recovery_strategy` 做 4 选 1（干扰项来自其他 step/item），强化失败后的纠错动作选择。
+- **Failure-Driven Replanning / Recovery Insertion（建议新增）**：给定 `high_level_goal` + 前缀证据 + 某步失败描述，要求输出“先恢复、再继续”的后续计划（第一步需体现 `recovery_strategy`）；可用 `failure_reflecting.recovery_strategy` + 原 `steps[i+1:]` 作为弱监督，或拆成“选 recovery_strategy + 选 next step_goal”的两段客观题。
 
 ### Task_01_Macro_Anchor_Extraction（场景锚点/关键可交互对象）
 - **任务定义**：抽取任务相关的稳定锚点对象（工具/材料/关键实体）。
 - **字段（JSONPath）**：
-  - `steps[*].tool_and_material_usage.tools[*]`
-  - `steps[*].tool_and_material_usage.materials[*]`
-  - `steps[*].critical_frames[*].spatial_preconditions[*].objects[*]`
-  - `steps[*].critical_frames[*].affordance_preconditions[*].object_name`
+  - `steps[*].critical_frames[*].interaction.tools[*]`
+  - `steps[*].critical_frames[*].interaction.materials[*]`
+  - `steps[*].critical_frames[*].causal_chain.causal_precondition_on_spatial[*].objects[*]`
+  - `steps[*].critical_frames[*].causal_chain.causal_precondition_on_affordance[*].object_name`
   - `steps[*].critical_frames[*].causal_chain.agent`
   - `steps[*].critical_frames[*].causal_chain.patient`
 - **证据形态**：`images_uniform_scene`（从 `sampled_frames/` 选 4–8 张，覆盖环境）
 
 ### Task_02_Transient_Geometric_Verification（瞬时空间关系验证）
 - **任务定义**：描述/核验某关键帧中的空间关系。
-- **字段**：`steps[*].critical_frames[*].spatial_preconditions[*].relation/objects/truth`
+- **字段**：`steps[*].critical_frames[*].causal_chain.causal_precondition_on_spatial[*].relation/objects/truth`
 - **证据形态**：`keyframe_single`
 - **注意**：应使用 `Task_27_Visual_Spatial_Relation_Check`（视觉核验 true/false/uncertain），不要与本任务混用。
 
 ### Task_03_Micro_Affordance_Visual_Semantics（微观可供性热点语义）
 - **任务定义**：描述关键帧中的可供性热点区域 + 类别 + 物理机制。
-- **字段**：`steps[*].critical_frames[*].affordance_hotspot.description/affordance_type/mechanism`
+- **字段**：`steps[*].critical_frames[*].interaction.hotspot.description/affordance_type/mechanism`
 - **证据形态**：`keyframe_single`
 
 ### Task_04_Entity_Role_Identification（工具/材料角色区分）
-- **字段**：`steps[*].tool_and_material_usage.tools/materials`
+- **字段**：`steps[*].critical_frames[*].interaction.tools/materials`
 - **证据形态**：`keyframe_single`（该 step 最早关键帧）或 `images_uniform_scene`
 
 ### Task_05_State_Evolution_Description（动作-状态变化描述）
-- **字段**：`steps[*].critical_frames[*].action_description/state_change_description`
+- **字段**：`steps[*].critical_frames[*].action_state_change_description`
 - **证据形态**：`keyframe_single`
 
 ### Task_06_Holistic_Causal_Chain_Analysis（因果链分析）
-- **字段**：`steps[*].critical_frames[*].causal_chain.*` + `steps[*].critical_frames[*].affordance_preconditions` + `steps[*].critical_frames[*].spatial_preconditions`
+- **字段**：`steps[*].critical_frames[*].causal_chain.*` + `steps[*].critical_frames[*].interaction.hotspot.mechanism`
 - **证据形态**：`keyframe_single`
 
 ### Task_07_Scene_Goal_Derivation（场景高阶目标）
@@ -216,56 +218,54 @@ CriticalFrame：
 - **证据形态**：`keyframe_single`（该 step 最早关键帧）
 
 ### Task_09_Precondition_Statement（步骤前置条件陈述）
-- **字段**：`steps[*].preconditions`
+- **字段**：`steps[*].causal_chain.causal_precondition_on_spatial` + `steps[*].causal_chain.causal_precondition_on_affordance`
 - **证据形态**：`keyframe_single`（该 step 最早关键帧）
 
 ### Task_10_Step_Execution_Statement（步骤执行动作描述）
-- **字段**：`steps[*].step_goal`（当前产物未包含 `navigation_and_manipulation`，因此默认复述/细化 goal）
+- **字段**：`steps[*].step_goal`
 - **证据形态**：`images_uniform_scene` 或 `images_uniform_clip`（更适合给出动作细节）
 
 ### Task_11_Expected_Physical_Effects（期望效果/后置状态）
-- **字段**：`steps[*].expected_effects`
+- **字段**：`steps[*].causal_chain.causal_effect_on_spatial` + `steps[*].causal_chain.causal_effect_on_affordance`
 - **证据形态**：`keyframe_single`（该 step 尾关键帧更合适；也可用该 step 最后一张关键帧图像）
 
 ### Task_12_Inter_Step_Dependency_Analysis（跨步依赖分析）
-- **字段**：`steps[i].expected_effects` ↔ `steps[i+1].preconditions`
+- **字段**：`steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance` ↔ `steps[i+1].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`
 - **证据形态**：`keyframe_single`（step i 的尾关键帧，或 step i 的最早关键帧）
 - **约束**：必须通过词项重合/包含检测后才生成，避免牵强解释。
 
 ### Task_13_Next_Action_Prediction（下一步/下一动作预测：基于计划）
-- **字段**：本版本推荐拆成两种版本（二选一，别混在同一任务名下）：
-  - **(A) 下一步目标预测**：标签为 `steps[i+1].step_goal`
-  - **(B) 下一微动作预测**：若 JSON 中包含 `predicted_next_actions`（如三阶段产物）则启用
+- **字段**：标签为 `steps[i+1].step_goal`；输入可附 `steps[i].step_goal` 作为上下文
 - **证据形态**：`keyframe_single` 或 `video_prefix`
 
 ### Task_14_Counterfactual_Prediction（反事实挑战与结果）
-- **字段**：`steps[*].causal_challenge_question` + `steps[*].expected_challenge_outcome`
+- **字段**：`steps[*].counterfactual_challenge_question` + `steps[*].expected_challenge_outcome`
 - **证据形态**：`keyframe_single`
 
 ### Task_15_Failure_Recovery_Protocol（失败模式与恢复策略）
-- **字段**：`steps[*].failure_handling.reason/recovery_strategy`
+- **字段**：`steps[*].failure_reflecting.reason/recovery_strategy`
 - **证据形态**：`keyframe_single`（更建议给“容易失败”的关键帧）
 
 ### Task_16_Physical_Feasibility_Verification（物理可行性核验）
-- **字段**：`steps[*].critical_frames[*].spatial_preconditions` + `steps[*].critical_frames[*].affordance_preconditions`
+- **字段**：`steps[*].critical_frames[*].causal_chain.causal_precondition_on_spatial` + `steps[*].critical_frames[*].causal_chain.causal_precondition_on_affordance`
 - **证据形态**：`keyframe_single`
 
 ### Task_17_Holistic_Step_Synthesis_Why_How（步级综合：Why/How）
-- **字段**：Why=`steps[*].rationale`；How=`steps[*].critical_frames[*].causal_chain.*` + `steps[*].critical_frames[*].affordance_hotspot.mechanism`
+- **字段**：Why=`steps[*].rationale`；How=`steps[*].critical_frames[*].causal_chain.*` + `steps[*].critical_frames[*].interaction.hotspot.mechanism`
 - **证据形态**：`keyframe_single`（选择同时含“机制/因果链”的关键帧）
 
 
 ### Task_18_Visual_Precondition_Check（视觉前置条件核验）
 - **任务定义**：给定 step i 的前置条件列表，要求基于图像/视频证据判断哪些已满足、哪些不满足，并说明证据。
-- **字段**：`steps[i].preconditions[*]` + `steps[i].step_goal` + `high_level_goal`
+- **字段**：`steps[i].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance` + `steps[i].step_goal` + `high_level_goal`
 - **证据形态（推荐）**：
   - `video_prefix`：`cumulative_last_frame_segments/segment_start_to_step{i-1:02d}_last.mp4`（若 i=1，则用 `sampled_frames` 前若干帧）
   - 或 `images_uniform_scene`：从 `sampled_frames/` 取前 6–10 张
-- **输出形式**：自然英文段落，逐条覆盖 preconditions（不要 bullet），明确“可见/不可见/不确定”。
+- **输出形式**：自然英文段落，逐条覆盖 causal preconditions（不要 bullet），明确“可见/不可见/不确定”。
 
 ### Task_19_Visual_Effect_Check（视觉后置效果核验）
 - **任务定义**：给定 step i 的期望效果，结合 step i 的“尾关键帧”及其附近过程，核验效果是否达成并指出证据。
-- **字段**：`steps[i].expected_effects[*]` + `steps[i].step_goal`
+- **字段**：`steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance` + `steps[i].step_goal`
 - **证据形态（推荐）**：
   - `keyframe_single`：step i 的最后关键帧 `critical_frames[-1]`（由 `frame_index` 在对应 step 目录内解析 `frame_###_ts_*.jpg`）
   - 可加 `images_uniform_clip`：来自 `last_frame_segments/segment_step{i:02d}_to_step{i+1:02d}.mp4` 的均匀抽帧（若存在）
@@ -278,13 +278,13 @@ CriticalFrame：
 
 ### Task_21_Keyframe_Justification（关键帧选择理由）
 - **任务定义**：解释为什么某张关键帧“足够关键”（对应的动作/状态变化/空间条件/可供性机制）。
-- **字段**：`steps[i].critical_frames[j].action_description/state_change_description/spatial_preconditions/affordance_hotspot`
+- **字段**：`steps[i].critical_frames[j].action_state_change_description` + `steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance` + `steps[i].critical_frames[j].interaction.hotspot`
 - **证据形态**：`keyframe_single`
 - **价值**：把“关键帧=信息瓶颈”转化为可监督的“解释任务”，提高关键帧利用效率。
 
 ### Task_22_Plan_Execution_Alignment（计划-执行一致性判别）
 - **任务定义**：判断给定视频证据是否与某个 step_goal 一致（match/partial/mismatch），并给出依据。
-- **字段**：`steps[i].step_goal`（可附 `steps[i].expected_effects` 作为参考）
+- **字段**：`steps[i].step_goal`（可附 `steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance` 作为参考）
 - **证据形态（推荐）**：
   - `video_clip`：如果你能得到 step 内片段则最好；在当前工具链下可先用 `last_frame_segments` 作为近似
   - 或 `images_uniform_clip`：从 `last_frame_segments/segment_step{i:02d}_to_step{i+1:02d}.mp4` 均匀抽帧
@@ -312,7 +312,7 @@ CriticalFrame：
 ### Task_26_Temporal_Order_Check（时间顺序判别）
 - **任务定义**：给两个动作/状态变化描述，要求判断哪个更早发生，并指出视频证据。
 - **字段（构造方式）**：
-  - 从 `steps[i].critical_frames[a].action_description/state_change_description` 与 `steps[k].critical_frames[b]...` 抽取两条候选
+  - 从 `steps[i].critical_frames[a].action_state_change_description` 与 `steps[k].critical_frames[b]...` 抽取两条候选
   - 标签来自其在视频中的时间顺序（优先用关键帧文件名的 `ts_XX.XXs`；`frame_index` 仅在同一 step 的关键帧之间可比）
 - **证据形态**：`images_uniform_scene`（全局抽帧）或 `video_prefix`
 - **价值**：让模型学习长视频的时间一致性，而不是只看静态关键帧。
@@ -320,8 +320,8 @@ CriticalFrame：
 ### Task_27_Visual_Spatial_Relation_Check（视觉空间关系真假核验）
 - **任务定义**：给定关键帧图像 + 一个空间关系陈述，判断该关系在图像中是否成立。
 - **字段**：
-  - 输入：`spatial_preconditions[k].relation/objects`
-  - 标签：`spatial_preconditions[k].truth`
+  - 输入：`causal_chain.causal_precondition_on_spatial[k].relation/objects`
+  - 标签：`causal_chain.causal_precondition_on_spatial[k].truth`
 - **证据形态**：`keyframe_single`
 - **负样本构造（推荐）**：
   - 对同一关键帧：随机抽一个不合理的对象对（例如把 `objects` 替换为同 step 的其他对象），标签设为 false（注意：此类负样本是“弱负样本”，需要在 `meta.neg_sample=true` 标注）。
@@ -333,8 +333,9 @@ CriticalFrame：
 - **字段（构造方式）**：
   - `high_level_goal`
   - `steps[*].step_goal`（用于构造候选计划与对照的正确计划）
-  - 可选：`steps[*].preconditions` / `steps[*].expected_effects`（用于“顺序依赖/前提缺失”的自动判错与负样本生成）
-  - 可选：`steps[*].critical_frames[*].spatial_preconditions` / `affordance_preconditions`（用于生成“空间不可行/可供性不匹配”的错误类型）
+  - 可选：`steps[*].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance` / `steps[*].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`（用于“顺序依赖/前提缺失”的自动判错与负样本生成）
+  - 可选：`steps[*].critical_frames[*].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`（用于生成“空间不可行/可供性不匹配”的错误类型）
+  - 可选：`steps[*].critical_frames[*].interaction.tools/materials`（用于生成 tool_mismatch）
 - **证据形态（推荐）**：
   - `video_prefix`：`cumulative_last_frame_segments/segment_start_to_step{i:02d}_last.mp4`（候选计划从 i+1 开始）
   - 或 `images_uniform_scene`：从 `sampled_frames/` 选 6–10 张（覆盖当前状态）
@@ -348,7 +349,7 @@ CriticalFrame：
 
 ### Task_30_Middle_Steps_Infill_From_Head_Tail（首尾证据 + 目标 → 中间动作序列补全）
 - **任务定义**：给定 `high_level_goal` + 视频开头/结尾的证据（首尾帧或首尾关键帧），要求预测/补全中间缺失的动作步骤序列，使其在因果与可执行性上连贯。
-- **字段（构造方式）**：`high_level_goal` + `steps[*].step_goal`（用于构造“中间步骤”标签）；可选用 `steps[*].preconditions/expected_effects` 作为一致性校验参考。
+- **字段（构造方式）**：`high_level_goal` + `steps[*].step_goal`（用于构造“中间步骤”标签）；可选用 `steps[*].causal_chain.*` 作为一致性校验参考。
 - **证据形态（推荐）**：
   - `images_uniform_scene`：从 `sampled_frames/` 选取 **头部 n_head 帧 + 尾部 n_tail 帧**（合计 6–10 张）
   - fallback：head 用 `steps[0].critical_frames[0]`，tail 用 `steps[-1].critical_frames[-1]`（均通过各自 `frame_index` 在对应 step 目录解析 `frame_###_ts_*.jpg`）
@@ -429,10 +430,10 @@ CriticalFrame：
 ### Task_01_Macro_Anchor_Extraction
 
 - **字段（JSONPath）**：
-  - `steps[*].tool_and_material_usage.tools[*]`
-  - `steps[*].tool_and_material_usage.materials[*]`
-  - `steps[*].critical_frames[*].spatial_preconditions[*].objects[*]`
-  - `steps[*].critical_frames[*].affordance_preconditions[*].object_name`
+  - `steps[*].critical_frames[*].interaction.tools[*]`
+  - `steps[*].critical_frames[*].interaction.materials[*]`
+  - `steps[*].critical_frames[*].causal_chain.causal_precondition_on_spatial[*].objects[*]`
+  - `steps[*].critical_frames[*].causal_chain.causal_precondition_on_affordance[*].object_name`
   - `steps[*].critical_frames[*].causal_chain.agent`
   - `steps[*].critical_frames[*].causal_chain.patient`
 - **证据来源（严格优先级）**：
@@ -451,7 +452,7 @@ A: The task-relevant anchors include the light switch, refrigerator, cucumber an
 
 ### Task_02_Transient_Geometric_Verification
 
-- **字段（JSONPath）**：`steps[i].critical_frames[j].spatial_preconditions[k].relation/objects/truth`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial[k].relation/objects/truth`
 - **证据来源**：`keyframe_single`：由 `steps[i].critical_frames[j].frame_index` 在对应 step 目录内解析 `frame_###_ts_*.jpg`
 - **样本构造规则**：
   - 对每个关键帧，最多抽 1–2 条 spatial 关系（否则关系爆炸）。
@@ -469,7 +470,7 @@ A: In this frame, the hand is in contact with the light_switch.
 
 ### Task_03_Micro_Affordance_Visual_Semantics
 
-- **字段（JSONPath）**：`steps[i].critical_frames[j].affordance_hotspot.description/affordance_type/mechanism`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].interaction.hotspot.description/affordance_type/mechanism`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：每个关键帧最多 1 条。
 - **meta.fields（建议最小集）**：`affordance_type`, `description`, `mechanism`
@@ -486,7 +487,7 @@ A: The raised surface of the rocker switch is the pressable region; it provides 
 
 ### Task_04_Entity_Role_Identification
 
-- **字段（JSONPath）**：`steps[i].tool_and_material_usage.tools/materials`（可附 `steps[i].step_goal`）
+- **字段（JSONPath）**：`steps[i].critical_frames[*].interaction.tools/materials`（可附 `steps[i].step_goal`）
 - **证据来源**：`keyframe_single`（该 step 最早关键帧）
 - **样本构造规则**：每个 step 至少 1 条（若 tools/materials 均为空则跳过）。
 - **meta.fields（建议最小集）**：`tools`, `materials`, `step_goal`
@@ -503,16 +504,15 @@ A: The refrigerator functions as the tool or container being accessed, while the
 
 ### Task_05_State_Evolution_Description
 
-- **字段（JSONPath）**：`steps[i].critical_frames[j].action_description/state_change_description`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].action_state_change_description`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：每个关键帧最多 1 条。
-- **meta.fields（建议最小集）**：`action_description`, `state_change_description`
+- **meta.fields（建议最小集）**：`action_state_change_description`
 - **范例（Step 4, frame 20）**：
 
 ```text
 Image: <ITEM_DIR>/04_wash_the_cucumber_and_carrot_under_running_water_and_place_them_on_the_countertop/frame_020_ts_68.39s.jpg
-fields.action_description = "The person holds a cucumber with both hands under a stream of water ... rubbing its surface to clean it."
-fields.state_change_description = "The surface of the cucumber is being cleaned as water and friction from the hands remove any dirt."
+fields.action_state_change_description = "The person holds a cucumber under running water and rubs it, causing its surface to be cleaned as water and friction remove dirt."
 Q: Given the overall goal the mission, what ongoing action is occurring, and what immediate state change does it cause?
 A: The person is holding and rubbing the cucumber under running water, which immediately causes the cucumber’s surface to be cleaned as contaminants are removed.
 ```
@@ -520,12 +520,13 @@ A: The person is holding and rubbing the cucumber under running water, which imm
 ### Task_06_Holistic_Causal_Chain_Analysis
 
 - **字段（JSONPath）**：
-  - `steps[i].critical_frames[j].causal_chain.agent/action/patient/causal_effect_on_patient/causal_effect_on_environment`
-  - `steps[i].critical_frames[j].affordance_hotspot.mechanism`
-  - （可选支撑）`steps[i].critical_frames[j].spatial_preconditions`, `steps[i].critical_frames[j].affordance_preconditions`
+  - `steps[i].critical_frames[j].causal_chain.agent/action/patient`
+  - `steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`
+  - `steps[i].critical_frames[j].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
+  - `steps[i].critical_frames[j].interaction.hotspot.mechanism`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：每个关键帧最多 1 条。
-- **meta.fields（建议最小集）**：`agent`, `action`, `patient`, `eff_pat`, `eff_env`, `mechanism`, `spatial_preconditions`, `affordance_preconditions`
+- **meta.fields（建议最小集）**：`agent`, `action`, `patient`, `causal_precondition_on_spatial`, `causal_precondition_on_affordance`, `causal_effect_on_spatial`, `causal_effect_on_affordance`, `mechanism`
 - **范例（Step 1, frame 2）**：
 
 ```text
@@ -533,8 +534,7 @@ Image: <ITEM_DIR>/01_enter_the_kitchen_and_turn_on_the_light_to_illuminate_the_w
 fields.agent = "hand"
 fields.action = "is applying downward force"
 fields.patient = "light_switch"
-fields.eff_pat = "is undergoing a rotational pivot, which completes an internal electrical circuit."
-fields.eff_env = "The room's ambient light level is increasing from dark to illuminated."
+fields.causal_effect_on_spatial includes: toggled(light_switch, on)=true; illuminated(kitchen)=true
 Q: Could you explain how hand is applying downward force light_switch in this keyframe, focusing on the spatial setup, the affordance-level mechanism, and the immediate effects?
 A: The hand is positioned within reach of the wall-mounted light_switch and makes direct contact with it, allowing force to be applied to the switch’s pressable surface. This contact-based spatial setup enables the hand to actuate the toggleable control.
 
@@ -573,7 +573,7 @@ A: This initial step is essential to enable all subsequent actions. Navigating t
 
 ### Task_09_Precondition_Statement
 
-- **字段（JSONPath）**：`steps[i].preconditions[*]`
+- **字段（JSONPath）**：`steps[i].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`
 - **证据来源**：`keyframe_single`（该 step 最早关键帧）
 - **样本构造规则**：每个 step 1 条。
 - **meta.fields（建议最小集）**：`preconditions`, `step_goal`, `high_level_goal`
@@ -614,7 +614,7 @@ A: Gather a cutting board and a knife and place them on the countertop.
 
 ### Task_11_Expected_Physical_Effects
 
-- **字段（JSONPath）**：`steps[i].expected_effects[*]`
+- **字段（JSONPath）**：`steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
 - **证据来源**：`keyframe_single`（该 step 最后一张关键帧 `critical_frames[-1]`）
 - **样本构造规则**：每个 step 1 条。
 - **meta.fields（建议最小集）**：`expected_effects`, `step_goal`, `high_level_goal`
@@ -636,11 +636,11 @@ A: Upon completion of this step, the cucumber and carrot should be clean, both v
 ### Task_12_Inter_Step_Dependency_Analysis
 
 - **字段（JSONPath）**：
-  - `steps[i].expected_effects[*]`
-  - `steps[i+1].preconditions[*]`
+  - `steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
+  - `steps[i+1].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`
   - （上下文）`steps[i].step_goal`, `steps[i+1].step_goal`, `high_level_goal`
 - **证据来源**：`keyframe_single`（建议用 step i 的最后关键帧）
-- **样本构造规则**：仅当 `expected_effects` 与下一步 `preconditions` 存在词项重合/包含时生成。
+- **样本构造规则**：仅当 step i 的 causal_effect_on_* 与 step i+1 的 causal_precondition_on_* 存在对象/affordance 词项重合/包含时生成。
 - **meta.fields（建议最小集）**：`step_n_goal`, `step_n_effects`, `step_next_goal`, `step_next_preconditions`
 - **范例（Step 1 → Step 2）**：
 
@@ -676,7 +676,7 @@ A: Retrieve a carrot and a cucumber from the refrigerator.
 
 ### Task_14_Counterfactual_Prediction
 
-- **字段（JSONPath）**：`steps[i].causal_challenge_question`, `steps[i].expected_challenge_outcome`
+- **字段（JSONPath）**：`steps[i].counterfactual_challenge_question`, `steps[i].expected_challenge_outcome`
 - **证据来源**：`keyframe_single`（step i 任一关键帧；默认最早关键帧）
 - **样本构造规则**：每个 step 0–1 条（字段为空则跳过）。
 - **meta.fields（建议最小集）**：`question`, `outcome`, `step_goal`
@@ -692,9 +692,9 @@ A: The board would slide during the application of downward cutting force. This 
 
 ### Task_15_Failure_Recovery_Protocol
 
-- **字段（JSONPath）**：`steps[i].failure_handling.reason`, `steps[i].failure_handling.recovery_strategy`
+- **字段（JSONPath）**：`steps[i].failure_reflecting.reason`, `steps[i].failure_reflecting.recovery_strategy`
 - **证据来源**：`keyframe_single`（step i 任一关键帧）
-- **样本构造规则**：每个 step 0–1 条（failure_handling 缺失则跳过）。
+- **样本构造规则**：每个 step 0–1 条（failure_reflecting 缺失则跳过）。
 - **meta.fields（建议最小集）**：`reason`, `recovery_strategy`, `step_goal`
 - **范例（Step 7）**：
 
@@ -708,16 +708,16 @@ A: It might fail because the slices can end up uneven, so the person should slow
 
 ### Task_16_Physical_Feasibility_Verification
 
-- **字段（JSONPath）**：`steps[i].critical_frames[j].spatial_preconditions[*]`, `steps[i].critical_frames[j].affordance_preconditions[*]`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial[*]`, `steps[i].critical_frames[j].causal_chain.causal_precondition_on_affordance[*]`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：每个关键帧最多 1 条。
-- **meta.fields（建议最小集）**：`spatial_preconditions`, `affordance_preconditions`, `step_goal`
+- **meta.fields（建议最小集）**：`causal_precondition_on_spatial`, `causal_precondition_on_affordance`, `step_goal`
 - **范例（Step 1, frame 2）**：
 
 ```text
 Image: <ITEM_DIR>/01_enter_the_kitchen_and_turn_on_the_light_to_illuminate_the_workspace/frame_002_ts_3.59s.jpg
-fields.spatial_preconditions includes: contact(hand, light_switch)=true; is_mounted_on(light_switch, wall)=true; is_within_reach_of(light_switch, hand)=true
-fields.affordance_preconditions includes: light_switch is pressable/toggleable because its rocker design supports actuation
+fields.causal_precondition_on_spatial includes: contact(hand, light_switch)=true; is_mounted_on(light_switch, wall)=true; is_within_reach_of(light_switch, hand)=true
+fields.causal_precondition_on_affordance includes: light_switch is pressable/toggleable because its rocker design supports actuation
 Q: Given the overall goal the mission, is the step Enter the kitchen and turn on the light to illuminate the workspace physically feasible now, based on spatial and affordance evidence?
 A: Spatially, the hand is within reach of and in contact with the wall-mounted light_switch, which supports the pressing interaction. In terms of affordances, the light_switch is pressable and toggleable due to its rocker design, so applying a downward force can feasibly change its state.
 ```
@@ -726,7 +726,7 @@ A: Spatially, the hand is within reach of and in contact with the wall-mounted l
 
 - **字段（JSONPath）**：
   - Why：`steps[i].rationale`
-  - How：从该 step 的某个关键帧取 `steps[i].critical_frames[j].causal_chain.*` + `steps[i].critical_frames[j].affordance_hotspot.mechanism`
+  - How：从该 step 的某个关键帧取 `steps[i].critical_frames[j].causal_chain.*` + `steps[i].critical_frames[j].interaction.hotspot.mechanism`
 - **证据来源**：`keyframe_single`（选择 mechanism 最丰富的关键帧）
 - **样本构造规则**：每个 step 最多 1 条（优先选能给出更具体物理机制解释的关键帧）。
 - **meta.fields（建议最小集）**：`rationale`, `mechanism`, `step_goal`
@@ -742,7 +742,7 @@ A: This step is necessary because later navigation and manipulation require suff
 
 ### Task_18_Visual_Precondition_Check
 
-- **字段（JSONPath）**：`steps[i].preconditions[*]`, `steps[i].step_goal`
+- **字段（JSONPath）**：`steps[i].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`, `steps[i].step_goal`
 - **证据来源**：`video_prefix`（推荐）或 `images_uniform_scene`（前缀帧子集）
   - 前缀片段：`cumulative_last_frame_segments/segment_start_to_step{i-1:02d}_last.mp4`（i=1 时可退化为 sampled_frames 前若干帧）
 - **样本构造规则**：
@@ -761,11 +761,11 @@ A: The prefix supports that the person is inside an illuminated kitchen. Whether
 
 ### Task_19_Visual_Effect_Check
 
-- **字段（JSONPath）**：`steps[i].expected_effects[*]`, `steps[i].step_goal`
+- **字段（JSONPath）**：`steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`, `steps[i].step_goal`
 - **证据来源**：
   - 主证据：step i 的最后关键帧 `critical_frames[-1]`（由 `frame_index` 在对应 step 目录解析 `frame_###_ts_*.jpg`）
   - 可选：step i 的执行片段抽帧（见 Task_10 的“执行片段定义”）
-- **样本构造规则**：对每条 expected_effect，回答必须明确“可见支持/不可见/不确定”。
+- **样本构造规则**：对每条 causal effect，回答必须明确“可见支持/不可见/不确定”。
 - **meta.fields（建议最小集）**：`expected_effects`, `step_goal`, `keyframe_path`
 - **范例（Step 4）**：
 
@@ -797,25 +797,23 @@ A: The shift is marked when the person stops interacting with the refrigerator a
 ### Task_21_Keyframe_Justification
 
 - **字段（JSONPath）**：
-  - `steps[i].critical_frames[j].action_description`
-  - `steps[i].critical_frames[j].state_change_description`
-  - （可选）`steps[i].critical_frames[j].spatial_preconditions`, `steps[i].critical_frames[j].affordance_hotspot`
+  - `steps[i].critical_frames[j].action_state_change_description`
+  - （可选）`steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`, `steps[i].critical_frames[j].interaction.hotspot`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：每个关键帧最多 1 条。
-- **meta.fields（建议最小集）**：`action_description`, `state_change_description`, `frame_index`（关键帧局部序号）
+- **meta.fields（建议最小集）**：`action_state_change_description`, `frame_index`（关键帧局部序号）
 - **范例（Step 1, frame 2）**：
 
 ```text
 Image: <ITEM_DIR>/01_enter_the_kitchen_and_turn_on_the_light_to_illuminate_the_workspace/frame_002_ts_3.59s.jpg
-fields.action_description = "... pressing a rocker-style light switch."
-fields.state_change_description = "... ambient light level increases ..."
+fields.action_state_change_description = "... pressing a rocker-style light switch, causing the kitchen lighting to increase ..."
 Q: Why is this keyframe a critical moment for the step, and what decisive state change does it capture?
 A: This keyframe is critical because it captures the actuation of the light switch, which is the decisive interaction in the step. It also captures the state transition where pressing the switch causes the kitchen to change from dark to illuminated.
 ```
 
 ### Task_22_Plan_Execution_Alignment
 
-- **字段（JSONPath）**：`steps[i].step_goal`（可选 `steps[i].expected_effects`）
+- **字段（JSONPath）**：`steps[i].step_goal`（可选 `steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`）
 - **证据来源**：`video_clip`/`images_uniform_clip`（使用“执行片段定义”，让 clip 尽量对齐某个 step）
 - **样本构造规则**：
   - 输出三分类：`match / partial match / mismatch`。
@@ -888,7 +886,7 @@ A: So far, the workspace has been lit, vegetables have been retrieved from the r
 
 ### Task_26_Temporal_Order_Check
 
-- **字段（JSONPath）**：从两个关键帧抽取：`action_description`/`state_change_description` + 对应关键帧文件名的 `ts_XX.XXs` 用作标签依据（`frame_index` 仅作该关键帧的局部索引）
+- **字段（JSONPath）**：从两个关键帧抽取：`action_state_change_description` + 对应关键帧文件名的 `ts_XX.XXs` 用作标签依据（`frame_index` 仅作该关键帧的局部索引）
 - **证据来源（严格优先级）**：
   1) `video_prefix` = `cumulative_last_frame_segments/segment_start_to_stepXX_last.mp4`（若已生成）
   2) 若无 `video_prefix`：用 `images_uniform_scene`（优先 sampled_frames，否则关键帧代理）
@@ -909,7 +907,7 @@ A: Event A happened earlier.
 
 ### Task_27_Visual_Spatial_Relation_Check
 
-- **字段（JSONPath）**：`steps[i].critical_frames[j].spatial_preconditions[k].relation/objects/truth`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial[k].relation/objects/truth`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：
 这是本任务体系中最“高质量可控”的视觉判别任务之一。
@@ -932,16 +930,17 @@ A: Yes.
 - **字段（JSONPath）**：
   - `high_level_goal`
   - `steps[*].step_goal`（用于构造候选计划与 gold 计划）
-  - 可选：`steps[*].preconditions` / `steps[*].expected_effects`（用于注入/判定“顺序依赖”类错误）
+  - 可选：`steps[*].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance` / `steps[*].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`（用于注入/判定“顺序依赖”类错误）
+  - 可选：`steps[*].critical_frames[*].interaction.tools/materials`（用于生成 tool_mismatch）
 - **证据来源（严格优先级）**：
   1) `video_prefix` = `cumulative_last_frame_segments/segment_start_to_step{i:02d}_last.mp4`（候选计划从 i+1 开始）
   2) 若无 `video_prefix`：用 `images_uniform_scene`（优先 sampled_frames；否则关键帧代理）
 - **样本构造规则**：
   - 选择一个 `prefix_end_step = i`（0-based；i=0 表示仅给开头信息），取未来窗口 `K∈[3,6]` 的 `gold_steps = steps[i+1:i+K]`。
   - 通过**单一扰动算子**生成 `bad_plan`（每条样本只注入 1 个错误，便于客观评分）：
-    - `order_violation`：交换两个存在依赖的相邻步骤（依赖可用 `expected_effects` 与下一步 `preconditions` 的词项重合检测近似）；
+    - `order_violation`：交换两个存在依赖的相邻步骤（依赖可用 step i 的 causal_effect_on_* 与 step i+1 的 causal_precondition_on_* 的对象/affordance 词项重合检测近似）；
     - `precondition_missing`：删除一个必要步骤（如“未取工具就切/未开门就取”）；
-    - `tool_mismatch`：把工具替换为不合理候选（从 `tool_and_material_usage.tools` 候选集中替换）；
+    - `tool_mismatch`：把工具替换为不合理候选（从 `steps[*].critical_frames[*].interaction.tools` 候选集中替换）；
   - Prompt 给出 `bad_plan`（含 step 序号），要求输出：`FlawStep=<int>; FlawType=<type>; Reason=<one-sentence>`。
 - **meta.fields（建议最小集）**：`prefix_end_step`, `bad_plan_steps`, `gold_plan_steps`, `flaw_step`, `flaw_type`
 - **范例（前缀到 Step 2；bad plan 含 1 个顺序错误）**：

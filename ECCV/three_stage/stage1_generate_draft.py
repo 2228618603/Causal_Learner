@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from common import (
     _contains_frame_ref,
+    _contains_time_ref,
     ApiConfig,
     SamplingConfig,
     VIDEO_EXTS,
@@ -19,6 +20,7 @@ from common import (
     call_chat_completion,
     collect_videos,
     default_output_root,
+    ensure_video_out_dir_safe,
     extract_json_from_response,
     initialize_api_client,
     normalize_draft_plan,
@@ -40,21 +42,24 @@ _STAGE1_ALLOWED_STEP_KEYS = {
     "step_id",
     "step_goal",
     "rationale",
-    "preconditions",
-    "expected_effects",
-    "spatial_postconditions_detail",
-    "affordance_postconditions_detail",
-    "predicted_next_actions",
-    "tool_and_material_usage",
-    "causal_challenge_question",
+    "causal_chain",
+    "counterfactual_challenge_question",
     "expected_challenge_outcome",
-    "failure_handling",
+    "failure_reflecting",
 }
-_STAGE1_ALLOWED_TOOL_USAGE_KEYS = {"tools", "materials"}
-_STAGE1_ALLOWED_FAILURE_HANDLING_KEYS = {"reason", "recovery_strategy"}
+_STAGE1_ALLOWED_CAUSAL_CHAIN_KEYS = {
+    "agent",
+    "action",
+    "patient",
+    "causal_precondition_on_spatial",
+    "causal_precondition_on_affordance",
+    "causal_effect_on_spatial",
+    "causal_effect_on_affordance",
+}
+_STAGE1_ALLOWED_FAILURE_REFLECTING_KEYS = {"reason", "recovery_strategy"}
 _STAGE1_ALLOWED_SPATIAL_REL_KEYS = {"relation", "objects", "truth"}
 _STAGE1_ALLOWED_AFFORDANCE_STATE_KEYS = {"object_name", "affordance_types", "reasons"}
-_STAGE1_FORBIDDEN_KEYS = {"critical_frames", "frame_index", "keyframe_image_path"}
+_STAGE1_FORBIDDEN_KEYS = {"critical_frames", "frame_index", "interaction", "keyframe_image_path"}
 
 
 def _find_forbidden_keys(obj: Any, path: str) -> List[str]:
@@ -95,39 +100,47 @@ def _stage1_raw_schema_errors(plan: Any) -> List[str]:
         if extra_step:
             errors.append(f"steps[{i}] contains extra keys (not allowed): {extra_step}")
 
-        tu = step.get("tool_and_material_usage")
-        if isinstance(tu, dict):
-            extra_tu = sorted(set(tu.keys()) - _STAGE1_ALLOWED_TOOL_USAGE_KEYS)
-            if extra_tu:
-                errors.append(f"steps[{i}].tool_and_material_usage contains extra keys (not allowed): {extra_tu}")
+        cc = step.get("causal_chain")
+        if isinstance(cc, dict):
+            extra_cc = sorted(set(cc.keys()) - _STAGE1_ALLOWED_CAUSAL_CHAIN_KEYS)
+            if extra_cc:
+                errors.append(f"steps[{i}].causal_chain contains extra keys (not allowed): {extra_cc}")
 
-        fh = step.get("failure_handling")
-        if isinstance(fh, dict):
-            extra_fh = sorted(set(fh.keys()) - _STAGE1_ALLOWED_FAILURE_HANDLING_KEYS)
-            if extra_fh:
-                errors.append(f"steps[{i}].failure_handling contains extra keys (not allowed): {extra_fh}")
+            for k in (
+                "causal_precondition_on_spatial",
+                "causal_effect_on_spatial",
+            ):
+                rels = cc.get(k)
+                if isinstance(rels, list):
+                    for j, sp in enumerate(rels):
+                        if not isinstance(sp, dict):
+                            continue
+                        extra_sp = sorted(set(sp.keys()) - _STAGE1_ALLOWED_SPATIAL_REL_KEYS)
+                        if extra_sp:
+                            errors.append(
+                                f"steps[{i}].causal_chain.{k}[{j}] contains extra keys (not allowed): {extra_sp}"
+                            )
 
-        spost = step.get("spatial_postconditions_detail")
-        if isinstance(spost, list):
-            for j, sp in enumerate(spost):
-                if not isinstance(sp, dict):
-                    continue
-                extra_sp = sorted(set(sp.keys()) - _STAGE1_ALLOWED_SPATIAL_REL_KEYS)
-                if extra_sp:
-                    errors.append(
-                        f"steps[{i}].spatial_postconditions_detail[{j}] contains extra keys (not allowed): {extra_sp}"
-                    )
+            for k in (
+                "causal_precondition_on_affordance",
+                "causal_effect_on_affordance",
+            ):
+                states = cc.get(k)
+                if isinstance(states, list):
+                    for j, ap in enumerate(states):
+                        if not isinstance(ap, dict):
+                            continue
+                        extra_ap = sorted(set(ap.keys()) - _STAGE1_ALLOWED_AFFORDANCE_STATE_KEYS)
+                        if extra_ap:
+                            errors.append(
+                                f"steps[{i}].causal_chain.{k}[{j}] contains extra keys (not allowed): {extra_ap}"
+                            )
 
-        apost = step.get("affordance_postconditions_detail")
-        if isinstance(apost, list):
-            for j, ap in enumerate(apost):
-                if not isinstance(ap, dict):
-                    continue
-                extra_ap = sorted(set(ap.keys()) - _STAGE1_ALLOWED_AFFORDANCE_STATE_KEYS)
-                if extra_ap:
-                    errors.append(
-                        f"steps[{i}].affordance_postconditions_detail[{j}] contains extra keys (not allowed): {extra_ap}"
-                    )
+        fr = step.get("failure_reflecting")
+        if isinstance(fr, dict):
+            extra_fr = sorted(set(fr.keys()) - _STAGE1_ALLOWED_FAILURE_REFLECTING_KEYS)
+            if extra_fr:
+                errors.append(f"steps[{i}].failure_reflecting contains extra keys (not allowed): {extra_fr}")
 
     return errors
 
@@ -144,19 +157,45 @@ def _ensure_root_fullvideo_artifacts(video_out: str) -> None:
     dst_frames = os.path.join(video_out, "sampled_frames")
     dst_manifest = os.path.join(video_out, "frame_manifest.json")
 
-    if os.path.isdir(src_frames) and not os.path.exists(dst_frames):
+    if os.path.isdir(src_frames):
         try:
             rel = os.path.relpath(src_frames, video_out)
-            os.symlink(rel, dst_frames)
+            src_abs = os.path.abspath(src_frames)
+            if os.path.islink(dst_frames):
+                try:
+                    target = os.readlink(dst_frames)
+                    target_abs = os.path.abspath(os.path.join(video_out, target))
+                except Exception:
+                    target_abs = ""
+                if target_abs != src_abs:
+                    os.unlink(dst_frames)
+                    os.symlink(rel, dst_frames)
+            elif not os.path.exists(dst_frames):
+                try:
+                    os.symlink(rel, dst_frames)
+                except Exception:
+                    shutil.copytree(src_frames, dst_frames)
+            elif os.path.isdir(dst_frames):
+                # Keep the compat copy up to date (for filesystems that don't support symlinks).
+                src_names = [n for n in os.listdir(src_frames) if n.lower().endswith(".jpg")]
+                src_set = set(src_names)
+                for name in src_names:
+                    shutil.copyfile(os.path.join(src_frames, name), os.path.join(dst_frames, name))
+                # Remove stale samples when max_frames changes.
+                for name in os.listdir(dst_frames):
+                    if name.startswith("sample_") and name.lower().endswith(".jpg") and name not in src_set:
+                        try:
+                            os.remove(os.path.join(dst_frames, name))
+                        except Exception:
+                            pass
         except Exception:
-            try:
-                shutil.copytree(src_frames, dst_frames)
-            except Exception:
-                # Best-effort only; leave debugging to the user if the FS forbids it.
-                pass
+            # Best-effort only; leave debugging to the user if the FS forbids it.
+            pass
 
-    if os.path.exists(src_manifest) and not os.path.exists(dst_manifest):
+    if os.path.exists(src_manifest):
         try:
+            if os.path.islink(dst_manifest):
+                os.unlink(dst_manifest)
             shutil.copyfile(src_manifest, dst_manifest)
         except Exception:
             pass
@@ -165,14 +204,12 @@ def _ensure_root_fullvideo_artifacts(video_out: str) -> None:
 def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
     errors: List[str] = []
 
-    def _has_frame_ref(text: Any) -> bool:
-        return _contains_frame_ref(text)
+    def _has_disallowed_ref(text: Any) -> bool:
+        # Stage 1 prompt forbids both frame/image indices and timestamps (e.g., "Frame 12", "t=3.2s").
+        return _contains_frame_ref(text) or _contains_time_ref(text)
 
     def _nonempty_str(v: Any) -> bool:
         return isinstance(v, str) and v.strip() != ""
-
-    def _nonempty_str_list(v: Any) -> bool:
-        return isinstance(v, list) and any(isinstance(x, str) and x.strip() for x in v)
 
     def _nonempty_relation_list(v: Any) -> bool:
         if not isinstance(v, list):
@@ -203,8 +240,8 @@ def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
     goal = str(draft.get("high_level_goal", "")).strip()
     if not goal:
         errors.append("high_level_goal is missing/empty.")
-    if _has_frame_ref(goal):
-        errors.append("high_level_goal must not reference frame indices (e.g., 'Frame 12').")
+    if _has_disallowed_ref(goal):
+        errors.append("high_level_goal must not reference frame indices or timestamps (e.g., 'Frame 12', 't=3.2s').")
 
     steps = draft.get("steps", [])
     if not isinstance(steps, list) or not steps:
@@ -212,10 +249,10 @@ def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
         return errors
 
     # Keep step granularity localizable with a 50-frame pool.
-    if len(steps) < 4:
-        errors.append(f"Too few steps: got {len(steps)} (required >= 4).")
-    if len(steps) > 9:
-        errors.append(f"Too many steps: got {len(steps)} (required <= 9).")
+    if len(steps) < 3:
+        errors.append(f"Too few steps: got {len(steps)} (required >= 3).")
+    if len(steps) > 8:
+        errors.append(f"Too many steps: got {len(steps)} (required <= 8).")
 
     step_goals: List[str] = []
     for i, step in enumerate(steps, start=1):
@@ -225,8 +262,8 @@ def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
         sg = str(step.get("step_goal", "")).strip()
         if not sg:
             errors.append(f"steps[{i}].step_goal is empty.")
-        if _has_frame_ref(sg):
-            errors.append(f"steps[{i}].step_goal must not reference frame indices.")
+        if _has_disallowed_ref(sg):
+            errors.append(f"steps[{i}].step_goal must not reference frame indices or timestamps.")
         if sg.startswith("unnamed_step_"):
             errors.append(f"steps[{i}].step_goal looks like a placeholder ('{sg}').")
         step_goals.append(sg)
@@ -234,92 +271,75 @@ def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
         rationale = step.get("rationale", "")
         if not _nonempty_str(rationale):
             errors.append(f"steps[{i}].rationale is empty.")
-        if _has_frame_ref(rationale):
-            errors.append(f"steps[{i}].rationale must not reference frame indices.")
+        if _has_disallowed_ref(rationale):
+            errors.append(f"steps[{i}].rationale must not reference frame indices or timestamps.")
 
-        pre = step.get("preconditions")
-        eff = step.get("expected_effects")
-        if not _nonempty_str_list(pre):
-            errors.append(f"steps[{i}].preconditions is empty (expected a non-empty list).")
-        if not _nonempty_str_list(eff):
-            errors.append(f"steps[{i}].expected_effects is empty (expected a non-empty list).")
-        if isinstance(pre, list):
-            for x in pre:
-                if _has_frame_ref(x):
-                    errors.append(f"steps[{i}].preconditions must not reference frame indices.")
-                    break
-        if isinstance(eff, list):
-            for x in eff:
-                if _has_frame_ref(x):
-                    errors.append(f"steps[{i}].expected_effects must not reference frame indices.")
-                    break
+        cc = step.get("causal_chain")
+        if not isinstance(cc, dict):
+            errors.append(f"steps[{i}].causal_chain missing/invalid (expected an object).")
+            continue
+        for k in ("agent", "action", "patient"):
+            if not _nonempty_str(cc.get(k)):
+                errors.append(f"steps[{i}].causal_chain.{k} is empty.")
+            if _has_disallowed_ref(cc.get(k)):
+                errors.append(f"steps[{i}].causal_chain.{k} must not reference frame indices or timestamps.")
+        for k in (
+            "causal_precondition_on_spatial",
+            "causal_effect_on_spatial",
+        ):
+            rels = cc.get(k)
+            if not _nonempty_relation_list(rels):
+                errors.append(f"steps[{i}].causal_chain.{k} is empty/invalid (expected >= 1 relation).")
+            if isinstance(rels, list):
+                for sp in rels:
+                    if not isinstance(sp, dict):
+                        continue
+                    if _has_disallowed_ref(sp.get("relation", "")):
+                        errors.append(f"steps[{i}].causal_chain.{k}.relation must not reference frame indices or timestamps.")
+                        break
+                    objs = sp.get("objects")
+                    if isinstance(objs, list) and any(_has_disallowed_ref(o) for o in objs):
+                        errors.append(f"steps[{i}].causal_chain.{k}.objects must not reference frame indices or timestamps.")
+                        break
+        for k in (
+            "causal_precondition_on_affordance",
+            "causal_effect_on_affordance",
+        ):
+            states = cc.get(k)
+            if not _nonempty_affordance_list(states):
+                errors.append(f"steps[{i}].causal_chain.{k} is empty/invalid (expected >= 1 affordance state).")
+            if isinstance(states, list):
+                for ap in states:
+                    if not isinstance(ap, dict):
+                        continue
+                    if _has_disallowed_ref(ap.get("object_name", "")) or _has_disallowed_ref(ap.get("reasons", "")):
+                        errors.append(f"steps[{i}].causal_chain.{k} must not reference frame indices or timestamps.")
+                        break
+                    affs = ap.get("affordance_types")
+                    if isinstance(affs, list) and any(_has_disallowed_ref(a) for a in affs):
+                        errors.append(
+                            f"steps[{i}].causal_chain.{k}.affordance_types must not reference frame indices or timestamps."
+                        )
+                        break
 
-        spost = step.get("spatial_postconditions_detail")
-        apost = step.get("affordance_postconditions_detail")
-        nxt = step.get("predicted_next_actions")
-        if not _nonempty_relation_list(spost):
-            errors.append(f"steps[{i}].spatial_postconditions_detail is empty/invalid (expected >= 1 relation).")
-        if not _nonempty_affordance_list(apost):
-            errors.append(f"steps[{i}].affordance_postconditions_detail is empty/invalid (expected >= 1 affordance state).")
-        if not _nonempty_str_list(nxt):
-            errors.append(f"steps[{i}].predicted_next_actions is empty (expected a non-empty list).")
-        if isinstance(nxt, list) and not (2 <= len(nxt) <= 4):
-            errors.append(f"steps[{i}].predicted_next_actions must have length 2-4 (got {len(nxt)}).")
-
-        if isinstance(spost, list):
-            for sp in spost:
-                if not isinstance(sp, dict):
-                    continue
-                if _has_frame_ref(sp.get("relation", "")):
-                    errors.append(f"steps[{i}].spatial_postconditions_detail must not reference frame indices.")
-                    break
-                objs = sp.get("objects")
-                if isinstance(objs, list) and any(_has_frame_ref(o) for o in objs):
-                    errors.append(f"steps[{i}].spatial_postconditions_detail.objects must not reference frame indices.")
-                    break
-        if isinstance(apost, list):
-            for ap in apost:
-                if not isinstance(ap, dict):
-                    continue
-                if _has_frame_ref(ap.get("object_name", "")) or _has_frame_ref(ap.get("reasons", "")):
-                    errors.append(f"steps[{i}].affordance_postconditions_detail must not reference frame indices.")
-                    break
-                affs = ap.get("affordance_types")
-                if isinstance(affs, list) and any(_has_frame_ref(a) for a in affs):
-                    errors.append(f"steps[{i}].affordance_postconditions_detail.affordance_types must not reference frame indices.")
-                    break
-        if isinstance(nxt, list):
-            for x in nxt:
-                if _has_frame_ref(x):
-                    errors.append(f"steps[{i}].predicted_next_actions must not reference frame indices.")
-                    break
-
-        tu = step.get("tool_and_material_usage")
-        tools = tu.get("tools") if isinstance(tu, dict) else None
-        mats = tu.get("materials") if isinstance(tu, dict) else None
-        if not _nonempty_str_list(tools) and not _nonempty_str_list(mats):
-            errors.append(
-                f"steps[{i}].tool_and_material_usage.tools/materials is empty (expected at least one tool or material)."
-            )
-
-        cq = step.get("causal_challenge_question", "")
+        cq = step.get("counterfactual_challenge_question", "")
         co = step.get("expected_challenge_outcome", "")
         if not _nonempty_str(cq):
-            errors.append(f"steps[{i}].causal_challenge_question is empty.")
+            errors.append(f"steps[{i}].counterfactual_challenge_question is empty.")
         if not _nonempty_str(co):
             errors.append(f"steps[{i}].expected_challenge_outcome is empty.")
-        if _has_frame_ref(cq) or _has_frame_ref(co):
-            errors.append(f"steps[{i}] challenge fields must not reference frame indices.")
+        if _has_disallowed_ref(cq) or _has_disallowed_ref(co):
+            errors.append(f"steps[{i}] challenge fields must not reference frame indices or timestamps.")
 
-        fh = step.get("failure_handling")
-        reason = fh.get("reason") if isinstance(fh, dict) else ""
-        recovery = fh.get("recovery_strategy") if isinstance(fh, dict) else ""
+        fr = step.get("failure_reflecting")
+        reason = fr.get("reason") if isinstance(fr, dict) else ""
+        recovery = fr.get("recovery_strategy") if isinstance(fr, dict) else ""
         if not _nonempty_str(reason):
-            errors.append(f"steps[{i}].failure_handling.reason is empty.")
+            errors.append(f"steps[{i}].failure_reflecting.reason is empty.")
         if not _nonempty_str(recovery):
-            errors.append(f"steps[{i}].failure_handling.recovery_strategy is empty.")
-        if _has_frame_ref(reason) or _has_frame_ref(recovery):
-            errors.append(f"steps[{i}].failure_handling must not reference frame indices.")
+            errors.append(f"steps[{i}].failure_reflecting.recovery_strategy is empty.")
+        if _has_disallowed_ref(reason) or _has_disallowed_ref(recovery):
+            errors.append(f"steps[{i}].failure_reflecting must not reference frame indices or timestamps.")
 
     non_empty = [g for g in step_goals if g]
     if len(set(non_empty)) != len(non_empty):
@@ -345,7 +365,7 @@ def _can_resume_stage1(draft_path: str, manifest_path: str) -> bool:
     for idx, st in enumerate(steps, start=1):
         if not isinstance(st, dict):
             return False
-        if "critical_frames" in st or "frame_index" in st or "keyframe_image_path" in st:
+        if "critical_frames" in st or "frame_index" in st or "interaction" in st or "keyframe_image_path" in st:
             return False
         try:
             if int(st.get("step_id")) != idx:
@@ -371,6 +391,7 @@ def run_stage1_for_video(
 ) -> str:
     vid = video_id_from_path(video_path)
     video_out = os.path.join(output_root, vid)
+    ensure_video_out_dir_safe(video_out, video_path)
     stage1_dir = os.path.join(video_out, "stage1")
     sampled_frames_dir = os.path.join(stage1_dir, "sampled_frames")
     manifest_path = os.path.join(stage1_dir, "frame_manifest.json")
@@ -383,6 +404,18 @@ def run_stage1_for_video(
     if not overwrite and _can_resume_stage1(draft_path, manifest_path):
         _ensure_root_fullvideo_artifacts(video_out)
         return video_out
+
+    # Record source metadata early so reruns can detect/avoid output collisions even if Stage1 fails mid-run.
+    update_run_summary(
+        run_summary_path,
+        {
+            "source_video": os.path.abspath(video_path),
+            "video_id": vid,
+            "output_root": os.path.abspath(output_root),
+            "updated_at_utc": now_utc_iso(),
+            "stage1": {"status": "running", "started_at_utc": now_utc_iso()},
+        },
+    )
 
     frames, dims = sample_video_to_frames(video_path, sampling_cfg)
     save_sampled_frames_jpegs(frames, sampled_frames_dir)
@@ -434,8 +467,8 @@ def run_stage1_for_video(
         raw_errors = _stage1_raw_schema_errors(plan)
         normalized, warnings = normalize_draft_plan(plan)
         step_count = len(normalized.get("steps", [])) if isinstance(normalized, dict) else 0
-        if step_count and not (5 <= step_count <= 8):
-            warnings.append(f"Step count is {step_count} (preferred 5–8; hard constraint 4–9).")
+        if step_count and not (4 <= step_count <= 7):
+            warnings.append(f"Step count is {step_count} (preferred 4-7; hard constraint 3-8).")
         if isinstance(normalized, dict):
             for st in normalized.get("steps", []):
                 if not isinstance(st, dict):

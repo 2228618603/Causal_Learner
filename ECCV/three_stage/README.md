@@ -29,8 +29,8 @@
 
 1) **Stage 1 — Draft（只做 step-level，不做 keyframes）**
 - 输入：原视频 → 均匀采样（默认 50 帧）+ prompt
-- 输出：`stage1/draft_plan.json`（严格禁止 `critical_frames/frame_index/keyframe_image_path`）
-- 步数：推荐 5–8；硬约束 4–9（校验失败自动重试）
+- 输出：`stage1/draft_plan.json`（严格禁止 `critical_frames/frame_index/interaction/keyframe_image_path`）
+- 步数：推荐 4–7；硬约束 3–8（校验失败自动重试）
 
 2) **Stage 2 — 步骤定位 + 切片**
 - 输入：原视频 + `stage1/draft_plan.json` + `stage1/frame_manifest.json`
@@ -42,9 +42,9 @@
 
 3) **Stage 3 — clip 精修 + 关键帧**
 - 输入：每步 clip → 再采样（默认 50 帧/clip）+ draft step（只读）
-- 输出：最终 `causal_plan_with_keyframes.json`（对齐 ECCV 既有 long-video 输出 schema）
+- 输出：最终 `causal_plan_with_keyframes.json`（三阶段 schema 以 `three_stage/prompts.py` 为准）
   - `critical_frames[*].frame_index`：1-based on **step-clip** 帧池
-  - `keyframe_image_path` 由脚本填充（复制关键帧 JPEG 并写入绝对路径）
+  - 关键帧 JPEG 会被保存到每个 step 目录根下：`frame_{idx:03d}_ts_{timestamp:.2f}s.jpg`（JSON 不包含 `keyframe_image_path`）
 
 ## 快速开始
 

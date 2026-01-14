@@ -129,10 +129,10 @@ Prompt 定义：
 关键约束（Prompt）→ 对应实现（代码）：
 
 - **只允许 strict JSON 输出** → `three_stage/common.py:extract_json_from_response()` + `json.loads()`
-- **禁止 `critical_frames/frame_index/keyframe_image_path`**（任何位置） → `three_stage/stage1_generate_draft.py:_stage1_raw_schema_errors()`（递归扫描 forbidden keys）
+- **禁止 `critical_frames/frame_index/interaction/keyframe_image_path`**（任何位置） → `three_stage/stage1_generate_draft.py:_stage1_raw_schema_errors()`（递归扫描 forbidden keys）
 - **禁止额外字段（top-level/step/nested）** → `three_stage/stage1_generate_draft.py:_stage1_raw_schema_errors()`（allowed-key 白名单）
-- **步数 4–9（推荐 5–8）** → `three_stage/stage1_generate_draft.py:_draft_hard_errors()`（硬约束）+ warnings（软提醒）
-- **字段非空、列表非空、`predicted_next_actions` 2–4** → `three_stage/stage1_generate_draft.py:_draft_hard_errors()`
+- **步数 3–8（推荐 4–7）** → `three_stage/stage1_generate_draft.py:_draft_hard_errors()`（硬约束）+ warnings（软提醒）
+- **字段非空、列表非空（`causal_chain` 四个 list + `counterfactual_*` + `failure_reflecting`）** → `three_stage/stage1_generate_draft.py:_draft_hard_errors()`
 - **文本不得出现 “Frame 12 / Image 12 …”** → `three_stage/common.py:_contains_frame_ref()`（正则）+ `_draft_hard_errors()`
 
 断点续跑一致性：
@@ -167,22 +167,20 @@ Prompt 定义：
 关键约束（Prompt）→ 对应实现（代码）：
 
 - **`step_id/step_goal` 不可改** → `three_stage/common.py:normalize_stage3_step_output()`（强一致校验）
-- **`critical_frames` 只能 1–2 个，且 `frame_index` 递增** → 同上（长度与递增校验）
+- **`critical_frames` 必须恰好 2 个，且 `frame_index` 递增** → 同上（长度与递增校验）
 - **所有文本字段禁止出现 “Frame 12 …”** → 同上（`_contains_frame_ref` 全字段扫描）
-- **`affordance_hotspot.mechanism` 必须非空**（下游 QA 依赖） → 同上（必填判错）
-- **`causal_chain` 只允许 5 个 canonical 字段**（避免下游 dataclass 解析炸掉） → 同上（extra_cc 判错）
-- **不允许输出 `keyframe_image_path`**（由脚本填） → 同上（extra_cf 判错）+ 脚本后处理填充
+- **`interaction.hotspot.description/affordance_type/mechanism` 必须非空** → 同上（必填判错）
+- **`causal_chain` 形状以 `three_stage/prompts.py` 为准**（含 `causal_precondition_on_*` / `causal_effect_on_*` 列表） → 同上（allowed keys + list 非空判错）
+- **不允许输出 `keyframe_image_path`**（脚本从文件系统解析关键帧 JPEG） → 同上（extra_cf 判错）
 
-关键帧图片落盘与路径注入：
+关键帧图片落盘（不写回 JSON）：
 
 - `three_stage/stage3_refine_and_keyframes.py` 会把选中的帧复制为 `frame_###_ts_XX.XXs.jpg`
-- 并把 `keyframe_image_path` 写成**绝对路径**（与现有 ECCV 工具链兼容）
+- 关键帧 JPEG 的定位由 `<step_folder>/frame_manifest.json` + `frame_index` 决定，JSON 不包含 `keyframe_image_path`
 
-旧产物自动升级（无模型调用）：
+旧产物轻量升级（无模型调用）：
 
-- 若历史数据里出现旧字段（如 `affordance_hotspot.causal_role` 或 `causal_chain` 多余字段）
-- 重新跑一次 Stage3 会自动升级并重写 `step_final.json` / `causal_plan_with_keyframes.json`
-  - 对应代码：`three_stage/stage3_refine_and_keyframes.py:_upgrade_step_schema_inplace()`
+- 若历史产物里出现 `keyframe_image_path`（旧版本脚本注入的路径），Stage3 会在断点续跑检查时自动清理并按新 schema 重新落盘
 
 ---
 
@@ -263,11 +261,11 @@ python3 three_stage/pipeline.py --input-video-dir /abs/path/to/videos
 检查：
 
 - 每个 step 目录的 `step_final.json`：
-  - `critical_frames` 长度 1–2
-  - 每个 `critical_frames[*].keyframe_image_path` 指向存在的 jpg
+  - `critical_frames` 长度必须为 2
+  - 每个 `critical_frames[*].frame_index` 都应在 step 目录根下找到对应关键帧 jpg：`frame_{idx:03d}_ts_{timestamp:.2f}s.jpg`
   - 关键帧 jpg 文件名里的 `ts_XX.XXs` 是**原视频时间轴**（global timestamp），可直接用于后续在源视频上裁剪片段
-  - `affordance_hotspot.mechanism` 非空（否则下游 QA 任务会明显掉质量/掉样本）
-  - `causal_chain` 只包含 5 个字段（避免下游 `CausalChain(**dict)` 崩溃）
+  - `interaction.hotspot.mechanism` 非空（否则机制解释缺失）
+  - `causal_chain` 形状以 `three_stage/prompts.py` 为准（含 `causal_precondition_on_*` / `causal_effect_on_*` 列表）
 
 ---
 
@@ -278,7 +276,7 @@ python3 three_stage/pipeline.py --input-video-dir /abs/path/to/videos
 高频原因：
 
 - 模型输出带了多余字段/markdown/解释文字
-- 输出包含 forbidden keys（`critical_frames`/`frame_index`/`keyframe_image_path`）
+- 输出包含 forbidden keys（`critical_frames`/`frame_index`/`interaction`/`keyframe_image_path`）
 - 必填字段为空或列表为空
 
 排查：
@@ -306,9 +304,9 @@ python3 three_stage/pipeline.py --input-video-dir /abs/path/to/videos
 
 ---
 
-## 7. 旧三阶段产物升级（不想重跑模型）
+## 7. 旧三阶段产物轻量升级（尽量不重跑模型）
 
-如果你之前用旧版本三阶段输出过 `causal_role` 或者 `causal_chain` 带额外字段：
+如果你之前用旧版本三阶段输出过 `keyframe_image_path`（脚本注入的路径）：
 
 在 `ECCV/` 下对目标视频重新跑一次 Stage3（通常不会触发模型调用，会直接复用并升级）：
 
@@ -316,7 +314,7 @@ python3 three_stage/pipeline.py --input-video-dir /abs/path/to/videos
 python3 three_stage/pipeline.py --input-video /abs/path/video.mp4 --stages 3
 ```
 
-升级会重写：
+升级会重写（清理 `keyframe_image_path` 等旧字段注入）：
 
 - `<step_folder>/step_final.json`
 - `<video_id>/causal_plan_with_keyframes.json`
@@ -327,5 +325,5 @@ python3 three_stage/pipeline.py --input-video /abs/path/video.mp4 --stages 3
 
 若你使用 `generate_mani_longvideo_qa_api.py`：
 
-- 该脚本会读取 `steps[*].critical_frames[*].affordance_hotspot.mechanism`
+- 下游通常会读取 `steps[*].critical_frames[*].interaction.hotspot.mechanism`
 - 因此 Stage3 必须保证 `mechanism` 非空且为自然语言机制描述（本管线已用强校验保证）

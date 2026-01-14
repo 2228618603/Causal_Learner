@@ -89,7 +89,7 @@ pip install openai opencv-python
 说明：
 
 - `<slug>` 由 `step_goal` 经 `sanitize_filename()` 归一化得到（小写、下划线、截断过长）。
-- `keyframe_image_path` 会被填为关键帧 JPEG 的**绝对路径**（与既有 ECCV 数据兼容）。
+- 关键帧 JPEG 会被保存到 `<step_folder>/frame_###_ts_XX.XXs.jpg`；JSON **不包含** `keyframe_image_path`（以 `three_stage/prompts.py` 的 schema 为准）。
 
 ## 帧池与索引语义（非常重要）
 
@@ -142,11 +142,11 @@ Stage3 输出 `critical_frames[*].frame_index`：
 
 硬约束（校验失败会自动重试）：
 
-- 严禁输出任何 keyframe 字段：`critical_frames` / `frame_index` / `keyframe_image_path`
+- 严禁输出任何 keyframe 字段：`critical_frames` / `frame_index` / `interaction` / `keyframe_image_path`
 - 文本字段禁止出现 “Frame 12 / Image 12 …” 等帧引用
 - `step_id` 必须是 `1..N` 且递增；`step_goal` 不能重复
-- 步数硬约束 4–9（推荐 5–8）
-- 关键字段非空（例如 `predicted_next_actions` 必须 2–4 条）
+- 步数硬约束 3–8（推荐 4–7）
+- 关键字段非空、列表非空（以 `three_stage/prompts.py` 的 Stage1 schema 为准）
 
 断点续跑：
 
@@ -217,19 +217,17 @@ Stage3 输出 `critical_frames[*].frame_index`：
 
 输出（每个 step）：
 
-- `<step_folder>/step_final.json`（包含 `critical_frames`）
-- `<step_folder>/frame_###_ts_XX.XXs.jpg`（脚本复制关键帧 JPEG）
-- `keyframe_image_path` 由脚本填入（绝对路径）
-  - 其中 `ts_XX.XXs` 使用**原视频时间轴**（global timestamp），便于后续用 `extract_last_frame_segments.py` 等工具在源视频上裁剪片段
+- `<step_folder>/step_final.json`（包含 `critical_frames`，且 JSON **不包含** `keyframe_image_path`）
+- `<step_folder>/frame_###_ts_XX.XXs.jpg`（脚本复制关键帧 JPEG；`ts_XX.XXs` 使用**原视频时间轴**，便于后续在源视频上裁剪片段）
 
 关键硬约束（校验失败自动重试）：
 
 - 禁止修改 `step_id` 与 `step_goal`
-- 必须输出 1–2 个 `critical_frames`
+- 必须输出 **恰好 2 个** `critical_frames`
 - `critical_frames[*].frame_index` 必须在 `1..num_frames` 且严格递增
 - 文本字段禁止出现 “Frame 12 / Image 12 …” 等帧引用
-- 若输出 2 个关键帧，必须体现真实时间推进：若两帧映射到相同 timestamp 会被拒绝（提示改选或只输出 1 帧）
-- `affordance_hotspot` 使用字段 `mechanism`（自然语言描述物理机制）；不允许输出 `causal_role`
+- 两个关键帧必须体现真实时间推进：若两帧映射到相同 timestamp 会被拒绝（提示改选）
+- `interaction.hotspot` 必须包含 `description/affordance_type/mechanism` 且非空；`interaction.tools/materials` 至少一项非空
 
 断点续跑：
 
@@ -238,16 +236,13 @@ Stage3 输出 `critical_frames[*].frame_index`：
 
 ## 最终合并产物与 schema 对齐
 
-最终 `causal_plan_with_keyframes.json` 会合并所有步骤，字段结构对齐 ECCV 既有 long-video 输出：
+最终 `causal_plan_with_keyframes.json` 会合并所有步骤，字段结构以 `three_stage/prompts.py` 的 Stage3 schema 为准：
 
-- step-level：`rationale`, `preconditions`, `expected_effects`, `spatial_postconditions_detail`,
-  `affordance_postconditions_detail`, `predicted_next_actions`, `tool_and_material_usage`, `failure_handling`
-- keyframe-level：`critical_frames[*]` 中包含
-  - `frame_index`, `action_description`, `state_change_description`
-  - `spatial_preconditions`, `affordance_preconditions`
-  - `causal_chain`（`agent`, `action`, `patient`, `causal_effect_on_patient`, `causal_effect_on_environment`）
-  - `affordance_hotspot`（`description`, `affordance_type`, `mechanism`）
-  - `keyframe_image_path`（脚本填入绝对路径）
+- step-level：`step_id`, `step_goal`, `rationale`, `causal_chain`, `counterfactual_challenge_question`, `expected_challenge_outcome`, `failure_reflecting`
+- keyframe-level：`critical_frames`（长度=2），每个包含
+  - `frame_index`, `action_state_change_description`
+  - `causal_chain`（含 `causal_precondition_on_*` / `causal_effect_on_*` 列表）
+  - `interaction`（`tools`, `materials`, `hotspot{description,affordance_type,mechanism}`）
 
 ## 运行方式
 

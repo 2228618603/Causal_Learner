@@ -18,6 +18,7 @@ from common import (
     collect_videos,
     cut_video_segment_ffmpeg,
     default_output_root,
+    ensure_video_out_dir_safe,
     extract_json_from_response,
     initialize_api_client,
     logger,
@@ -165,6 +166,7 @@ def run_stage2_for_video(
 ) -> str:
     vid = video_id_from_path(video_path)
     video_out = os.path.join(output_root, vid)
+    ensure_video_out_dir_safe(video_out, video_path)
     stage1_dir = os.path.join(video_out, "stage1")
     stage2_dir = os.path.join(video_out, "stage2")
     manifest_path = os.path.join(stage1_dir, "frame_manifest.json")
@@ -194,9 +196,9 @@ def run_stage2_for_video(
     draft_plan = read_json(draft_path)
     high_level_goal = str(draft_plan.get("high_level_goal", "")).strip()
     steps_for_count = draft_plan.get("steps", [])
-    if not isinstance(steps_for_count, list) or not (4 <= len(steps_for_count) <= 9):
+    if not isinstance(steps_for_count, list) or not (3 <= len(steps_for_count) <= 8):
         raise RuntimeError(
-            f"Draft step count must be within [4, 9] for the three-stage pipeline (got {len(steps_for_count) if isinstance(steps_for_count, list) else 'N/A'}). "
+            f"Draft step count must be within [3, 8] for the three-stage pipeline (got {len(steps_for_count) if isinstance(steps_for_count, list) else 'N/A'}). "
             "Re-run Stage 1 with a better prompt (or use --overwrite)."
         )
 
@@ -210,24 +212,7 @@ def run_stage2_for_video(
             continue
         goal = str(st.get("step_goal", "")).strip()
         if sid > 0 and goal:
-            tu = st.get("tool_and_material_usage")
-            tools: List[str] = []
-            materials: List[str] = []
-            if isinstance(tu, dict):
-                raw_tools = tu.get("tools", [])
-                raw_mats = tu.get("materials", [])
-                if isinstance(raw_tools, list):
-                    tools = [str(x).strip() for x in raw_tools if isinstance(x, str) and x.strip()]
-                if isinstance(raw_mats, list):
-                    materials = [str(x).strip() for x in raw_mats if isinstance(x, str) and x.strip()]
-
-            hints: List[str] = []
-            if tools:
-                hints.append("tools: " + ", ".join(tools[:6]))
-            if materials:
-                hints.append("materials: " + ", ".join(materials[:6]))
-            hint_text = f" [{'; '.join(hints)}]" if hints else ""
-            outline_lines.append(f"- Step {sid}: {goal}{hint_text}")
+            outline_lines.append(f"- Step {sid}: {goal}")
     draft_plan_outline = "\n".join(outline_lines)
 
     frames = load_frames_from_manifest(manifest_path)
@@ -242,6 +227,7 @@ def run_stage2_for_video(
     localization: Optional[Dict[str, Any]] = None
     loc_by_id: Dict[int, Dict[str, int]] = {}
     localization_from_cache = False
+    cached_loc_mtime: Optional[float] = None
     # If a previous run produced a valid localization JSON but failed during ffmpeg cutting,
     # reuse it to avoid re-calling the model.
     if not overwrite and os.path.exists(loc_path):
@@ -261,6 +247,7 @@ def run_stage2_for_video(
                     localization = cached_loc
                     loc_by_id = by_id
                     localization_from_cache = True
+                    cached_loc_mtime = loc_mtime
                     if not os.path.exists(sys_prompt_path):
                         write_text(sys_prompt_path, system_text)
                     if not os.path.exists(user_prompt_path):
@@ -290,7 +277,14 @@ def run_stage2_for_video(
         write_text(sys_prompt_path, system_text)
         write_text(user_prompt_path, base_prompt)
 
-        frames_content = build_api_content(frames, api_cfg.embed_index_on_api_images, include_manifest=False)
+        frames_content = build_api_content(
+            frames,
+            api_cfg.embed_index_on_api_images,
+            include_manifest=False,
+            # When indices are embedded on images, avoid additional "Frame N" text labels that can increase
+            # token cost and tempt the model to echo frame numbers in free-form text.
+            include_frame_labels=not api_cfg.embed_index_on_api_images,
+        )
         base_user_content = [{"type": "text", "text": base_prompt}] + frames_content
         system_msg = {"role": "system", "content": system_text}
 
@@ -393,6 +387,19 @@ def run_stage2_for_video(
             and os.path.exists(clip_path)
             and os.path.getsize(clip_path) > 0
         ):
+            if cached_loc_mtime is not None:
+                try:
+                    clip_mtime = float(os.path.getmtime(clip_path))
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to verify existing clip freshness vs cached localization: {clip_path}: {e}"
+                    ) from e
+                # If the clip is older than the cached localization, it likely comes from a different run.
+                if clip_mtime + 1.0 < float(cached_loc_mtime):
+                    raise RuntimeError(
+                        f"Existing clip is older than the cached localization (possible mismatch): {clip_path}. "
+                        "Delete stage2/step_clips or re-run with --overwrite."
+                    )
             logger.info(f"[stage2] Reusing existing clip (overwrite disabled): {os.path.relpath(clip_path, video_out)}")
         elif not overwrite and os.path.exists(clip_path):
             raise RuntimeError(
@@ -453,6 +460,9 @@ def run_stage2_for_video(
     update_run_summary(
         run_summary_path,
         {
+            "source_video": os.path.abspath(video_path),
+            "video_id": vid,
+            "output_root": os.path.abspath(output_root),
             "updated_at_utc": now_utc_iso(),
             "stage2": {
                 "status": "completed",

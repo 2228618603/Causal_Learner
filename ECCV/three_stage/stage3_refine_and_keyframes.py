@@ -17,6 +17,7 @@ from common import (
     call_chat_completion,
     collect_videos,
     default_output_root,
+    ensure_video_out_dir_safe,
     extract_json_from_response,
     initialize_api_client,
     normalize_stage3_step_output,
@@ -33,16 +34,6 @@ from common import (
     write_text,
 )
 from prompts import SYSTEM_PROMPT_ANALYST, build_stage3_user_prompt
-
-
-_CANONICAL_CAUSAL_CHAIN_KEYS = {
-    "agent",
-    "action",
-    "patient",
-    "causal_effect_on_patient",
-    "causal_effect_on_environment",
-}
-_CANONICAL_HOTSPOT_KEYS = {"description", "affordance_type", "mechanism"}
 
 
 def _step_meta_matches_segment(
@@ -80,142 +71,73 @@ def _step_meta_matches_segment(
     return True
 
 
-def _upgrade_step_schema_inplace(step: Dict[str, Any]) -> bool:
-    """Upgrade legacy keys in-place to the canonical ECCV schema.
-
-    - affordance_hotspot: rename legacy `causal_role` -> `mechanism` (and drop extra keys)
-    - causal_chain: drop any extra keys beyond the canonical 5 fields
-    """
+def _strip_keyframe_image_path_inplace(step: Dict[str, Any]) -> bool:
     changed = False
+    if "keyframe_image_path" in step:
+        step.pop("keyframe_image_path", None)
+        changed = True
     cfs = step.get("critical_frames")
     if not isinstance(cfs, list):
-        return False
+        return changed
     for cf in cfs:
-        if not isinstance(cf, dict):
-            continue
-        cc = cf.get("causal_chain")
-        if isinstance(cc, dict):
-            extra_cc = sorted(set(cc.keys()) - _CANONICAL_CAUSAL_CHAIN_KEYS)
-            for k in extra_cc:
-                cc.pop(k, None)
-                changed = True
-        hs = cf.get("affordance_hotspot")
-        if isinstance(hs, dict):
-            if "mechanism" not in hs:
-                legacy = hs.get("causal_role")
-                if isinstance(legacy, str) and legacy.strip():
-                    hs["mechanism"] = legacy
-                    changed = True
-            if "causal_role" in hs:
-                hs.pop("causal_role", None)
-                changed = True
-            extra_hs = sorted(set(hs.keys()) - _CANONICAL_HOTSPOT_KEYS)
-            for k in extra_hs:
-                hs.pop(k, None)
-                changed = True
+        if isinstance(cf, dict) and "keyframe_image_path" in cf:
+            cf.pop("keyframe_image_path", None)
+            changed = True
     return changed
 
 
-def _is_step_schema_canonical(step: Dict[str, Any]) -> bool:
-    """Return True if a step strictly matches the canonical keys expected downstream."""
-    cfs = step.get("critical_frames")
-    if not isinstance(cfs, list) or not cfs:
-        return False
-    for cf in cfs:
-        if not isinstance(cf, dict):
-            return False
-        cc = cf.get("causal_chain")
-        if not isinstance(cc, dict):
-            return False
-        if set(cc.keys()) - _CANONICAL_CAUSAL_CHAIN_KEYS:
-            return False
-        hs = cf.get("affordance_hotspot")
-        if not isinstance(hs, dict):
-            return False
-        if "causal_role" in hs:
-            return False
-        mech = hs.get("mechanism")
-        if not (isinstance(mech, str) and mech.strip()):
-            return False
-        if set(hs.keys()) - _CANONICAL_HOTSPOT_KEYS:
-            return False
-    return True
-
-
-def _validate_step_final_dict(
-    step: Any,
-    step_id: int,
-    step_goal: str,
-    *,
-    num_frames: int,
-    require_keyframe_paths: bool,
-) -> bool:
-    if not isinstance(step, dict):
-        return False
+def _load_manifest_frame_timestamps(manifest_path: str) -> Optional[List[float]]:
     try:
-        if int(step.get("step_id")) != int(step_id):
-            return False
+        manifest = read_json(manifest_path)
     except Exception:
-        return False
-    if str(step.get("step_goal", "")).strip() != str(step_goal).strip():
-        return False
-
-    try:
-        ok = (
-            isinstance(step.get("critical_frames"), list)
-            and 1 <= len(step["critical_frames"]) <= 2
-            and isinstance(step.get("spatial_postconditions_detail"), list)
-            and len(step.get("spatial_postconditions_detail") or []) > 0
-            and isinstance(step.get("affordance_postconditions_detail"), list)
-            and len(step.get("affordance_postconditions_detail") or []) > 0
-            and isinstance(step.get("predicted_next_actions"), list)
-            and 2 <= len(step.get("predicted_next_actions") or []) <= 4
-        )
-    except Exception:
-        return False
-    if not ok:
-        return False
-
-    for cf in step.get("critical_frames") or []:
-        if not isinstance(cf, dict):
-            return False
+        return None
+    frames = manifest.get("frames", [])
+    if not isinstance(frames, list) or not frames:
+        return None
+    out: List[float] = []
+    for fr in frames:
+        if not isinstance(fr, dict):
+            out.append(0.0)
+            continue
         try:
-            fi = int(cf.get("frame_index"))
+            out.append(float(fr.get("timestamp_sec", 0.0)))
         except Exception:
-            return False
-        if fi < 1 or fi > int(num_frames):
-            return False
+            out.append(0.0)
+    return out
 
-        if require_keyframe_paths:
-            kfp = cf.get("keyframe_image_path")
-            if not (isinstance(kfp, str) and os.path.exists(kfp)):
-                return False
 
-        cc = cf.get("causal_chain")
-        if not isinstance(cc, dict):
-            return False
-        required_cc = [
-            "agent",
-            "action",
-            "patient",
-            "causal_effect_on_patient",
-            "causal_effect_on_environment",
-        ]
-        if any(not str(cc.get(k, "")).strip() for k in required_cc):
-            return False
+def _expected_keyframe_image_paths(
+    manifest_path: str,
+    frame_indices_1based: List[int],
+    step_folder: str,
+) -> Dict[int, str]:
+    try:
+        manifest = read_json(manifest_path)
+    except Exception:
+        return {}
 
-        hs = cf.get("affordance_hotspot")
-        if not isinstance(hs, dict):
-            return False
-        mechanism = str(hs.get("mechanism") or hs.get("causal_role") or "").strip()
-        if not str(hs.get("description", "")).strip():
-            return False
-        if not str(hs.get("affordance_type", "")).strip():
-            return False
-        if not mechanism:
-            return False
+    by_idx: Dict[int, Dict[str, Any]] = {}
+    for entry in manifest.get("frames", []):
+        if not isinstance(entry, dict):
+            continue
+        try:
+            idx1 = int(entry.get("frame_index_1based"))
+        except Exception:
+            continue
+        by_idx[idx1] = entry
 
-    return True
+    out: Dict[int, str] = {}
+    for idx1 in frame_indices_1based:
+        entry = by_idx.get(int(idx1))
+        if not entry:
+            continue
+        try:
+            ts = float(entry.get("timestamp_sec", 0.0))
+        except Exception:
+            ts = 0.0
+        name = f"frame_{int(idx1):03d}_ts_{ts:.2f}s.jpg"
+        out[int(idx1)] = os.path.abspath(os.path.join(step_folder, name))
+    return out
 
 
 def _can_resume_stage3_final_plan(
@@ -306,6 +228,9 @@ def _can_resume_stage3_final_plan(
         return False
 
     # Validate per-step structure and ensure keyframe images exist.
+    final_plan_needs_rewrite = False
+    final_steps_normalized: Dict[int, Dict[str, Any]] = {}
+
     for sid, goal in got_by_id.items():
         if sid not in seg_by_id:
             return False
@@ -322,28 +247,64 @@ def _can_resume_stage3_final_plan(
         if not os.path.exists(clip_abs):
             return False
 
-        num_frames = int(max_frames_fallback)
         step_folder = os.path.join(video_out, f"{sid:02d}_{sanitize_filename(goal)}")
         step_meta_path = os.path.join(step_folder, "step_meta.json")
         if not _step_meta_matches_segment(step_meta_path, clip_abs, clip_start_sec, clip_end_sec):
             return False
+
         manifest_path = os.path.join(step_folder, "frame_manifest.json")
-        if os.path.exists(manifest_path):
-            try:
-                num_frames = int(read_json(manifest_path).get("num_frames", num_frames))
-            except Exception:
-                return False
+        if not os.path.exists(manifest_path):
+            return False
+        try:
+            manifest = read_json(manifest_path)
+            num_frames = int(manifest.get("num_frames", 0) or 0)
+            if num_frames <= 0:
+                num_frames = len(manifest.get("frames", []) or []) or int(max_frames_fallback)
+        except Exception:
+            return False
+        frame_timestamps = _load_manifest_frame_timestamps(manifest_path)
+
+        step_out_path = os.path.join(step_folder, "step_final.json")
+        if not os.path.exists(step_out_path):
+            return False
+        try:
+            step_file = read_json(step_out_path)
+        except Exception:
+            return False
+        if isinstance(step_file, dict) and _strip_keyframe_image_path_inplace(step_file):
+            write_json(step_out_path, step_file)
+
+        normalized_file, errs_file = normalize_stage3_step_output(
+            step_file, sid, goal, num_frames, frame_timestamps=frame_timestamps
+        )
+        if normalized_file is None:
+            return False
+
         step_obj = step_by_id.get(sid)
-        if not _validate_step_final_dict(
-            step_obj,
-            sid,
-            goal,
-            num_frames=num_frames,
-            require_keyframe_paths=True,
-        ):
+        if not isinstance(step_obj, dict):
             return False
-        if not _is_step_schema_canonical(step_obj):
+        if _strip_keyframe_image_path_inplace(step_obj):
+            final_plan_needs_rewrite = True
+        normalized_final, errs_final = normalize_stage3_step_output(
+            step_obj, sid, goal, num_frames, frame_timestamps=frame_timestamps
+        )
+        if normalized_final is None:
             return False
+        if normalized_final != normalized_file:
+            return False
+
+        chosen = [int(cf["frame_index"]) for cf in normalized_file.get("critical_frames", [])]
+        expected_paths = _expected_keyframe_image_paths(manifest_path, chosen, step_folder)
+        if len(expected_paths) != len(chosen):
+            return False
+        if any(not os.path.exists(p) for p in expected_paths.values()):
+            return False
+
+        final_steps_normalized[sid] = normalized_file
+
+    if final_plan_needs_rewrite:
+        ordered = [final_steps_normalized[sid] for sid in sorted(final_steps_normalized)]
+        write_json(final_path, {"high_level_goal": high_level_goal, "steps": ordered})
 
     return True
 
@@ -366,25 +327,35 @@ def _load_valid_cached_step_final(
     if not _step_meta_matches_segment(step_meta_path, expected_clip_abs, expected_clip_start_sec, expected_clip_end_sec):
         return None
     try:
-        num_frames = int(max_frames_fallback)
-        if os.path.exists(manifest_path):
-            manifest = read_json(manifest_path)
-            num_frames = int(manifest.get("num_frames", num_frames))
+        if not os.path.exists(manifest_path):
+            return None
+        manifest = read_json(manifest_path)
+        num_frames = int(manifest.get("num_frames", 0) or 0)
+        if num_frames <= 0:
+            num_frames = len(manifest.get("frames", []) or []) or int(max_frames_fallback)
+        frame_timestamps = _load_manifest_frame_timestamps(manifest_path)
         existing = read_json(step_out_path)
     except Exception:
         return None
-    if not _validate_step_final_dict(
-        existing,
-        step_id,
-        step_goal,
-        num_frames=num_frames,
-        require_keyframe_paths=True,
-    ):
+    if not isinstance(existing, dict):
         return None
-    changed = _upgrade_step_schema_inplace(existing)
+
+    changed = _strip_keyframe_image_path_inplace(existing)
+    normalized, errs = normalize_stage3_step_output(existing, step_id, step_goal, num_frames, frame_timestamps=frame_timestamps)
+    if normalized is None:
+        return None
+
+    step_folder = os.path.dirname(step_out_path)
+    chosen = [int(cf["frame_index"]) for cf in normalized.get("critical_frames", [])]
+    expected_paths = _expected_keyframe_image_paths(manifest_path, chosen, step_folder)
+    if len(expected_paths) != len(chosen):
+        return None
+    if any(not os.path.exists(p) for p in expected_paths.values()):
+        return None
+
     if changed:
-        write_json(step_out_path, existing)
-    return existing
+        write_json(step_out_path, normalized)
+    return normalized
 
 
 def run_stage3_for_video(
@@ -397,6 +368,7 @@ def run_stage3_for_video(
 ) -> str:
     vid = video_id_from_path(video_path)
     video_out = os.path.join(output_root, vid)
+    ensure_video_out_dir_safe(video_out, video_path)
     stage1_dir = os.path.join(video_out, "stage1")
     stage2_dir = os.path.join(video_out, "stage2")
     draft_path = os.path.join(stage1_dir, "draft_plan.json")
@@ -422,9 +394,9 @@ def run_stage3_for_video(
     draft_steps = draft.get("steps", [])
     if not isinstance(draft_steps, list) or not draft_steps:
         raise RuntimeError("Draft plan has no steps.")
-    if not (4 <= len(draft_steps) <= 9):
+    if not (3 <= len(draft_steps) <= 8):
         raise RuntimeError(
-            f"Draft step count must be within [4, 9] for the three-stage pipeline (got {len(draft_steps)}). "
+            f"Draft step count must be within [3, 8] for the three-stage pipeline (got {len(draft_steps)}). "
             "Re-run Stage 1 with a better prompt (or use --overwrite)."
         )
 
@@ -495,7 +467,7 @@ def run_stage3_for_video(
                 final_steps.append(cached)
                 continue
 
-        sampled_frames, _dims = sample_video_to_frames(clip_path, sampling_cfg)
+        sampled_frames, _ = sample_video_to_frames(clip_path, sampling_cfg)
         # Convert clip-local timestamps to original-video timestamps so that downstream tools
         # (e.g., extract_last_frame_segments.py) can cut segments on the source video timeline.
         for fr in sampled_frames:
@@ -511,7 +483,14 @@ def run_stage3_for_video(
         base_prompt = build_stage3_user_prompt(high_level_goal, draft_plan_outline, draft_step_json, len(sampled_frames))
         write_text(os.path.join(step_folder, "stage3_system_prompt.txt"), SYSTEM_PROMPT_ANALYST)
         write_text(os.path.join(step_folder, "stage3_user_prompt.txt"), base_prompt)
-        frames_content = build_api_content(sampled_frames, api_cfg.embed_index_on_api_images, include_manifest=False)
+        frames_content = build_api_content(
+            sampled_frames,
+            api_cfg.embed_index_on_api_images,
+            include_manifest=False,
+            # When indices are embedded on images, avoid additional "Frame N" text labels that can increase
+            # token cost and tempt the model to echo frame numbers in free-form text fields.
+            include_frame_labels=not api_cfg.embed_index_on_api_images,
+        )
         base_user_content = [{"type": "text", "text": base_prompt}] + frames_content
         system_msg = {"role": "system", "content": SYSTEM_PROMPT_ANALYST}
 
@@ -548,12 +527,9 @@ def run_stage3_for_video(
 
         write_text(raw_path, last_content)
 
-        # Save keyframe images and fill keyframe_image_path
+        # Save keyframe images (do not write any filesystem paths into JSON; see prompts.py).
         chosen = [int(cf["frame_index"]) for cf in normalized_step["critical_frames"]]
-        keyframe_paths = save_keyframe_images_from_manifest(manifest_path, chosen, output_dir=step_folder)
-        for cf in normalized_step["critical_frames"]:
-            idx1 = int(cf["frame_index"])
-            cf["keyframe_image_path"] = keyframe_paths.get(idx1)
+        save_keyframe_images_from_manifest(manifest_path, chosen, output_dir=step_folder)
 
         write_json(step_out_path, normalized_step)
         write_json(
@@ -578,12 +554,18 @@ def run_stage3_for_video(
     update_run_summary(
         run_summary_path,
         {
+            "source_video": os.path.abspath(video_path),
+            "video_id": vid,
+            "output_root": os.path.abspath(output_root),
             "updated_at_utc": now_utc_iso(),
             "stage3": {
                 "status": "completed",
                 "generated_at_utc": now_utc_iso(),
                 "final_plan_path": os.path.relpath(final_path, video_out),
-                "frame_index_note": "In this three-stage pipeline, critical_frames[*].frame_index is 1-based on EACH STEP CLIP's 50-frame pool; see each step folder's frame_manifest.json.",
+                "frame_index_note": (
+                    "In this three-stage pipeline, critical_frames[*].frame_index is 1-based on EACH STEP CLIP's "
+                    f"{int(sampling_cfg.max_frames)}-frame pool; see each step folder's frame_manifest.json."
+                ),
                 "api_config": {
                     "api_base_url": api_cfg.api_base_url,
                     "model_provider_id": api_cfg.model_provider_id,

@@ -9,6 +9,7 @@ from typing import List
 
 from common import (
     ApiConfig,
+    OutputDirCollisionError,
     SamplingConfig,
     VIDEO_EXTS,
     collect_videos,
@@ -139,6 +140,14 @@ def main() -> None:
                         overwrite=args.overwrite,
                         max_retries=args.stage3_retries,
                     )
+            except OutputDirCollisionError as e:
+                stage_failed = True
+                msg = f"{type(e).__name__}: {e}"
+                logger.error(f"[pipeline] video_id={vid} stage={sid} aborted: {msg}")
+                # Do NOT write into run_summary.json here: the directory may belong to another source video.
+                if args.continue_on_error:
+                    break
+                raise
             except (Exception, SystemExit) as e:
                 stage_failed = True
                 msg = f"{type(e).__name__}: {e}"
@@ -147,6 +156,9 @@ def main() -> None:
                     update_run_summary(
                         os.path.join(video_out, "run_summary.json"),
                         {
+                            "source_video": os.path.abspath(vp),
+                            "video_id": vid,
+                            "output_root": os.path.abspath(args.output_root),
                             "updated_at_utc": now_utc_iso(),
                             f"stage{sid}": {
                                 "status": "failed",
@@ -177,6 +189,9 @@ def main() -> None:
                     update_run_summary(
                         os.path.join(video_out, "run_summary.json"),
                         {
+                            "source_video": os.path.abspath(vp),
+                            "video_id": vid,
+                            "output_root": os.path.abspath(args.output_root),
                             "updated_at_utc": now_utc_iso(),
                             "post_validate": {
                                 "status": "completed",
@@ -195,6 +210,9 @@ def main() -> None:
                     update_run_summary(
                         os.path.join(video_out, "run_summary.json"),
                         {
+                            "source_video": os.path.abspath(vp),
+                            "video_id": vid,
+                            "output_root": os.path.abspath(args.output_root),
                             "updated_at_utc": now_utc_iso(),
                             "post_validate": {
                                 "status": "failed",

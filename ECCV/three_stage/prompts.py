@@ -20,38 +20,62 @@ Goal: Generate a draft, step-by-step causal plan and step-level annotations for 
 
 CRITICAL CONSTRAINT (Stage 1):
 - Do NOT generate ANY keyframe-level fields.
-- In particular, do NOT output `critical_frames`, `frame_index`, or `keyframe_image_path` anywhere.
+- In particular, do NOT output `critical_frames`, `frame_index`, `interaction`, or `keyframe_image_path` anywhere.
 - Do NOT reference frame/image indices or timestamps in any field (e.g., "Frame 12", "Image 12", "t=3.2s").
 
 Language & grounding:
 - Use objective, professional English.
 - Use conservative naming (e.g., "container", "tool", "vegetable") when unsure.
 - Do not hallucinate hidden states or off-screen objects.
-- Keep the plan at a granularity that is realistic to localize with {num_frames} sampled frames (prefer 5–8 steps; keep within 4–9).
+- Keep the plan at a granularity that is realistic to localize with {num_frames} sampled frames (prefer 4-7 steps; keep within 3-8).
 - Use consistent object naming across all steps (do not rename the same object with different synonyms).
-- Prefer `snake_case` for object identifiers in lists (e.g., `objects`, `object_name`, tools/material names).
+- Prefer `snake_case` for object identifiers in lists/fields (e.g., `objects`, `object_name`, `agent`, `patient`).
 - Avoid placeholders like "unknown", "N/A", "..." — fill every field with grounded, specific content.
 
 Output format (strict JSON only; no extra text):
 {{
-  "high_level_goal": "One comprehensive English sentence describing the overall goal of the entire video.",
+  "high_level_goal": "One comprehensive English sentence describing the overall goal and intended final outcome of the entire video.",
   "steps": [
     {{
       "step_id": 1,
-      "step_goal": "A specific, action-oriented description of the sub-goal for this step.",
-      "rationale": "Why this step is necessary for the overall plan.",
-      "preconditions": ["Macro-level states that must be true before this step."],
-      "expected_effects": ["Macro-level states that will be true after this step (include spatial + state/affordance outcomes)."],
-      "spatial_postconditions_detail": [{{"relation": "A concrete spatial/state relation after the step completes.", "objects": ["object_a", "object_b"], "truth": true}}],
-      "affordance_postconditions_detail": [{{"object_name": "object", "affordance_types": ["affordance_a"], "reasons": "Why the affordance/state holds after completion."}}],
-      "predicted_next_actions": ["2–4 short, plausible next micro-actions that would immediately follow this step (consistent with the overall plan)."],
-      "tool_and_material_usage": {{
-        "tools": ["Tools actively used in this step."],
-        "materials": ["Materials being acted on/consumed in this step."]
+      "step_goal": "A specific, action-oriented description of the sub-goal for this step (unique; chronological).",
+      "rationale": "Why this step is necessary for the overall plan, explained causally (how it enables later steps).",
+      "causal_chain": {{
+        "agent": "The primary force/controller for the WHOLE step (prefer body part like 'hands'/'right_hand'; use tool part only if clearly the direct force applicator).",
+        "action": "A concise verb phrase summarizing the core physical action for the WHOLE step (e.g., 'apply torque to loosen', 'tilt to pour').",
+        "patient": "The primary entity being acted upon in this step (snake_case; consistent naming across steps).",
+        "causal_precondition_on_spatial": [
+          {{
+            "relation": "A short, concrete, visually verifiable spatial/physical relation token that MUST hold immediately before and throughout this step. The `objects` list must name the involved entities (snake_case). Prefer mechanistic relations (contact/support/grasp/containment/alignment/open/closed) over vague text; set `truth` accordingly (usually true). Examples: 'holding', 'contacting', 'on_top_of', 'inside', 'inserted_into', 'aligned_with', 'open', 'closed'.",
+            "objects": ["object_a", "object_b"],
+            "truth": true
+          }}
+        ],
+        "causal_precondition_on_affordance": [
+          {{
+            "object_name": "The object whose functional affordance/state MUST already be true to execute this step (snake_case; must be visible/grounded in the frames).",
+            "affordance_types": ["affordance_a"],
+            "reasons": "A grounded, non-empty justification referencing visible cues and why the affordance/state is required for the action (1–2 sentences; no speculation)."
+          }}
+        ],
+        "causal_effect_on_spatial": [
+          {{
+            "relation": "A short, concrete spatial/physical relation token that will become true (or false) as a RESULT of this step (visually verifiable).",
+            "objects": ["object_a", "object_b"],
+            "truth": true
+          }}
+        ],
+        "causal_effect_on_affordance": [
+          {{
+            "object_name": "The object whose functional affordance/state will change as a RESULT of this step (snake_case; must be grounded).",
+            "affordance_types": ["affordance_a"],
+            "reasons": "A grounded, non-empty justification referencing visible cues and the mechanism by which the step causes the affordance/state (1–2 sentences; no speculation)."
+          }}
+        ]
       }},
-      "causal_challenge_question": "A realistic what-if question challenging the physical understanding of this step.",
+      "counterfactual_challenge_question": "A realistic what-if question challenging the physical understanding of this step.",
       "expected_challenge_outcome": "The predicted physical outcome for the challenge question.",
-      "failure_handling": {{
+      "failure_reflecting": {{
         "reason": "A plausible failure mode for this step.",
         "recovery_strategy": "A concise recovery strategy."
       }}
@@ -64,21 +88,21 @@ Additional constraints:
 - `step_id` MUST start at 1 and increase by 1.
 - Each `step_goal` must be non-empty, specific, and not duplicated across steps.
 - Keep each `step_goal` concise and focused on a single sub-goal (prefer <= 12 words).
-- `preconditions` and `expected_effects` MUST be non-empty lists.
-- `spatial_postconditions_detail`, `affordance_postconditions_detail`, and `predicted_next_actions` MUST be non-empty lists.
-- `predicted_next_actions` MUST contain 2–4 items.
-- Items in list fields should be DISTINCT (no duplicates), especially in `predicted_next_actions` and tool/material lists.
-- `affordance_postconditions_detail[*].reasons` MUST be a non-empty, grounded explanation (no placeholders or tautologies).
-- `failure_handling.reason` and `failure_handling.recovery_strategy` MUST be non-empty.
-- `tool_and_material_usage` MUST include at least one tool or material (use "hands" as a tool if no external tool is used).
-- Ensure cross-step causal consistency: Step i `expected_effects` should make Step i+1 `preconditions` plausible (avoid contradictions).
+- `causal_chain.agent/action/patient` MUST be non-empty strings.
+- `causal_chain.causal_precondition_on_spatial`, `causal_chain.causal_precondition_on_affordance`, `causal_chain.causal_effect_on_spatial`, `causal_chain.causal_effect_on_affordance` MUST be non-empty lists.
+- `causal_chain.causal_precondition_on_affordance[*].reasons` and `causal_chain.causal_effect_on_affordance[*].reasons` MUST be non-empty grounded explanations.
+- `counterfactual_challenge_question` and `expected_challenge_outcome` MUST be non-empty strings.
+- `failure_reflecting.reason` and `failure_reflecting.recovery_strategy` MUST be non-empty strings.
+- Ensure cross-step causal consistency: Step i `causal_effect_on_*` should make Step i+1 `causal_precondition_on_*` plausible (avoid contradictions).
 - Do NOT add any extra keys beyond the schema above.
 - Each step should be anchorable to visual evidence, but you are NOT selecting frames in this stage.
 
 Silent self-check before you output:
 - Strict valid JSON only (double quotes, no trailing commas, no markdown fences).
 - No frame/image index references anywhere.
+- Step count within 3-8 (preferred 4-7).
 - No empty lists/strings for required fields; no placeholder values.
+- No forbidden keys (`critical_frames`, `frame_index`, `interaction`, `keyframe_image_path`) anywhere.
 
 The input frames are resized to approximately ({w}x{h}) pixels. Now output the final strict JSON object only.
 """.strip()
@@ -157,51 +181,43 @@ You are an expert Physical Interaction Analyst and Causal Planner.
 You are given {num_frames} uniformly sampled frames from a SINGLE STEP CLIP (chronological order), and the draft step definition (read-only).
 
 Task (Stage 3):
-Using the step-clip frames as the PRIMARY evidence, refine and complete the annotation for this step and generate 1–2 keyframe annotations.
+Using the step-clip frames as the PRIMARY evidence, refine and complete the annotation for this step and generate 2 keyframe annotations.
 
 Keyframe selection procedure (recommended; follow silently):
 1) Scan all frames quickly to understand the step progression.
-2) Pick 1–2 frames that best represent (a) initiation and/or (b) completion of the step, with clear visual evidence.
+2) Pick 2 frames that best represent (a) initiation and (b) completion of the step, with clear visual evidence.
 3) Treat each keyframe as a conjunction of constraints: the selected `frame_index` MUST be consistent with its own
-   `action_description`, `state_change_description`, `spatial_preconditions`, `affordance_preconditions`, `causal_chain`,
-   and `affordance_hotspot` simultaneously (avoid partial matches).
-4) If multiple frames match similarly well, prefer the EARLIER index. If the clip is highly duplicated/too short, output only 1 keyframe.
+   `action_state_change_description`, `causal_chain`, and `interaction` simultaneously (avoid partial matches).
+4) If multiple frames match similarly well, prefer the EARLIER index.
 
 Strict requirements:
 - You MUST NOT change `step_id` or `step_goal` from the draft.
-- You MUST output exactly 1 or 2 `critical_frames`.
+- You MUST output exactly 2 `critical_frames`.
 - Each `critical_frames[*].frame_index` MUST be an integer in [1, {num_frames}] and refers to the step-clip frame pool provided here.
 - Do NOT reference frame/image numbers (e.g., "Frame 12", "Image 12") in any text fields; use only the numeric `frame_index` field to specify frames.
-- If you output 2 critical frames, choose 2 DISTINCT frames that show meaningful temporal progression (initiation → completion); do not pick duplicates.
-- If the clip is too short / many sampled frames are duplicates, output only 1 `critical_frame` rather than forcing 2 near-identical moments.
+- Choose 2 DISTINCT frames that show meaningful temporal progression (initiation → completion); do not pick duplicates.
 - The indices within `critical_frames` must be in increasing time order.
-- Do NOT output `keyframe_image_path` (it will be added by the script).
+- Do NOT output `keyframe_image_path` (keyframe JPEGs are resolved from the filesystem by the script).
 - Output strict JSON only; no explanations.
 - Do NOT add any extra keys beyond the schema below.
-- `preconditions` and `expected_effects` MUST be non-empty lists.
-- `spatial_postconditions_detail`, `affordance_postconditions_detail`, and `predicted_next_actions` MUST be non-empty.
-- `predicted_next_actions` MUST contain 2–4 short items.
-- Items in `predicted_next_actions` MUST be DISTINCT (no duplicates).
-- Items in other list fields should also be DISTINCT where applicable (e.g., tools/materials, object/affordance identifier lists).
-- Each `critical_frames[*].spatial_preconditions` and `critical_frames[*].affordance_preconditions` MUST be non-empty lists.
-- `affordance_postconditions_detail[*].reasons` and `critical_frames[*].affordance_preconditions[*].reasons` MUST be non-empty grounded strings.
-- `causal_chain.causal_effect_on_patient` and `causal_chain.causal_effect_on_environment` MUST be non-empty strings.
-- `affordance_hotspot.mechanism` MUST be a non-empty, grounded string (how the hotspot transmits force/motion/constraint to cause the effect).
-- `affordance_hotspot.affordance_type` SHOULD be a short `snake_case` identifier (no spaces).
-- `tool_and_material_usage` MUST include at least one tool or material (use "hands" as a tool if no external tool is used).
+- `causal_chain.agent/action/patient` MUST be non-empty strings.
+- `causal_chain.causal_precondition_on_spatial`, `causal_chain.causal_precondition_on_affordance`, `causal_chain.causal_effect_on_spatial`, `causal_chain.causal_effect_on_affordance` MUST be non-empty lists.
+- `causal_chain.causal_precondition_on_affordance[*].reasons` and `causal_chain.causal_effect_on_affordance[*].reasons` MUST be non-empty grounded strings.
+- `interaction.hotspot.description`, `interaction.hotspot.affordance_type`, `interaction.hotspot.mechanism` MUST be non-empty grounded strings.
+- `interaction.tools` and `interaction.materials` MUST be lists; at least one of them must be non-empty (use "hands" as a tool if no external tool is used).
 
 Quality and grounding constraints:
 - Treat the frames as the ONLY source of truth. Do not hallucinate objects, contacts, or states not supported by the images.
-- `spatial_preconditions` must be visually verifiable in the chosen frame (contacts, containment, support, relative pose, reachability).
-- `affordance_preconditions` must be grounded in visible functional state (e.g., graspable handle exposed; blade contacting object; container open).
-- `causal_chain` should describe the ongoing physical interaction at that instant using precise language.
-- `affordance_hotspot` must refer to a specific functional region that is visibly involved (edge, handle, rim, hinge, etc.).
-- `affordance_hotspot.mechanism` should explain the physical mechanism (force/torque transfer, friction, leverage, fluid flow, heat transfer, stress concentration, etc.).
+- `causal_chain.causal_precondition_on_spatial` must be visually verifiable in the chosen frame (contacts, containment, support, relative pose, reachability).
+- `causal_chain.causal_precondition_on_affordance` must be grounded in visible functional state (e.g., graspable handle exposed; blade contacting object; container open).
+- `causal_chain` should describe the physical constraints and the causal effects for the whole step (consistent with the chosen keyframes).
+- `interaction.hotspot` must refer to a specific functional region that is visibly involved (edge, handle, rim, hinge, etc.).
+- `interaction.hotspot.mechanism` should explain the physical mechanism (force/torque transfer, friction, leverage, fluid flow, heat transfer, stress concentration, etc.).
 - Avoid placeholders like "N/A", "unknown", or empty strings; fill all required fields with grounded, specific content.
-- Use consistent object naming across all fields (spatial/affordance preconditions, causal_chain, hotspot); do not rename the same object with different synonyms within the step.
-- Prefer concrete relation verbs in `spatial_preconditions` (examples: "contacting", "holding", "on_top_of", "inside", "inserted_into", "aligned_with", "open", "closed").
-- Use `snake_case` for object identifiers where possible (e.g., "cutting_board", "light_switch").
-- Keep `agent` as a person/body part (e.g., "hand", "hands", "finger", "person"); do not use camera-centric agents; keep `action` as a verb phrase; keep `patient` as the acted-on object.
+- Use consistent object naming across all fields (causal_chain, interaction); do not rename the same object with different synonyms within the step.
+- Prefer concrete relation verbs in `causal_precondition_on_spatial` and `causal_effect_on_spatial` (examples: "contacting", "holding", "on_top_of", "inside", "inserted_into", "aligned_with", "open", "closed").
+- Use `snake_case` for object identifiers where possible.
+- Keep `agent` as a person/body part (e.g., "hand", "hands", "finger", "person"); keep `action` as a verb phrase; keep `patient` as the acted-on object.
 
 Output schema (strict):
 (`<>` markers below are placeholders for types; do NOT output them literally. Your output must be valid JSON with real values.)
@@ -209,33 +225,39 @@ Output schema (strict):
   "step_id": <int>,
   "step_goal": <string exactly equal to the draft>,
   "rationale": <string>,
-  "preconditions": [<string>, ...],
-  "expected_effects": [<string>, ...],
-  "spatial_postconditions_detail": [{{"relation": <string>, "objects": [<string>, ...], "truth": <bool>}}, ...],
-  "affordance_postconditions_detail": [{{"object_name": <string>, "affordance_types": [<string>, ...], "reasons": <string>}}, ...],
-  "predicted_next_actions": [<string>, ...],
-  "tool_and_material_usage": {{"tools": [<string>, ...], "materials": [<string>, ...]}},
-  "causal_challenge_question": <string>,
+  "causal_chain": {{
+    "agent": <string>,
+    "action": <string>,
+    "patient": <string>,
+    "causal_precondition_on_spatial": [{{"relation": <string>, "objects": [<string>, ...], "truth": <bool>}}, ...],
+    "causal_precondition_on_affordance": [{{"object_name": <string>, "affordance_types": [<string>, ...], "reasons": <string>}}, ...],
+    "causal_effect_on_spatial": [{{"relation": <string>, "objects": [<string>, ...], "truth": <bool>}}, ...],
+    "causal_effect_on_affordance": [{{"object_name": <string>, "affordance_types": [<string>, ...], "reasons": <string>}}, ...]
+  }},
+  "counterfactual_challenge_question": <string>,
   "expected_challenge_outcome": <string>,
-  "failure_handling": {{"reason": <string>, "recovery_strategy": <string>}},
+  "failure_reflecting": {{"reason": <string>, "recovery_strategy": <string>}},
   "critical_frames": [
     {{
       "frame_index": <int>,
-      "action_description": <string>,
-      "state_change_description": <string>,
-      "spatial_preconditions": [{{"relation": <string>, "objects": [<string>, ...], "truth": <bool>}}, ...],
-      "affordance_preconditions": [{{"object_name": <string>, "affordance_types": [<string>, ...], "reasons": <string>}}, ...],
+      "action_state_change_description": <string>,
       "causal_chain": {{
         "agent": <string>,
         "action": <string>,
         "patient": <string>,
-        "causal_effect_on_patient": <string>,
-        "causal_effect_on_environment": <string>
+        "causal_precondition_on_spatial": [{{"relation": <string>, "objects": [<string>, ...], "truth": <bool>}}, ...],
+        "causal_precondition_on_affordance": [{{"object_name": <string>, "affordance_types": [<string>, ...], "reasons": <string>}}, ...],
+        "causal_effect_on_spatial": [{{"relation": <string>, "objects": [<string>, ...], "truth": <bool>}}, ...],
+        "causal_effect_on_affordance": [{{"object_name": <string>, "affordance_types": [<string>, ...], "reasons": <string>}}, ...]
       }},
-      "affordance_hotspot": {{
-        "description": <string>,
-        "affordance_type": <string>,
-        "mechanism": <string>
+      "interaction": {{
+        "tools": [<string>, ...],
+        "materials": [<string>, ...],
+        "hotspot": {{
+          "description": <string>,
+          "affordance_type": <string>,
+          "mechanism": <string>
+        }}
       }}
     }}
   ]
