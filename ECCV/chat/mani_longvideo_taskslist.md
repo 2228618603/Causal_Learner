@@ -3,11 +3,9 @@
 本文档定义一套可落地生成的多任务多模态 QA/监督数据规范，面向 `mani_longvideo.py` / `three_stage/pipeline.py` 生成的单视频 item 目录。
 
 本文包含三部分：
-- `## 1. 核心目标与统一口径`：
+- `## 1. 核心目标与统一口径`
 - `## 2. 任务体系`：最终任务集合（字段来源 + 证据形态 + 输出约束）；
 - `## 3. 任务卡片`：逐任务的字段来源、证据来源、样本构造、QA 范例；
-
-> 重要：本文档只定义“任务与样本构造规范”。实际数据生成时，**不要把文件路径/目录名/`ts_XX.XXs`/step slug** 暴露给模型输入（它们会泄漏 step_goal/时间顺序）。
 
 ---
 
@@ -15,18 +13,17 @@
 
 ### 1.1 最终核心能力
 
-- **因果规划（causal planning）**：显式状态/约束（spatial + affordance）→ 可行性 → 因果后果 → 跨步依赖 → 长时序规划（prefix / reorder / infill）
-- **失败反思（failure reflecting）**：不一致检测 → 缺陷类型定位（flaw type）→ 恢复策略选择 → 失败驱动重规划（replanning）
+- **因果规划（causal planning）**
+- **失败反思（failure reflecting）**
 
 ### 1.2 证据形态（统一 4 类）
 
 为兼容训练落地与可控性，`meta.evidence_type` 建议统一为 4 类：
 
-1) `keyframe_single`：关键帧图像（通常 1 张(每个step有2张关键帧图像)
+1) `keyframe_single`：关键帧图像（通常 1 张；部分任务会用 2 张对比或 4 张 A/B/C/D；多图时写入 `meta.evidence_files`；不暴露帧序号/时间戳）
 2) `images_uniform_scene`：完整视频均匀抽帧多图
 3) `video_clip`：步骤间局部片段 mp4
 4) `video_prefix`：累积前缀 mp4
-
 
 ### 1.3 Schema 摘要（与 three_stage 产物对齐）
 
@@ -37,10 +34,8 @@
 - CausalChain：`agent`, `action`, `patient`, `causal_precondition_on_spatial`, `causal_precondition_on_affordance`, `causal_effect_on_spatial`, `causal_effect_on_affordance`
 - CriticalFrame：`frame_index`, `action_state_change_description`, `causal_chain`, `interaction.tools/materials/hotspot`
 
-关键提醒：
-
+提醒：
 - `critical_frames[*].frame_index` 是 **step clip 内局部索引**，不等于全局 `sampled_frames/` 的序号。
-
 ---
 
 ## 2. 任务体系（最终任务集合）
@@ -85,7 +80,7 @@
 
 - **字段（JSONPath）**：`steps[i].step_goal`（可选 `steps[i].causal_chain.causal_effect_on_*` 作为辅助解释）
 - **证据形态**：`video_clip`（尽量对齐 step i 的执行片段）
-- **输出约束**：三分类 `match / partial match / mismatch`，并要求给出可见证据或声明不可判断。
+- **输出约束**：首字段输出三分类标签之一：`match / partial match / mismatch`；可选补充 0–1 句可见证据或说明不可判断（评分默认只看标签）。
 - **负样本**：跨 step 替换 step_goal 或打乱 clip 对齐关系（写入 `meta.neg_sample=true`）。
 
 ### Task_05_Keyframe_to_StepGoal_Matching_MC（关键帧对应 step_goal 四选一；强监督）
@@ -114,8 +109,8 @@
 - **字段（JSONPath）**：`steps[i].critical_frames[*].interaction.tools/materials`（可附 `steps[i].step_goal`）
 - **证据形态**：`keyframe_single`
 - **输出约束**：
-  - 自由文本版：区分 tools vs materials；
-  - 客观题变体（推荐）：Yes/No（给定实体，问其在该 step 是否为 tool）。
+  - 自由文本版：明确区分 tools vs materials（可输出两类列表或 1–2 句说明）；
+  - 客观题变体（推荐）：Yes/No（给定实体，问其在该 step 是否为 tool；只输出 `Yes` 或 `No`）。
 
 ### Task_09_Patient_Identification_MCQ（`patient` 识别：四选一/多选）
 
@@ -146,7 +141,7 @@
 
 - **字段（JSONPath）**：`steps[i].critical_frames[j].interaction.hotspot.description/affordance_type/mechanism`
 - **证据形态**：`keyframe_single`
-- **输出约束**：自由文本；可与 `Task_11/12`（客观题）形成互补。
+- **输出约束**：自由文本；回答需覆盖 hotspot 的 `affordance_type` 与 `mechanism`（可简述外观特征）；可与 `Task_11/12`（客观题）形成互补。
 
 ### Task_14_State_Evolution_Description（关键帧动作-状态变化事件描述）
 
@@ -265,7 +260,7 @@
 
 - **字段来源**：Stage2 预测的 `start_frame_index/end_frame_index`
 - **证据形态**：`images_uniform_scene`（全局抽帧）
-- **输出约束**：输出 `start_frame_index/end_frame_index`（整数）
+- **输出约束**：输出 `start_frame_index/end_frame_index`（整数；1-based；start inclusive；end exclusive；满足 `1 <= start < end <= num_frames`，且 `end_frame_index` 不允许为 `num_frames + 1`）
 
 ### Task_28_Inter_Step_Dependency_Analysis（跨步依赖解释）
 
@@ -331,7 +326,7 @@
 - **样本构造（推荐）**：
   - 取 gold 未来窗口 `K∈[3,6]` 的 step_goals；
   - **只修改其中一个 step**，把它替换为一个“错误 sub-plan”（或不合理动作），形成 `bad_plan`；
-- `FlawType` 可取：`tool_mismatch | order_violation | precondition_missing | hallucinated_object | goal_mismatch`。
+  - `FlawType` 可取：`tool_mismatch | order_violation | precondition_missing | hallucinated_object | goal_mismatch`。
 
 ### Task_36_Plan_Repair_From_Flaw（坏计划修复：输出纠正后的计划）
 
@@ -429,6 +424,7 @@ A: Prepare for cooking by turning on the light, gathering vegetables and tools, 
 - **样本构造规则**：
   - 每个 item 1 条；
   - 正例 key_objects：从 schema 候选池去重得到；
+  - 候选池需过滤明显非“规划物件”的词项（例如人体/肢体/泛指：`hand/hands/person` 等）；
   - 负例 distractors：从跨 item 的常见物体词表/其它 item 的对象池采样（必须不在正例集合中）；
   - 组成 `options`（建议 8–14 个）并打乱；
   - 要求模型输出为 **options 的子集**（避免凭空编造）。
@@ -565,7 +561,7 @@ A: The refrigerator functions as the tool or container being accessed, while the
 ### Task_09_Patient_Identification_MCQ
 
 - **任务说明**：识别关键帧中被作用的主要对象（patient），以四选一/多选形式训练对象角色定位能力。
-- **字段（JSONPath）**：`causal_chain.patient`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.patient`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：候选来自同 item 的对象集合（可由 Task_02 去重得到）。
 - **meta.fields**：`options`, `label`
@@ -584,7 +580,7 @@ A (label): A
 ### Task_10_Action_Phrase_MCQ
 
 - **任务说明**：四选一选择最符合该关键帧的动作短语 `causal_chain.action`，用于学习“视觉动作→动作语义短语”的映射。
-- **字段（JSONPath）**：`causal_chain.action`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.action`（或 step-level `steps[i].causal_chain.action`）
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：动作短语尽量简短一致；干扰项来自其它 step。
 - **meta.fields**：`options`, `label`
@@ -603,7 +599,7 @@ A (label): A
 ### Task_11_Hotspot_AffordanceType_MCQ
 
 - **任务说明**：四选一识别关键帧交互热点的 `affordance_type`，把可供性类别学习变成可评分监督。
-- **字段（JSONPath）**：`interaction.hotspot.affordance_type`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].interaction.hotspot.affordance_type`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：正确项来自当前关键帧；干扰项来自其它关键帧/其它 step。
 - **meta.fields**：`options`, `label`
@@ -622,7 +618,7 @@ A (label): B
 ### Task_12_Hotspot_Mechanism_MCQ
 
 - **任务说明**：四选一选择最符合该关键帧交互的物理机制解释（mechanism），用于强化“可供性→机制”理解与推理。
-- **字段（JSONPath）**：`interaction.hotspot.mechanism`
+- **字段（JSONPath）**：`steps[i].critical_frames[j].interaction.hotspot.mechanism`
 - **证据来源**：`keyframe_single`
 - **样本构造规则**：机制句子建议短句化；干扰项来自其它机制类别。
 - **meta.fields**：`options`, `label`
@@ -935,7 +931,7 @@ A: A
 - **任务说明**：（可选）基于全局均匀抽帧，预测/核验某一步在 sampled frame indices 上的起止边界（start/end），用于更严格的时间定位评测。
 - **字段来源**：Stage2 产物中的 `start_frame_index/end_frame_index`
 - **证据来源**：`images_uniform_scene`（`<ITEM_DIR>/sampled_frames/sample_*.jpg`）
-- **样本构造规则**：每 step 1 条；输出两个整数。
+- **样本构造规则**：每 step 1 条；输出两个整数（1-based；start inclusive；end exclusive；满足 `1 <= start < end <= num_frames`，且 `end_frame_index` 不允许为 `num_frames + 1`）。
 - **meta.fields**：`step_id`, `start_frame_index`, `end_frame_index`
 - **范例**：
 
@@ -1005,7 +1001,7 @@ A: Gather a cutting board and a knife and place them on the countertop.
 - **证据来源**：`video_prefix`
 - **样本构造规则（推荐最大 step_id 变体）**：
   - 取 prefix_end_step=i；
-  - label 为 `i`（或 `i+1`，看你的定义：已完成到第几步）。
+  - label 为 `i`（即 `prefix_end_step`，表示已完成到 step_id=i）。
 - **meta.fields**：`all_steps`, `prefix_end_step`, `label`
 - **范例**：
 
