@@ -81,7 +81,8 @@ CoT 生成器的输入是三阶段管线的最终产物目录（`--input-root`�
 - `Task_33`：Q 固定（包含具体数值 k）；Answer 为逗号分隔的大写字母集合（如 `A,C,E`）
 - `Task_35`：Q 固定；Answer 为一行 label（`FlawStep=...; FlawType=...; Reason=...`）
 - `Task_37`：Q 来自 `counterfactual_challenge_question`（单行化后输出）；Answer 为 `expected_challenge_outcome`（严格匹配）
-- `Task_38/40/42`：Q 固定；Answer 为 `A/B/C/D`（注意：4 个候选项放在 `meta.fields.options`，不出现在 Q 中）
+- `Task_38`：Q 为单行问句（由 `counterfactual_challenge_question` 规范化得到的 `What is the most likely outcome if ...?`）；Answer 为 `A/B/C/D`（注意：4 个候选项放在 `meta.fields.options`，不出现在 Q 中）
+- `Task_40/42`：Q 固定；Answer 为 `A/B/C/D`（注意：4 个候选项放在 `meta.fields.options`，不出现在 Q 中）
 - `Task_39`：Q 固定（会把失败原因嵌入问句）；Answer 为 `failure_reflecting.recovery_strategy`（严格匹配）
 - `Task_41`：Q 固定；Answer 为二分类 `retry_current_step|continue_next_step`
 
@@ -357,8 +358,10 @@ type CotEntry = {
     "source_path": "video_0007/causal_plan_with_keyframes.json",
     "step_index": 6,
     "fields": {
+      "high_level_goal": "Open a jar and transfer its contents into a bowl so the contents are ready to be used.",
       "failure_reason": "the jar cannot be aligned cleanly over the bowl opening",
       "recovery_strategy": "clear the area around the bowl opening and re-align the jar while maintaining a stable hold",
+      "prefix_end_step": 6,
       "options": [
         "Position the open jar above the bowl.",
         "Tilt the jar to pour the contents into the bowl.",
