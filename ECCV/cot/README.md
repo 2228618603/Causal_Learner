@@ -4,9 +4,7 @@
 
 ## 文档
 
-- 标注/生成总指南：`COT_ANNOTATION_GUIDE.md`
-- 数据格式说明：`COT_DATA_FORMAT.md`
-- 最终样例与生成流程（更详细）：`COT_API_GENERATION_WORKFLOW.md`
+- 最终样例 + 数据格式契约 + 生成/校验流程（唯一文档入口）：`COT_API_GENERATION_WORKFLOW.md`
 
 ## 脚本
 

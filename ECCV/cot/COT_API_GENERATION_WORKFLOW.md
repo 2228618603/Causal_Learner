@@ -176,6 +176,8 @@ Constraints:
 
 ## 4) 最终输出（CoT-QA JSONL）长什么样
 
+### 4.1 目录结构（按 task 分目录）
+
 输出目录结构：
 
 ```
@@ -187,7 +189,87 @@ Constraints:
   ...
 ```
 
-每行一个 JSON object（ShareGPT 风格），核心字段：
+每个 `<task_name>/data.jsonl` 是 **JSONL**（每行 1 个 JSON object，UTF-8）。
+
+### 4.2 单条样本的 JSON Schema（ShareGPT 风格）
+
+每一行是一个 JSON 对象，核心字段如下（伪类型）：
+
+```ts
+type ConversationTurn = { from: "human" | "gpt"; value: string };
+
+type AssistantGenerator = {
+  type: "api_generate_v1";
+  api_base_url: string;
+  model_provider_id: string;
+  model_name: string;
+};
+
+type CotEntry = {
+  id: string;                 // uuid4
+  image: string[];            // 非空；证据图路径（相对 input_root 或绝对路径）
+  video?: string;             // 可选；证据视频路径（相对 input_root 或绝对路径）
+  conversations: [            // 固定长度为 2
+    { from: "human"; value: string }, // Q（单行自然问句）
+    { from: "gpt"; value: string }    // A（<think>...</think> + 原答案）
+  ];
+  meta: {
+    task_name: string;        // 任务名（应与目录名一致）
+    item_type: "three_stage"; // 固定为 three_stage
+    evidence_type: string;    // 如 keyframe_single / images_uniform_scene / video_prefix
+    source_path: string;      // 指向 <video_id>/causal_plan_with_keyframes.json（相对 input_root 或绝对）
+    step_index: number;       // 与样本对应的 step（通常是 step_id 或其位置）
+    fields: Record<string, any>; // 任务特定字段（如 options/label 等）
+    evidence_files?: string[];   // 自动写入：等于 image + (video) 的路径集合
+    assistant_generator: AssistantGenerator;  // 生成器写入，用于审计
+  };
+};
+```
+
+### 4.3 路径口径（相对 / 绝对）
+
+- 默认：`image/video/source_path` 写相对路径（相对 `--input-root`）。
+- 若开启 `--abs-paths`：`image/video/source_path` 写绝对路径（更方便跨目录调试）。
+
+### 4.4 对话文本硬约束（Q/A）
+
+**Q（conversations[0].value）**
+
+- 必须是**单行自然问句**（不得包含换行）。
+- 不包含任何 `fields.*` 上下文行。
+- 不包含 options/candidates 等列表（多选/四选一候选项放在 `meta.fields.options`）。
+- 不在 Q 中引导模型如何生成 CoT。
+
+**A（conversations[1].value）**
+
+- 必须满足：`<think>...</think>` + **原始答案文本**（答案在末尾；不得改写）。
+- `<think>...</think>` 内必须是**单段落**自然语言（禁止换行、禁止 bullet list）。
+- `<think>` 里必须按因果规划顺序组织：spatial/affordance preconditions → spatial/affordance effects → failure_reflecting（失败原因+恢复策略）→ 自然过渡到答案成立。
+- `</think>` 后必须紧跟 **gold Answer**，并与生成器提供的 `answer_block` 逐字一致（不得加 `Answer:` 前缀/不得改写）。
+
+**泄漏禁止**
+
+- `conversations[*].value` 文本禁止泄漏任何索引/路径信息：`frame_### / sample_### / ts_... / .jpg/.mp4 / Frame 12 / Image 12` 等。
+- 证据文件路径只允许出现在条目字段 `image` / `video` / `meta.evidence_files` 中。
+
+### 4.5 Answer 形态（按任务）
+
+注意：本生成器会在 prompt 中提供**精确的 gold Answer text**，并要求模型在 `</think>` 之后**原样拷贝**；因此模型主要负责生成高质量 CoT，答案本身不应被改写。
+
+常见 Answer 形式（以 `generate_cot_dataset_api.py` 的 task prompt 为准；更完整的任务口径见第 2.1 节）：
+
+- `Task_28/29/30/37`：`<text>`
+- `Task_31`：`<int>`
+- `Task_33`：`<comma-separated letters like A,C,E>`
+- `Task_32/34/36`：多行编号列表（如 `1) ...`）
+- `Task_35`：`FlawStep=<int>; FlawType=<type>; Reason=<one sentence>`
+- `Task_38/40/42`：`<A/B/C/D>`
+- `Task_39`：`<recovery_strategy>`
+- `Task_41`：`retry_current_step|continue_next_step`
+
+### 4.6 核心字段说明（便于快速理解）
+
+每行一个 JSON object（ShareGPT 风格），常用关键字段含义如下：
 
 - `image`: evidence 图片路径列表（允许包含 `frame_###_ts_...jpg`；但这些字符串 **不得** 出现在对话文本里）
 - `conversations[0]`: `{"from":"human","value":"<single-line Q>"}`（单行问句）
@@ -334,6 +416,12 @@ Constraints:
 
 ## 7) 如何运行（推荐命令）
 
+建议先对三阶段产物做一次先验校验（强建议）：
+
+```bash
+python3 ECCV/three_stage/validate_three_stage_output.py --video-output-dir <three_stage_output_root>/<video_id>
+```
+
 生成（API-only）：
 
 ```bash
@@ -363,6 +451,7 @@ python3 ECCV/cot/validate_cot_dataset.py \
 - `--require-video-prefix`：缺少 prefix mp4 时跳过 prefix 相关样本（更一致）
 - `--abs-paths`：输出路径用绝对路径（便于跨目录调试）
 - `--max-sample-attempts`：单样本 API 失败重试上限
+- `--max-tokens`：单样本最大输出 tokens（CoT 被约束为单段落，通常不需要很大）
 
 ---
 
