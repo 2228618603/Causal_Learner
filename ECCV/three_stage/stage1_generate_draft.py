@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 from typing import Any, Dict, List, Optional
 
 from common import (
@@ -120,6 +119,15 @@ def _stage1_raw_schema_errors(plan: Any) -> List[str]:
                             errors.append(
                                 f"steps[{i}].causal_chain.{k}[{j}] contains extra keys (not allowed): {extra_sp}"
                             )
+                        rel = sp.get("relation")
+                        if not (isinstance(rel, str) and rel.strip()):
+                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].relation must be a non-empty string.")
+                        objs = sp.get("objects")
+                        if not (isinstance(objs, list) and objs and all(isinstance(o, str) and o.strip() for o in objs)):
+                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].objects must be a non-empty list of strings.")
+                        truth = sp.get("truth")
+                        if not isinstance(truth, bool):
+                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].truth must be a boolean (true/false).")
 
             for k in (
                 "causal_precondition_on_affordance",
@@ -135,70 +143,29 @@ def _stage1_raw_schema_errors(plan: Any) -> List[str]:
                             errors.append(
                                 f"steps[{i}].causal_chain.{k}[{j}] contains extra keys (not allowed): {extra_ap}"
                             )
+                        obj = ap.get("object_name")
+                        if not (isinstance(obj, str) and obj.strip()):
+                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].object_name must be a non-empty string.")
+                        affs = ap.get("affordance_types")
+                        if not (isinstance(affs, list) and affs and all(isinstance(a, str) and a.strip() for a in affs)):
+                            errors.append(
+                                f"steps[{i}].causal_chain.{k}[{j}].affordance_types must be a non-empty list of strings."
+                            )
+                        reasons = ap.get("reasons")
+                        if not (isinstance(reasons, str) and reasons.strip()):
+                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].reasons must be a non-empty string.")
 
         fr = step.get("failure_reflecting")
         if isinstance(fr, dict):
             extra_fr = sorted(set(fr.keys()) - _STAGE1_ALLOWED_FAILURE_REFLECTING_KEYS)
             if extra_fr:
                 errors.append(f"steps[{i}].failure_reflecting contains extra keys (not allowed): {extra_fr}")
+            if not (isinstance(fr.get("reason"), str) and str(fr.get("reason")).strip()):
+                errors.append(f"steps[{i}].failure_reflecting.reason must be a non-empty string.")
+            if not (isinstance(fr.get("recovery_strategy"), str) and str(fr.get("recovery_strategy")).strip()):
+                errors.append(f"steps[{i}].failure_reflecting.recovery_strategy must be a non-empty string.")
 
     return errors
-
-
-def _ensure_root_fullvideo_artifacts(video_out: str) -> None:
-    """Create compatibility artifacts at <video_out>/ to match existing ECCV tooling expectations.
-
-    - <video_out>/sampled_frames -> <video_out>/stage1/sampled_frames (relative symlink if possible; else copy)
-    - <video_out>/frame_manifest.json (copy of stage1/frame_manifest.json)
-    """
-    stage1_dir = os.path.join(video_out, "stage1")
-    src_frames = os.path.join(stage1_dir, "sampled_frames")
-    src_manifest = os.path.join(stage1_dir, "frame_manifest.json")
-    dst_frames = os.path.join(video_out, "sampled_frames")
-    dst_manifest = os.path.join(video_out, "frame_manifest.json")
-
-    if os.path.isdir(src_frames):
-        try:
-            rel = os.path.relpath(src_frames, video_out)
-            src_abs = os.path.abspath(src_frames)
-            if os.path.islink(dst_frames):
-                try:
-                    target = os.readlink(dst_frames)
-                    target_abs = os.path.abspath(os.path.join(video_out, target))
-                except Exception:
-                    target_abs = ""
-                if target_abs != src_abs:
-                    os.unlink(dst_frames)
-                    os.symlink(rel, dst_frames)
-            elif not os.path.exists(dst_frames):
-                try:
-                    os.symlink(rel, dst_frames)
-                except Exception:
-                    shutil.copytree(src_frames, dst_frames)
-            elif os.path.isdir(dst_frames):
-                # Keep the compat copy up to date (for filesystems that don't support symlinks).
-                src_names = [n for n in os.listdir(src_frames) if n.lower().endswith(".jpg")]
-                src_set = set(src_names)
-                for name in src_names:
-                    shutil.copyfile(os.path.join(src_frames, name), os.path.join(dst_frames, name))
-                # Remove stale samples when max_frames changes.
-                for name in os.listdir(dst_frames):
-                    if name.startswith("sample_") and name.lower().endswith(".jpg") and name not in src_set:
-                        try:
-                            os.remove(os.path.join(dst_frames, name))
-                        except Exception:
-                            pass
-        except Exception:
-            # Best-effort only; leave debugging to the user if the FS forbids it.
-            pass
-
-    if os.path.exists(src_manifest):
-        try:
-            if os.path.islink(dst_manifest):
-                os.unlink(dst_manifest)
-            shutil.copyfile(src_manifest, dst_manifest)
-        except Exception:
-            pass
 
 
 def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
@@ -402,7 +369,6 @@ def run_stage1_for_video(
     run_summary_path = os.path.join(video_out, "run_summary.json")
 
     if not overwrite and _can_resume_stage1(draft_path, manifest_path):
-        _ensure_root_fullvideo_artifacts(video_out)
         return video_out
 
     # Record source metadata early so reruns can detect/avoid output collisions even if Stage1 fails mid-run.
@@ -488,7 +454,6 @@ def run_stage1_for_video(
         raise RuntimeError(f"Stage 1 failed after {attempts} attempts: " + " | ".join(last_errors[:10]))
 
     write_json(draft_path, normalized)
-    _ensure_root_fullvideo_artifacts(video_out)
 
     update_run_summary(
         run_summary_path,

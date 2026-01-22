@@ -24,5 +24,11 @@ Thumbs.db
 outputs/
 checkpoints/
 
+# Local temporary outputs (do not commit)
+_tmp*/
+
 # Large binary assets (GitHub file-size limit)
 Qwen-PC/qwen-vl-finetune/demo/points/*.ply
+
+# Local model prompt logs (do not commit)
+Qwen-PC/evaluation/mmmu/qwen2_vl/prompt_history/

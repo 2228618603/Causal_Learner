@@ -71,21 +71,6 @@ def _step_meta_matches_segment(
     return True
 
 
-def _strip_keyframe_image_path_inplace(step: Dict[str, Any]) -> bool:
-    changed = False
-    if "keyframe_image_path" in step:
-        step.pop("keyframe_image_path", None)
-        changed = True
-    cfs = step.get("critical_frames")
-    if not isinstance(cfs, list):
-        return changed
-    for cf in cfs:
-        if isinstance(cf, dict) and "keyframe_image_path" in cf:
-            cf.pop("keyframe_image_path", None)
-            changed = True
-    return changed
-
-
 def _load_manifest_frame_timestamps(manifest_path: str) -> Optional[List[float]]:
     try:
         manifest = read_json(manifest_path)
@@ -228,8 +213,6 @@ def _can_resume_stage3_final_plan(
         return False
 
     # Validate per-step structure and ensure keyframe images exist.
-    final_plan_needs_rewrite = False
-    final_steps_normalized: Dict[int, Dict[str, Any]] = {}
 
     for sid, goal in got_by_id.items():
         if sid not in seg_by_id:
@@ -271,8 +254,6 @@ def _can_resume_stage3_final_plan(
             step_file = read_json(step_out_path)
         except Exception:
             return False
-        if isinstance(step_file, dict) and _strip_keyframe_image_path_inplace(step_file):
-            write_json(step_out_path, step_file)
 
         normalized_file, errs_file = normalize_stage3_step_output(
             step_file, sid, goal, num_frames, frame_timestamps=frame_timestamps
@@ -283,8 +264,6 @@ def _can_resume_stage3_final_plan(
         step_obj = step_by_id.get(sid)
         if not isinstance(step_obj, dict):
             return False
-        if _strip_keyframe_image_path_inplace(step_obj):
-            final_plan_needs_rewrite = True
         normalized_final, errs_final = normalize_stage3_step_output(
             step_obj, sid, goal, num_frames, frame_timestamps=frame_timestamps
         )
@@ -299,12 +278,6 @@ def _can_resume_stage3_final_plan(
             return False
         if any(not os.path.exists(p) for p in expected_paths.values()):
             return False
-
-        final_steps_normalized[sid] = normalized_file
-
-    if final_plan_needs_rewrite:
-        ordered = [final_steps_normalized[sid] for sid in sorted(final_steps_normalized)]
-        write_json(final_path, {"high_level_goal": high_level_goal, "steps": ordered})
 
     return True
 
@@ -340,8 +313,9 @@ def _load_valid_cached_step_final(
     if not isinstance(existing, dict):
         return None
 
-    changed = _strip_keyframe_image_path_inplace(existing)
-    normalized, errs = normalize_stage3_step_output(existing, step_id, step_goal, num_frames, frame_timestamps=frame_timestamps)
+    normalized, errs = normalize_stage3_step_output(
+        existing, step_id, step_goal, num_frames, frame_timestamps=frame_timestamps
+    )
     if normalized is None:
         return None
 
@@ -353,7 +327,7 @@ def _load_valid_cached_step_final(
     if any(not os.path.exists(p) for p in expected_paths.values()):
         return None
 
-    if changed:
+    if existing != normalized:
         write_json(step_out_path, normalized)
     return normalized
 

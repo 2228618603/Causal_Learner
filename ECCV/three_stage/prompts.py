@@ -100,6 +100,8 @@ Additional constraints:
 Silent self-check before you output:
 - Strict valid JSON only (double quotes, no trailing commas, no markdown fences).
 - No frame/image index references anywhere.
+- All `truth` fields are JSON booleans (`true`/`false`), not strings.
+- All list-typed fields (`steps`, `objects`, `affordance_types`, etc.) are JSON arrays (not single strings).
 - Step count within 3-8 (preferred 4-7).
 - No empty lists/strings for required fields; no placeholder values.
 - No forbidden keys (`critical_frames`, `frame_index`, `interaction`, `keyframe_image_path`) anywhere.
@@ -143,7 +145,7 @@ Procedure (recommended):
 
 IMPORTANT:
 - Indices refer ONLY to the provided {num_frames} frames (1..{num_frames}), not the original video frame numbers.
-- Do NOT output `{num_frames + 1}` (end_frame_index must be within 1..{num_frames}).
+- You MAY output `{num_frames + 1}` ONLY for `end_frame_index` to indicate the exclusive boundary AFTER the last provided frame (typically for the last step to cover the video end).
 - Do NOT output seconds/timestamps; output indices only.
 - Do NOT add/remove/reorder steps. Output must cover exactly the draft step_ids.
 - Output must contain exactly one entry per draft `step_id` and MUST NOT include any extra step_ids.
@@ -151,7 +153,7 @@ IMPORTANT:
 - Enforce monotonic, non-overlapping segments: for consecutive steps, `end_i <= start_(i+1)`.
 - Enforce positive duration in the sampled timeline: `start_frame_index < end_frame_index` for every step.
 - Prefer near-contiguous coverage across steps (often `end_i == start_(i+1)`), unless there is clear idle time or a real gap between actions.
-- Prefer full coverage of the video: typically `start_1 == 1` and `end_last == {num_frames}` unless the video clearly begins/ends with irrelevant idle content.
+- Prefer full coverage of the video: typically `start_1 == 1` and `end_last == {num_frames + 1}` unless the video clearly begins/ends with irrelevant idle content.
 - Do NOT add any semantic annotations or extra fields beyond the required indices.
 - Each entry in `steps` MUST contain exactly these keys: `step_id`, `start_frame_index`, `end_frame_index`.
 - Output MUST be exactly one JSON object with a single top-level key `steps` (no other top-level keys).
@@ -160,7 +162,7 @@ IMPORTANT:
 
 Silent self-check before you output:
 - All step_ids included exactly once; no extra ids.
-- All indices are integers within [1, {num_frames}].
+- All indices are integers; `start_frame_index` within [1, {num_frames}], `end_frame_index` within [2, {num_frames + 1}].
 - For every step: start < end.
 - For every consecutive pair: end_i <= start_(i+1).
 
@@ -170,7 +172,7 @@ Field definitions (read carefully; output JSON must contain ONLY the keys in the
 - `steps` (list): Exactly one entry per draft `step_id` (no extra/missing ids), in ascending `step_id` order.
 - `steps[*].step_id` (int): Draft step identifier (must match exactly; do not renumber/reorder).
 - `steps[*].start_frame_index` (int): Inclusive start boundary (1-based, within [1, {num_frames}]). Choose the boundary where the step begins; when uncertain, bias slightly earlier to preserve context for Stage 3.
-- `steps[*].end_frame_index` (int): Exclusive end boundary (1-based, within [1, {num_frames}]). Choose the first boundary AFTER the step ends; can equal the next step's `start_frame_index`; must satisfy `start_frame_index < end_frame_index`.
+- `steps[*].end_frame_index` (int): Exclusive end boundary (1-based, within [2, {num_frames + 1}]). Choose the first boundary AFTER the step ends; can equal the next step's `start_frame_index`; must satisfy `start_frame_index < end_frame_index`. Use `{num_frames + 1}` to indicate "after the last provided frame" (typically for the last step).
 
 Output JSON template (replace the numbers with your chosen indices; keep keys exactly):
 {{
@@ -210,16 +212,20 @@ Strict requirements:
 - You MUST output exactly 2 `critical_frames`.
 - Each `critical_frames[*].frame_index` MUST be an integer in [1, {num_frames}] and refers to the step-clip frame pool provided here.
 - Do NOT reference frame/image numbers (e.g., "Frame 12", "Image 12") in any text fields; use only the numeric `frame_index` field to specify frames.
+- Do NOT reference timestamps/durations/timecodes in any text fields (e.g., "3 seconds", "00:03", "t=3.2s").
 - Choose 2 DISTINCT frames that show meaningful temporal progression (initiation → completion); do not pick duplicates.
 - The indices within `critical_frames` must be in increasing time order.
 - Do NOT output `keyframe_image_path` (keyframe JPEGs are resolved from the filesystem by the script).
 - Output strict JSON only; no explanations.
 - Do NOT add any extra keys beyond the schema below.
+- The step-level `causal_chain.agent`, `causal_chain.action`, `causal_chain.patient` MUST be identical to the corresponding fields in EACH `critical_frames[*].causal_chain` (copy them verbatim).
 - `causal_chain.agent/action/patient` MUST be non-empty strings.
 - `causal_chain.causal_precondition_on_spatial`, `causal_chain.causal_precondition_on_affordance`, `causal_chain.causal_effect_on_spatial`, `causal_chain.causal_effect_on_affordance` MUST be non-empty lists.
 - `causal_chain.causal_precondition_on_affordance[*].reasons` and `causal_chain.causal_effect_on_affordance[*].reasons` MUST be non-empty grounded strings.
 - `interaction.hotspot.description`, `interaction.hotspot.affordance_type`, `interaction.hotspot.mechanism` MUST be non-empty grounded strings.
-- `interaction.tools` and `interaction.materials` MUST be lists; at least one of them must be non-empty (use "hands" as a tool if no external tool is used).
+- `interaction.tools` and `interaction.materials` MUST be lists; BOTH must be non-empty (use "hands" as a tool if no external tool is used).
+- In each `critical_frames[*].interaction`, `tools` MUST include the `causal_chain.agent`, and `materials` MUST include the `causal_chain.patient` (keep identifiers consistent).
+- All `truth` fields are JSON booleans (`true`/`false`), not strings.
 
 Quality and grounding constraints:
 - Treat the frames as the ONLY source of truth. Do not hallucinate objects, contacts, or states not supported by the images.
@@ -253,8 +259,8 @@ Top-level fields (one step JSON object):
   - `action_state_change_description` (string): Observable action/state change at this frame (describe objects + state; do NOT write "Frame X" in text).
   - `causal_chain` (object): Keyframe-level causal analysis; SAME `CausalChain` schema as the step-level one (preconditions should be true at/just before this frame).
   - `interaction` (object):
-    - `tools` (list[string]): Force applicators (use "hands" if no external tool); prefer `snake_case` identifiers; at least one of tools/materials must be non-empty.
-    - `materials` (list[string]): Manipulated objects/substances; prefer `snake_case`; keep naming consistent with `causal_chain` entities.
+    - `tools` (list[string]): Force applicators (use "hands" if no external tool); prefer `snake_case` identifiers; MUST be non-empty and MUST include the step's `causal_chain.agent` (same identifier).
+    - `materials` (list[string]): Manipulated objects/substances; prefer `snake_case`; keep naming consistent with `causal_chain` entities; MUST be non-empty and MUST include the step's `causal_chain.patient` (same identifier).
     - `hotspot` (object):
       - `description` (string): Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded.
       - `affordance_type` (string): One token describing the hotspot's functional role (prefer `snake_case`, e.g., "grasp_point", "cutting_edge", "pour_spout").

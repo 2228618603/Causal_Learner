@@ -1,0 +1,419 @@
+{
+  "high_level_goal": "Open a jar and transfer its contents into a bowl so the contents are ready to be used.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Loosen and remove the jar lid.",
+      "rationale": "Removing the lid breaks the sealing constraint and exposes the opening so the contents can be accessed and transferred later.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "apply torque to loosen",
+        "patient": "jar_lid",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": ["hands", "jar_lid"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "jar_lid",
+            "affordance_types": ["graspable"],
+            "reasons": "The lid edge is exposed and supports a stable grip needed to transmit twisting force."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "separated_from",
+            "objects": ["jar_lid", "jar"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "jar",
+            "affordance_types": ["open"],
+            "reasons": "Once the lid is removed, the opening is unobstructed and can receive or release contents."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the lid is stuck due to high friction at the threads?",
+      "expected_challenge_outcome": "The applied torque would be insufficient to break static friction, so the lid would not rotate unless friction is reduced or leverage is increased.",
+      "failure_reflecting": {
+        "reason": "The lid does not rotate and remains engaged with the jar threads.",
+        "recovery_strategy": "Increase grip friction and apply a steadier, higher torque while stabilizing the jar body."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 2,
+          "action_state_change_description": "Initiation: hands establish a firm grip on the lid and begin twisting relative to the jar body.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "apply torque to loosen",
+            "patient": "jar_lid",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": ["hands", "jar_lid"],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "jar_lid",
+                "affordance_types": ["graspable"],
+                "reasons": "The exposed rim provides a surface that can be pinched and held without slipping."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "rotating_relative_to",
+                "objects": ["jar_lid", "jar"],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "jar_lid",
+                "affordance_types": ["loosened"],
+                "reasons": "Twisting reduces the thread engagement, making the lid easier to lift off."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": ["hands"],
+            "materials": ["jar_lid"],
+            "hotspot": {
+              "description": "The ridged rim of the lid where fingers can press to resist slipping.",
+              "affordance_type": "grasp_point",
+              "mechanism": "Finger pressure and friction generate a tangential force that creates torque about the lid axis."
+            }
+          }
+        },
+        {
+          "frame_index": 5,
+          "action_state_change_description": "Completion: the lid is fully disengaged from the jar and no longer constrains the opening.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "apply torque to loosen",
+            "patient": "jar_lid",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "rotating_relative_to",
+                "objects": ["jar_lid", "jar"],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "jar_lid",
+                "affordance_types": ["removable"],
+                "reasons": "Once thread engagement is sufficiently reduced, the lid can be lifted away without resistance."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "separated_from",
+                "objects": ["jar_lid", "jar"],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "jar",
+                "affordance_types": ["open"],
+                "reasons": "The opening is exposed after the lid is removed, enabling pouring or scooping."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": ["hands"],
+            "materials": ["jar_lid"],
+            "hotspot": {
+              "description": "The lid edge used as the contact surface for lifting after loosening.",
+              "affordance_type": "contact_surface",
+              "mechanism": "Upward force overcomes remaining thread contact and separates the lid from the jar mouth."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Position the open jar above the bowl.",
+      "rationale": "Aligning the jar above the bowl sets the geometry needed for gravity-driven transfer while reducing the risk of spillage.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "translate and align",
+        "patient": "jar",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": ["hands", "jar"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "jar",
+            "affordance_types": ["portable"],
+            "reasons": "The jar can be lifted and repositioned to a target location by hand."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "above",
+            "objects": ["jar", "bowl"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "jar",
+            "affordance_types": ["pourable"],
+            "reasons": "Once the jar is above the bowl, tilting can route the contents into the bowl opening."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the bowl opening is partially occluded by another object?",
+      "expected_challenge_outcome": "Even if the jar is above the bowl, the occlusion would block the intended landing area, increasing spill risk unless the obstruction is removed.",
+      "failure_reflecting": {
+        "reason": "The jar cannot be aligned cleanly over the bowl opening.",
+        "recovery_strategy": "Clear the area around the bowl opening and re-align the jar while maintaining a stable hold."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Initiation: hands lift the jar and start moving it toward the bowl location.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "translate and align",
+            "patient": "jar",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": ["hands", "jar"],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "jar",
+                "affordance_types": ["portable"],
+                "reasons": "A stable grip allows controlled translation without dropping the jar."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "moving_toward",
+                "objects": ["jar", "bowl"],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "jar",
+                "affordance_types": ["position_changing"],
+                "reasons": "Hand motion changes the jar position to approach the target alignment."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": ["hands"],
+            "materials": ["jar", "bowl"],
+            "hotspot": {
+              "description": "The jar body area where fingers wrap to control translation and orientation.",
+              "affordance_type": "grasp_point",
+              "mechanism": "A firm grip supplies support force and friction, enabling controlled motion without slipping."
+            }
+          }
+        },
+        {
+          "frame_index": 5,
+          "action_state_change_description": "Completion: the jar is positioned directly above the bowl with a stable alignment.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "translate and align",
+            "patient": "jar",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "moving_toward",
+                "objects": ["jar", "bowl"],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "bowl",
+                "affordance_types": ["available"],
+                "reasons": "A clear receiving area is needed so alignment has a meaningful target."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "above",
+                "objects": ["jar", "bowl"],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "jar",
+                "affordance_types": ["pourable"],
+                "reasons": "With the jar over the bowl, tilting can direct contents into the bowl rather than elsewhere."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": ["hands"],
+            "materials": ["jar", "bowl"],
+            "hotspot": {
+              "description": "The jar mouth region whose pose determines whether the opening is aligned over the bowl.",
+              "affordance_type": "contact_surface",
+              "mechanism": "Controlling orientation keeps the opening positioned so gravity-driven flow can be captured by the bowl."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Tilt the jar to pour the contents into the bowl.",
+      "rationale": "Tilting reorients the jar opening so gravity moves the contents out of the jar and into the bowl, completing the transfer.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "tilt to pour",
+        "patient": "jar",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "above",
+            "objects": ["jar", "bowl"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "jar",
+            "affordance_types": ["open"],
+            "reasons": "The opening must be unobstructed so contents can exit when the jar is tilted."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["jar_contents", "bowl"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "bowl",
+            "affordance_types": ["filled"],
+            "reasons": "After pouring, the contents accumulate within the bowl interior."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the jar is tilted but the contents adhere to the jar interior and do not move?",
+      "expected_challenge_outcome": "Without relative motion, little or no material would leave the jar, requiring agitation or a larger tilt to overcome adhesion and friction.",
+      "failure_reflecting": {
+        "reason": "The contents remain stuck and do not flow out despite tilting.",
+        "recovery_strategy": "Increase the tilt angle and gently agitate the jar to initiate flow."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 2,
+          "action_state_change_description": "Initiation: hands begin rotating the jar so the opening faces toward the bowl.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "tilt to pour",
+            "patient": "jar",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "above",
+                "objects": ["jar", "bowl"],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "jar",
+                "affordance_types": ["open"],
+                "reasons": "An open mouth provides an exit path once the jar orientation is changed."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "tilted_toward",
+                "objects": ["jar", "bowl"],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "jar_contents",
+                "affordance_types": ["in_motion"],
+                "reasons": "Tilting changes the effective gravity direction relative to the contents, initiating movement."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": ["hands"],
+            "materials": ["jar", "bowl"],
+            "hotspot": {
+              "description": "The jar body surfaces where hands apply rotational control to change orientation.",
+              "affordance_type": "grasp_point",
+              "mechanism": "Applied torque rotates the jar so gravity can drive contents toward the opening."
+            }
+          }
+        },
+        {
+          "frame_index": 6,
+          "action_state_change_description": "Completion: the contents have exited the jar and are collected inside the bowl.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "tilt to pour",
+            "patient": "jar",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "tilted_toward",
+                "objects": ["jar", "bowl"],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "bowl",
+                "affordance_types": ["receiving"],
+                "reasons": "A stable container is needed to retain the poured contents without overflowing."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": ["jar_contents", "bowl"],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "bowl",
+                "affordance_types": ["filled"],
+                "reasons": "After transfer, the contents occupy the bowl interior as the new resting location."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": ["hands"],
+            "materials": ["jar", "bowl"],
+            "hotspot": {
+              "description": "The jar mouth rim that defines the exit path for the contents during pouring.",
+              "affordance_type": "contact_surface",
+              "mechanism": "The opening geometry and orientation constrain the flow path so contents leave the jar into the bowl."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

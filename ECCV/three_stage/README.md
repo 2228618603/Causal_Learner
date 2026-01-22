@@ -1,10 +1,9 @@
 # 三阶段长视频数据生成管线（Draft → 定位/切片 → 精修 + 关键帧）
 
-本目录提供一套**独立**的三阶段长视频数据生成管线（VLM + 严格 JSON 校验）。它不会修改 `ECCV/` 下原有的两阶段脚本。
+本目录提供一套**独立**的三阶段长视频数据生成管线（VLM + 严格 JSON 校验）。
 
 完整规范与细节说明见：[`THREE_STAGE_PIPELINE.md`](THREE_STAGE_PIPELINE.md)。
 从零跑通指南（含 prompt/校验对齐核验清单）见：[`THREE_STAGE_DATA_GENERATION_GUIDE.md`](THREE_STAGE_DATA_GENERATION_GUIDE.md)。
-与两阶段（`mani_longvideo.py`）的对齐审计见：[`THREE_STAGE_AUDIT_VS_TWO_STAGE.md`](THREE_STAGE_AUDIT_VS_TWO_STAGE.md)。
 
 ## 这套管线解决什么问题？
 
@@ -21,7 +20,7 @@
 - 从 `ECCV/` 目录运行：`python3 three_stage/pipeline.py --input-video /abs/path/video.mp4`
 - 默认输出目录：`ECCV/three_stage/causal_spafa_plan_dataset_long/<video_id>/`
 - Stage2 的索引：基于 full video 的 50 帧池，**1-based**；`end_frame_index` 是 **exclusive 边界**
-- Stage2 的 `end_frame_index` 仍然必须落在 `1..num_frames`（不要输出 `num_frames+1`）；最后一步通常 `end_last == num_frames`
+- Stage2 的索引范围：`start_frame_index ∈ 1..num_frames`，`end_frame_index ∈ 2..num_frames+1`（最后一步通常 `end_last == num_frames+1` 覆盖到视频末尾）
 - Stage3 的 `critical_frames[*].frame_index`：基于**每个 step clip 自己的** 50 帧池，**1-based**
 - 每个 stage 都会落盘：prompt、raw response、manifest、run_summary，方便追溯与 Debug
 
@@ -135,10 +134,6 @@ python3 three_stage/stage3_refine_and_keyframes.py --input-video /abs/path/video
 ```bash
 python3 three_stage/validate_three_stage_output.py --video-output-dir /abs/path/to/<video_id> --check-deps
 ```
-
-## 兼容入口
-
-`three_stage/mani_long_video.py` 是兼容 wrapper，会直接转发到 `three_stage/pipeline.py`。
 
 ## 关于产物
 

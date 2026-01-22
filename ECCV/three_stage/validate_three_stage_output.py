@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import shutil
 import tempfile
 from typing import Any, Dict, List, Optional, Tuple
@@ -13,31 +12,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from common import normalize_stage3_step_output, read_json, sanitize_filename, validate_stage2_localization, write_json
 from stage1_generate_draft import _draft_hard_errors, _stage1_raw_schema_errors
 
+
 def _keyframe_filename(frame_index_1based: int, timestamp_sec: float) -> str:
     return f"frame_{int(frame_index_1based):03d}_ts_{float(timestamp_sec):.2f}s.jpg"
-
-
-def _looks_like_two_stage_output(video_out: str) -> bool:
-    if not os.path.isdir(video_out):
-        return False
-    if os.path.isdir(os.path.join(video_out, "stage1")) or os.path.isdir(os.path.join(video_out, "stage2")):
-        return False
-    if not os.path.exists(os.path.join(video_out, "causal_plan_with_keyframes.json")):
-        return False
-    # Heuristic: has step folders like "01_xxx/"
-    for name in os.listdir(video_out):
-        if re.match(r"^\\d{2}_.+", name) and os.path.isdir(os.path.join(video_out, name)):
-            return True
-    return False
-
-
-def _check_optional_root_compat(video_out: str) -> List[str]:
-    warnings: List[str] = []
-    if not os.path.exists(os.path.join(video_out, "sampled_frames")):
-        warnings.append("Missing <video_out>/sampled_frames (compat artifact); some downstream tools may expect it.")
-    if not os.path.exists(os.path.join(video_out, "frame_manifest.json")):
-        warnings.append("Missing <video_out>/frame_manifest.json (compat artifact); some downstream tools may expect it.")
-    return warnings
 
 
 def _check_stage1(video_out: str) -> Tuple[Dict[str, Any], Dict[str, Any], List[float], List[str], List[str]]:
@@ -185,7 +162,7 @@ def _check_stage2(
             errors.append(f"Stage2 segments invalid indices/sec types for step_id={sid}")
             continue
 
-        if not (1 <= sidx <= stage1_num_frames and 1 <= eidx <= stage1_num_frames):
+        if not (1 <= sidx <= stage1_num_frames and 1 <= eidx <= stage1_num_frames + 1):
             errors.append(f"Stage2 segments indices out of range for step_id={sid}: {sidx}, {eidx}")
         if not (start_sec < end_sec):
             errors.append(f"Stage2 segments non-positive duration for step_id={sid}: start_sec={start_sec}, end_sec={end_sec}")
@@ -202,6 +179,12 @@ def _check_stage2(
             if end_sec + 1e-3 < ref_e:
                 warnings.append(
                     f"Stage2 end_sec earlier than Stage1 manifest boundary for step_id={sid}: {end_sec:.3f} < {ref_e:.3f}"
+                )
+        elif stage1_ts and eidx == len(stage1_ts) + 1:
+            ref_e = float(stage1_ts[-1])
+            if end_sec + 1e-3 < ref_e:
+                warnings.append(
+                    f"Stage2 end_sec earlier than the last Stage1 timestamp for step_id={sid}: {end_sec:.3f} < {ref_e:.3f}"
                 )
 
         clip_rel = seg.get("clip_relpath")
@@ -237,10 +220,22 @@ def _check_stage3_and_final(
         errors.append(f"Missing: {final_path}")
         return errors, warnings
     final = read_json(final_path)
+    if not isinstance(final, dict):
+        errors.append("Final plan JSON must be a JSON object.")
+        return errors, warnings
+
+    allowed_final_top_keys = {"high_level_goal", "steps"}
+    extra_top = sorted(set(final.keys()) - allowed_final_top_keys)
+    if extra_top:
+        errors.append(f"Final plan contains extra top-level keys (not allowed): {extra_top}")
 
     high_level_goal = final.get("high_level_goal")
     if not (isinstance(high_level_goal, str) and high_level_goal.strip()):
         errors.append("Final plan missing/empty high_level_goal.")
+    else:
+        expected_goal = str(draft.get("high_level_goal", "")).strip()
+        if expected_goal and high_level_goal.strip() != expected_goal:
+            errors.append("Final plan high_level_goal differs from Stage1 draft high_level_goal.")
 
     steps = final.get("steps", [])
     if not isinstance(steps, list) or not steps:
@@ -250,6 +245,7 @@ def _check_stage3_and_final(
     expected = _draft_outline_by_id(draft)
     got: Dict[int, str] = {}
     step_in_final_by_id: Dict[int, Dict[str, Any]] = {}
+    sids_in_order: List[int] = []
     for st in steps:
         if not isinstance(st, dict) or st.get("step_id") is None:
             errors.append("Final plan contains a non-object step.")
@@ -263,10 +259,14 @@ def _check_stage3_and_final(
         if sid in got:
             errors.append(f"Final plan duplicate step_id={sid}")
             continue
+        sids_in_order.append(sid)
         got[sid] = goal
         step_in_final_by_id[sid] = st
         if expected.get(sid) != goal:
             errors.append(f"Final plan step_goal mismatch step_id={sid}: expected '{expected.get(sid)}', got '{goal}'")
+
+    if sids_in_order and sids_in_order != sorted(sids_in_order):
+        errors.append("Final plan steps must be in ascending step_id order.")
 
     if expected and expected != got:
         missing = sorted(set(expected) - set(got))
@@ -453,15 +453,6 @@ def validate_three_stage_video_output_dir(video_out: str, *, check_deps: bool = 
         errors.append(f"Not a directory: {video_out}")
         return False, errors, warnings
 
-    if _looks_like_two_stage_output(video_out):
-        errors.append(
-            "This directory looks like a TWO-STAGE output (missing stage1/stage2/). "
-            "Please validate a THREE-STAGE output directory (contains stage1/ and stage2/)."
-        )
-        return False, errors, warnings
-
-    warnings.extend(_check_optional_root_compat(video_out))
-
     draft, _manifest, stage1_ts, s1_errs, s1_warns = _check_stage1(video_out)
     errors.extend(s1_errs)
     warnings.extend(s1_warns)
@@ -552,11 +543,6 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
             }
         )
     write_json(os.path.join(stage1_dir, "draft_plan.json"), draft)
-
-    # Root compat artifacts.
-    os.makedirs(os.path.join(video_out, "sampled_frames"), exist_ok=True)
-    _write_dummy_file(os.path.join(video_out, "sampled_frames", "sample_001_ts_0.00s.jpg"), data=b"jpg")
-    write_json(os.path.join(video_out, "frame_manifest.json"), {"num_frames": 5, "note": "compat", "frames": frames})
 
     # Stage2: localization + segments + dummy clips.
     stage2_dir = os.path.join(video_out, "stage2")
@@ -715,7 +701,7 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
                     "action_state_change_description": "Complete the movement; obj_a reaches the new position on obj_b.",
                     "causal_chain": {
                         "agent": "hands",
-                        "action": "move_and_place",
+                        "action": "move",
                         "patient": "obj_a",
                         "causal_precondition_on_spatial": [
                             {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}

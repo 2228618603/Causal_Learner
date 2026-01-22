@@ -18,6 +18,7 @@ from common import (
     collect_videos,
     cut_video_segment_ffmpeg,
     default_output_root,
+    estimate_min_positive_delta_sec,
     ensure_video_out_dir_safe,
     extract_json_from_response,
     initialize_api_client,
@@ -33,15 +34,6 @@ from common import (
     write_text,
 )
 from prompts import build_stage2_user_prompt
-
-
-def _estimate_min_positive_delta_sec(timestamps: List[float]) -> float:
-    uniq = sorted({float(x) for x in (timestamps or [])})
-    deltas = [b - a for a, b in zip(uniq, uniq[1:]) if b > a]
-    if not deltas:
-        return 0.1
-    # Avoid epsilon too close to 0 which may produce empty clips after seeking/rounding.
-    return max(min(deltas), 0.05)
 
 
 def _adjust_end_sec_if_needed(
@@ -335,7 +327,7 @@ def run_stage2_for_video(
     segments: List[Dict[str, Any]] = []
 
     timestamps = ts_list
-    min_delta_sec = _estimate_min_positive_delta_sec(timestamps)
+    min_delta_sec = estimate_min_positive_delta_sec(timestamps)
 
     bounds: List[Dict[str, Any]] = []
     for step in ordered_steps:
@@ -359,7 +351,10 @@ def run_stage2_for_video(
         sidx = int(b["start_frame_index"])
         eidx = int(b["end_frame_index"])
         start_sec = float(timestamps[sidx - 1])
-        end_sec = float(timestamps[eidx - 1])
+        if eidx == num_frames + 1:
+            end_sec = float(timestamps[-1]) + float(min_delta_sec)
+        else:
+            end_sec = float(timestamps[eidx - 1])
         next_start_sec: Optional[float] = None
         if i + 1 < len(bounds):
             next_sidx = int(bounds[i + 1]["start_frame_index"])
@@ -433,7 +428,7 @@ def run_stage2_for_video(
                 "start_sec": start_sec,
                 "end_sec": end_sec,
                 "start_image_relpath": frames_meta.get(sidx, {}).get("image_relpath"),
-                "end_image_relpath": frames_meta.get(eidx, {}).get("image_relpath"),
+                "end_image_relpath": frames_meta.get(min(eidx, num_frames), {}).get("image_relpath"),
                 "clip_relpath": os.path.relpath(clip_path, stage2_dir),
             }
         )

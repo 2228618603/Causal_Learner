@@ -669,7 +669,8 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
         for sp in v:
             if not isinstance(sp, dict):
                 continue
-            rel = _norm_str(sp.get("relation", ""))
+            # Normalize relation token to a short snake_case identifier (as required by prompts.py).
+            rel = _norm_identifier(sp.get("relation", ""))
             objs = sp.get("objects")
             if isinstance(objs, str):
                 one = _norm_identifier(objs)
@@ -799,6 +800,15 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
     return out, warnings
 
 
+def estimate_min_positive_delta_sec(timestamps: List[float]) -> float:
+    uniq = sorted({float(x) for x in (timestamps or [])})
+    deltas = [b - a for a, b in zip(uniq, uniq[1:]) if b > a]
+    if not deltas:
+        return 0.1
+    # Avoid epsilon too close to 0 which may produce empty clips after seeking/rounding.
+    return max(min(deltas), 0.05)
+
+
 def validate_stage2_localization(
     draft_plan: Dict[str, Any],
     localization: Any,
@@ -807,6 +817,10 @@ def validate_stage2_localization(
     frame_timestamps: Optional[List[float]] = None,
 ) -> Tuple[bool, List[str], Dict[int, Dict[str, int]]]:
     errors: List[str] = []
+
+    def _is_strict_int(v: Any) -> bool:
+        return isinstance(v, int) and not isinstance(v, bool)
+
     steps = draft_plan.get("steps", [])
     if not isinstance(steps, list) or not steps:
         return False, ["Draft plan has no steps."], {}
@@ -846,23 +860,23 @@ def validate_stage2_localization(
         if extra:
             errors.append(f"step_id={obj.get('step_id')} contains extra keys (not allowed): {extra}")
         raw_sid = obj.get("step_id")
-        try:
-            sid = int(raw_sid)
-        except Exception:
-            errors.append(f"localization.steps[{i}].step_id missing or non-int.")
+        if not _is_strict_int(raw_sid):
+            errors.append(f"localization.steps[{i}].step_id missing/invalid (expected int).")
             continue
+        sid = int(raw_sid)
         if sid not in expected_ids:
             errors.append(f"Unexpected step_id in localization output: {sid}")
             continue
         if sid in by_id:
             errors.append(f"Duplicate localization entries for step_id={sid}")
             continue
-        try:
-            s = int(obj.get("start_frame_index"))
-            e = int(obj.get("end_frame_index"))
-        except Exception:
-            errors.append(f"step_id={sid} start_frame_index/end_frame_index missing or non-int.")
+        raw_s = obj.get("start_frame_index")
+        raw_e = obj.get("end_frame_index")
+        if not _is_strict_int(raw_s) or not _is_strict_int(raw_e):
+            errors.append(f"step_id={sid} start_frame_index/end_frame_index missing/invalid (expected int).")
             continue
+        s = int(raw_s)
+        e = int(raw_e)
         by_id[sid] = {"start_frame_index": s, "end_frame_index": e}
 
     # Ensure all steps present and no extras
@@ -882,16 +896,19 @@ def validate_stage2_localization(
         e = seg["end_frame_index"]
         if s < 1 or s > num_frames:
             errors.append(f"step_id={sid} start_frame_index out of range: {s}")
-        if e < 1 or e > num_frames:
+        if e < 1 or e > num_frames + 1:
             errors.append(f"step_id={sid} end_frame_index out of range: {e}")
         if not (s < e):
             errors.append(f"step_id={sid} requires start_frame_index < end_frame_index (got {s}, {e})")
         if prev_end is not None and s < prev_end:
             errors.append(f"Monotonic constraint violated: step_id={sid} start {s} < prev_end {prev_end}")
 
-        if frame_timestamps and 1 <= s <= len(frame_timestamps) and 1 <= e <= len(frame_timestamps):
+        if frame_timestamps and 1 <= s <= len(frame_timestamps) and 1 <= e <= len(frame_timestamps) + 1:
             s_ts = float(frame_timestamps[s - 1])
-            e_ts = float(frame_timestamps[e - 1])
+            if e == len(frame_timestamps) + 1:
+                e_ts = float(frame_timestamps[-1]) + estimate_min_positive_delta_sec(frame_timestamps)
+            else:
+                e_ts = float(frame_timestamps[e - 1])
             if not (s_ts < e_ts):
                 if abs(s_ts - e_ts) < 1e-9:
                     errors.append(
@@ -910,459 +927,6 @@ def validate_stage2_localization(
     return len(errors) == 0, errors, by_id
 
 
-def normalize_stage3_step_output_legacy(
-    step_json: Dict[str, Any],
-    expected_step_id: int,
-    expected_step_goal: str,
-    num_frames: int,
-    *,
-    frame_timestamps: Optional[List[float]] = None,
-) -> Tuple[Optional[Dict[str, Any]], List[str]]:
-    errors: List[str] = []
-    if not isinstance(step_json, dict):
-        return None, ["Stage 3 output is not an object."]
-
-    allowed_top_keys = {
-        "step_id",
-        "step_goal",
-        "rationale",
-        "preconditions",
-        "expected_effects",
-        "spatial_postconditions_detail",
-        "affordance_postconditions_detail",
-        "predicted_next_actions",
-        "tool_and_material_usage",
-        "causal_challenge_question",
-        "expected_challenge_outcome",
-        "failure_handling",
-        "critical_frames",
-    }
-    extra_top = sorted(set(step_json.keys()) - allowed_top_keys)
-    if extra_top:
-        errors.append(f"Unexpected top-level keys (not allowed): {extra_top}")
-
-    def _norm_str(v: Any) -> str:
-        s = str(v).strip() if v is not None else ""
-        return "" if _is_placeholder_str(s) else s
-
-    def _norm_identifier(v: Any) -> str:
-        s = _norm_str(v)
-        if not s:
-            return ""
-        ident = sanitize_filename(s)
-        return "" if ident == "unnamed" else ident
-
-    def _norm_identifier_list(v: Any) -> List[str]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[str] = []
-        for x in v:
-            s = _norm_identifier(x)
-            if s:
-                out_list.append(s)
-        return _dedupe_keep_order(out_list)
-
-    def _norm_str_list(v: Any) -> List[str]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[str] = []
-        for x in v:
-            s = _norm_str(x)
-            if s:
-                out_list.append(s)
-        return _dedupe_keep_order(out_list, key_fn=_text_dedupe_key)
-
-    def _parse_bool(v: Any) -> Optional[bool]:
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, str):
-            t = v.strip().lower()
-            if t in {"true", "t", "yes", "y", "1"}:
-                return True
-            if t in {"false", "f", "no", "n", "0"}:
-                return False
-        if isinstance(v, (int, float)) and v in {0, 1}:
-            return bool(v)
-        return None
-
-    def _norm_spatial_preconditions(v: Any) -> List[Dict[str, Any]]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[Dict[str, Any]] = []
-        for i, sp in enumerate(v):
-            if not isinstance(sp, dict):
-                continue
-            rel = _norm_str(sp.get("relation", ""))
-            objs = sp.get("objects")
-            if isinstance(objs, str):
-                one = _norm_identifier(objs)
-                objs_list = [one] if one else []
-            else:
-                objs_list = _norm_identifier_list(objs) if isinstance(objs, list) else []
-            truth = _parse_bool(sp.get("truth"))
-            if truth is None:
-                truth = True
-            if rel and objs_list:
-                out_list.append({"relation": rel, "objects": objs_list, "truth": truth})
-        return out_list
-
-    def _norm_affordance_preconditions(v: Any) -> List[Dict[str, Any]]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[Dict[str, Any]] = []
-        for ap in v:
-            if not isinstance(ap, dict):
-                continue
-            obj = _norm_identifier(ap.get("object_name", ""))
-            affs = ap.get("affordance_types")
-            if isinstance(affs, str):
-                one = _norm_identifier(affs)
-                aff_list = [one] if one else []
-            else:
-                aff_list = _norm_identifier_list(affs) if isinstance(affs, list) else []
-            reasons = _norm_str(ap.get("reasons", ""))
-            if obj and aff_list:
-                out_list.append({"object_name": obj, "affordance_types": aff_list, "reasons": reasons})
-        return out_list
-
-    def _norm_causal_chain(v: Any) -> Dict[str, str]:
-        d = v if isinstance(v, dict) else {}
-        out_cc = {
-            "agent": _norm_identifier(d.get("agent", "")),
-            "action": _norm_str(d.get("action", "")),
-            "patient": _norm_identifier(d.get("patient", "")),
-            "causal_effect_on_patient": _norm_str(d.get("causal_effect_on_patient", "")),
-            "causal_effect_on_environment": _norm_str(d.get("causal_effect_on_environment", "")),
-        }
-        return out_cc
-
-    def _norm_affordance_hotspot(v: Any) -> Dict[str, str]:
-        d = v if isinstance(v, dict) else {}
-        return {
-            "description": _norm_str(d.get("description", "")),
-            "affordance_type": _norm_identifier(d.get("affordance_type", "")),
-            "mechanism": _norm_str(d.get("mechanism", "")),
-        }
-
-    sid = step_json.get("step_id")
-    try:
-        sid_int = int(sid)
-    except Exception:
-        sid_int = None
-
-    if sid_int != expected_step_id:
-        errors.append(f"step_id mismatch: expected {expected_step_id}, got {sid}")
-
-    goal = _norm_str(step_json.get("step_goal", ""))
-    if goal != expected_step_goal:
-        errors.append(
-            "step_goal mismatch (Stage 3 is not allowed to change step_goal): "
-            f"expected '{expected_step_goal}', got '{goal}'"
-        )
-
-    rationale = _norm_str(step_json.get("rationale", ""))
-    preconditions = _norm_str_list(step_json.get("preconditions"))
-    expected_effects = _norm_str_list(step_json.get("expected_effects"))
-    spatial_post = _norm_spatial_preconditions(step_json.get("spatial_postconditions_detail", []))
-    afford_post = _norm_affordance_preconditions(step_json.get("affordance_postconditions_detail", []))
-    predicted_next = _norm_str_list(step_json.get("predicted_next_actions"))
-    causal_q = _norm_str(step_json.get("causal_challenge_question", ""))
-    causal_outcome = _norm_str(step_json.get("expected_challenge_outcome", ""))
-
-    if _contains_frame_ref(rationale):
-        errors.append("rationale must not reference frame/image indices.")
-    for j, s in enumerate(preconditions):
-        if _contains_frame_ref(s):
-            errors.append(f"preconditions[{j}] must not reference frame/image indices.")
-    for j, s in enumerate(expected_effects):
-        if _contains_frame_ref(s):
-            errors.append(f"expected_effects[{j}] must not reference frame/image indices.")
-    for j, s in enumerate(predicted_next):
-        if _contains_frame_ref(s):
-            errors.append(f"predicted_next_actions[{j}] must not reference frame/image indices.")
-    if _contains_frame_ref(causal_q):
-        errors.append("causal_challenge_question must not reference frame/image indices.")
-    if _contains_frame_ref(causal_outcome):
-        errors.append("expected_challenge_outcome must not reference frame/image indices.")
-
-    for j, sp in enumerate(spatial_post):
-        if _contains_frame_ref(sp.get("relation", "")):
-            errors.append(f"spatial_postconditions_detail[{j}].relation must not reference frame/image indices.")
-        objs = sp.get("objects", [])
-        if isinstance(objs, list):
-            for o in objs:
-                if _contains_frame_ref(o):
-                    errors.append(f"spatial_postconditions_detail[{j}].objects must not reference frame/image indices.")
-                    break
-    for j, ap in enumerate(afford_post):
-        if _contains_frame_ref(ap.get("object_name", "")) or _contains_frame_ref(ap.get("reasons", "")):
-            errors.append(f"affordance_postconditions_detail[{j}] must not reference frame/image indices.")
-        affs = ap.get("affordance_types", [])
-        if isinstance(affs, list) and any(_contains_frame_ref(a) for a in affs):
-            errors.append(f"affordance_postconditions_detail[{j}].affordance_types must not reference frame/image indices.")
-
-    if not rationale:
-        errors.append("Missing/empty rationale.")
-    if not preconditions:
-        errors.append("Missing/empty preconditions (expected a non-empty list).")
-    if not expected_effects:
-        errors.append("Missing/empty expected_effects (expected a non-empty list).")
-    if not spatial_post:
-        errors.append("Missing/empty spatial_postconditions_detail (expected >= 1 concrete relation after completion).")
-    if not afford_post:
-        errors.append("Missing/empty affordance_postconditions_detail (expected >= 1 grounded post-step affordance/state).")
-    for j, ap in enumerate(afford_post):
-        if not ap.get("reasons"):
-            errors.append(f"affordance_postconditions_detail[{j}].reasons is empty.")
-    if not predicted_next:
-        errors.append("Missing/empty predicted_next_actions (expected a non-empty list).")
-    elif not (2 <= len(predicted_next) <= 4):
-        errors.append(f"predicted_next_actions must have length 2-4 (got {len(predicted_next)}).")
-    if not causal_q:
-        errors.append("Missing/empty causal_challenge_question.")
-    if not causal_outcome:
-        errors.append("Missing/empty expected_challenge_outcome.")
-
-    raw_spost = step_json.get("spatial_postconditions_detail")
-    if isinstance(raw_spost, list):
-        for j, sp in enumerate(raw_spost):
-            if not isinstance(sp, dict):
-                continue
-            extra = sorted(set(sp.keys()) - {"relation", "objects", "truth"})
-            if extra:
-                errors.append(f"spatial_postconditions_detail[{j}] contains extra keys (not allowed): {extra}")
-    raw_apost = step_json.get("affordance_postconditions_detail")
-    if isinstance(raw_apost, list):
-        for j, ap in enumerate(raw_apost):
-            if not isinstance(ap, dict):
-                continue
-            extra = sorted(set(ap.keys()) - {"object_name", "affordance_types", "reasons"})
-            if extra:
-                errors.append(f"affordance_postconditions_detail[{j}] contains extra keys (not allowed): {extra}")
-
-    cfs = step_json.get("critical_frames")
-    if not isinstance(cfs, list):
-        errors.append("Missing 'critical_frames' list.")
-        cfs = []
-    if not (1 <= len(cfs) <= 2):
-        errors.append(f"critical_frames must have length 1-2 (got {len(cfs)}).")
-
-    normalized_cfs: List[Dict[str, Any]] = []
-    prev_idx = -1
-    prev_ts: Optional[float] = None
-    for i, cf in enumerate(cfs):
-        if not isinstance(cf, dict):
-            errors.append(f"critical_frames[{i}] is not an object.")
-            continue
-        extra_cf = sorted(
-            set(cf.keys())
-            - {
-                "frame_index",
-                "action_description",
-                "state_change_description",
-                "spatial_preconditions",
-                "affordance_preconditions",
-                "causal_chain",
-                "affordance_hotspot",
-            }
-        )
-        if extra_cf:
-            errors.append(f"critical_frames[{i}] contains extra keys (not allowed): {extra_cf}")
-        try:
-            fi = int(cf.get("frame_index"))
-        except Exception:
-            errors.append(f"critical_frames[{i}].frame_index missing or non-int.")
-            continue
-        if fi < 1 or fi > num_frames:
-            errors.append(f"critical_frames[{i}].frame_index out of range: {fi}")
-        if fi <= prev_idx:
-            errors.append("critical_frames indices must be strictly increasing within a step.")
-        prev_idx = fi
-        if frame_timestamps and 1 <= fi <= len(frame_timestamps):
-            ts = float(frame_timestamps[fi - 1])
-            if prev_ts is not None and not (ts > prev_ts + 1e-9):
-                if abs(ts - prev_ts) < 1e-9:
-                    errors.append(
-                        "Two critical_frames map to identical timestamps; choose a different second frame with real time progress "
-                        "(or output only 1 critical_frame if the clip is too short/duplicated)."
-                    )
-                else:
-                    errors.append("critical_frames timestamps must be strictly increasing within a step.")
-            prev_ts = ts
-
-        action_desc = _norm_str(cf.get("action_description", ""))
-        if not action_desc:
-            errors.append(f"critical_frames[{i}].action_description is empty.")
-        if _contains_frame_ref(action_desc):
-            errors.append(f"critical_frames[{i}].action_description must not reference frame/image indices.")
-        state_change = _norm_str(cf.get("state_change_description", ""))
-        if not state_change:
-            errors.append(f"critical_frames[{i}].state_change_description is empty.")
-        if _contains_frame_ref(state_change):
-            errors.append(f"critical_frames[{i}].state_change_description must not reference frame/image indices.")
-
-        spatial = _norm_spatial_preconditions(cf.get("spatial_preconditions", []))
-        afford = _norm_affordance_preconditions(cf.get("affordance_preconditions", []))
-        cc = _norm_causal_chain(cf.get("causal_chain", {}))
-        hs = _norm_affordance_hotspot(cf.get("affordance_hotspot", {}))
-
-        if not spatial:
-            errors.append(f"critical_frames[{i}].spatial_preconditions is empty (expected >= 1 visually verifiable relation).")
-        if not afford:
-            errors.append(f"critical_frames[{i}].affordance_preconditions is empty (expected >= 1 grounded affordance state).")
-        for j, ap in enumerate(afford):
-            if not ap.get("reasons"):
-                errors.append(f"critical_frames[{i}].affordance_preconditions[{j}].reasons is empty.")
-            if _contains_frame_ref(ap.get("object_name", "")) or _contains_frame_ref(ap.get("reasons", "")):
-                errors.append(f"critical_frames[{i}].affordance_preconditions[{j}] must not reference frame/image indices.")
-            affs = ap.get("affordance_types", [])
-            if isinstance(affs, list) and any(_contains_frame_ref(a) for a in affs):
-                errors.append(
-                    f"critical_frames[{i}].affordance_preconditions[{j}].affordance_types must not reference frame/image indices."
-                )
-
-        for j, sp in enumerate(spatial):
-            if _contains_frame_ref(sp.get("relation", "")):
-                errors.append(f"critical_frames[{i}].spatial_preconditions[{j}].relation must not reference frame/image indices.")
-            objs = sp.get("objects", [])
-            if isinstance(objs, list) and any(_contains_frame_ref(o) for o in objs):
-                errors.append(f"critical_frames[{i}].spatial_preconditions[{j}].objects must not reference frame/image indices.")
-
-        raw_sp = cf.get("spatial_preconditions")
-        if isinstance(raw_sp, list):
-            for j, sp in enumerate(raw_sp):
-                if not isinstance(sp, dict):
-                    continue
-                extra_sp = sorted(set(sp.keys()) - {"relation", "objects", "truth"})
-                if extra_sp:
-                    errors.append(f"critical_frames[{i}].spatial_preconditions[{j}] contains extra keys (not allowed): {extra_sp}")
-        raw_ap = cf.get("affordance_preconditions")
-        if isinstance(raw_ap, list):
-            for j, ap in enumerate(raw_ap):
-                if not isinstance(ap, dict):
-                    continue
-                extra_ap = sorted(set(ap.keys()) - {"object_name", "affordance_types", "reasons"})
-                if extra_ap:
-                    errors.append(
-                        f"critical_frames[{i}].affordance_preconditions[{j}] contains extra keys (not allowed): {extra_ap}"
-                    )
-        raw_cc = cf.get("causal_chain")
-        if isinstance(raw_cc, dict):
-            extra_cc = sorted(
-                set(raw_cc.keys())
-                - {
-                    "agent",
-                    "action",
-                    "patient",
-                    "causal_effect_on_patient",
-                    "causal_effect_on_environment",
-                }
-            )
-            if extra_cc:
-                errors.append(f"critical_frames[{i}].causal_chain contains extra keys (not allowed): {extra_cc}")
-        raw_hs = cf.get("affordance_hotspot")
-        if isinstance(raw_hs, dict):
-            extra_hs = sorted(set(raw_hs.keys()) - {"description", "affordance_type", "mechanism"})
-            if extra_hs:
-                errors.append(f"critical_frames[{i}].affordance_hotspot contains extra keys (not allowed): {extra_hs}")
-
-        if not cc.get("agent") or not cc.get("action") or not cc.get("patient"):
-            errors.append(f"critical_frames[{i}].causal_chain must include non-empty agent/action/patient.")
-        if not cc.get("causal_effect_on_patient") or not cc.get("causal_effect_on_environment"):
-            errors.append(
-                f"critical_frames[{i}].causal_chain must include non-empty causal_effect_on_patient/causal_effect_on_environment."
-            )
-        if not hs.get("description") or not hs.get("affordance_type") or not hs.get("mechanism"):
-            errors.append(
-                f"critical_frames[{i}].affordance_hotspot must include non-empty description/affordance_type/mechanism."
-            )
-
-        for k, v in cc.items():
-            if _contains_frame_ref(v):
-                errors.append(f"critical_frames[{i}].causal_chain.{k} must not reference frame/image indices.")
-                break
-        for k, v in hs.items():
-            if _contains_frame_ref(v):
-                errors.append(f"critical_frames[{i}].affordance_hotspot.{k} must not reference frame/image indices.")
-                break
-
-        normalized_cfs.append(
-            {
-                "frame_index": fi,
-                "action_description": action_desc,
-                "state_change_description": state_change,
-                "spatial_preconditions": spatial,
-                "affordance_preconditions": afford,
-                "causal_chain": cc,
-                "affordance_hotspot": hs,
-                # keyframe_image_path is set by the script after extracting images
-                "keyframe_image_path": None,
-            }
-        )
-
-    tool_usage = step_json.get("tool_and_material_usage")
-    if not isinstance(tool_usage, dict):
-        tool_usage = {"tools": [], "materials": []}
-    else:
-        extra_tu = sorted(set(tool_usage.keys()) - {"tools", "materials"})
-        if extra_tu:
-            errors.append(f"tool_and_material_usage contains extra keys (not allowed): {extra_tu}")
-    tools = _norm_identifier_list(tool_usage.get("tools"))
-    materials = _norm_identifier_list(tool_usage.get("materials"))
-    if not tools and not materials:
-        errors.append("tool_and_material_usage must include at least one tool or material (use 'hands' if applicable).")
-    for j, s in enumerate(tools):
-        if _contains_frame_ref(s):
-            errors.append(f"tool_and_material_usage.tools[{j}] must not reference frame/image indices.")
-    for j, s in enumerate(materials):
-        if _contains_frame_ref(s):
-            errors.append(f"tool_and_material_usage.materials[{j}] must not reference frame/image indices.")
-
-    fh = step_json.get("failure_handling")
-    if not isinstance(fh, dict):
-        fh = {"reason": "", "recovery_strategy": ""}
-    else:
-        extra_fh = sorted(set(fh.keys()) - {"reason", "recovery_strategy"})
-        if extra_fh:
-            errors.append(f"failure_handling contains extra keys (not allowed): {extra_fh}")
-    reason = _norm_str(fh.get("reason", ""))
-    recovery = _norm_str(fh.get("recovery_strategy", ""))
-    if not reason:
-        errors.append("Missing/empty failure_handling.reason.")
-    if not recovery:
-        errors.append("Missing/empty failure_handling.recovery_strategy.")
-    if _contains_frame_ref(reason):
-        errors.append("failure_handling.reason must not reference frame/image indices.")
-    if _contains_frame_ref(recovery):
-        errors.append("failure_handling.recovery_strategy must not reference frame/image indices.")
-
-    normalized = {
-        "step_id": expected_step_id,
-        "step_goal": expected_step_goal,
-        "rationale": rationale,
-        "preconditions": preconditions,
-        "expected_effects": expected_effects,
-        "spatial_postconditions_detail": spatial_post,
-        "affordance_postconditions_detail": afford_post,
-        "predicted_next_actions": predicted_next,
-        "tool_and_material_usage": {
-            "tools": tools,
-            "materials": materials,
-        },
-        "causal_challenge_question": causal_q,
-        "expected_challenge_outcome": causal_outcome,
-        "failure_handling": {
-            "reason": reason,
-            "recovery_strategy": recovery,
-        },
-        "critical_frames": normalized_cfs,
-    }
-
-    if errors:
-        return None, errors
-    return normalized, []
-
-
 def normalize_stage3_step_output(
     step_json: Dict[str, Any],
     expected_step_id: int,
@@ -1374,6 +938,9 @@ def normalize_stage3_step_output(
     errors: List[str] = []
     if not isinstance(step_json, dict):
         return None, ["Stage 3 output is not an object."]
+
+    def _is_strict_int(v: Any) -> bool:
+        return isinstance(v, int) and not isinstance(v, bool)
 
     allowed_top_keys = {
         "step_id",
@@ -1409,6 +976,9 @@ def normalize_stage3_step_output(
             if s:
                 out_list.append(s)
         return _dedupe_keep_order(out_list)
+
+    def _canon_text(v: Any) -> str:
+        return re.sub(r"\s+", " ", str(v or "").strip())
 
     def _parse_bool(v: Any) -> Optional[bool]:
         if isinstance(v, bool):
@@ -1448,16 +1018,33 @@ def normalize_stage3_step_output(
             rel_raw = sp.get("relation", "")
             if _contains_frame_ref(rel_raw):
                 errors.append(f"{label}[{j}].relation must not reference frame/image indices.")
-            rel = _norm_str(rel_raw)
+            if _contains_time_ref(rel_raw):
+                errors.append(f"{label}[{j}].relation must not reference timestamps/durations.")
+            if isinstance(rel_raw, str) and ("=>" in rel_raw or "(" in rel_raw or ")" in rel_raw):
+                errors.append(
+                    f"{label}[{j}].relation must be a short token (no '=>', no parentheses); got: {rel_raw!r}"
+                )
+            # Normalize to snake_case token.
+            rel = _norm_identifier(rel_raw)
+            if rel and len(rel) > 40:
+                errors.append(f"{label}[{j}].relation is too long (>40 chars); got: {rel!r}")
             objs_raw = sp.get("objects")
             if isinstance(objs_raw, str):
                 if _contains_frame_ref(objs_raw):
                     errors.append(f"{label}[{j}].objects must not reference frame/image indices.")
+                if _contains_time_ref(objs_raw):
+                    errors.append(f"{label}[{j}].objects must not reference timestamps/durations.")
             elif isinstance(objs_raw, list) and any(_contains_frame_ref(x) for x in objs_raw):
                 errors.append(f"{label}[{j}].objects must not reference frame/image indices.")
+            elif isinstance(objs_raw, list) and any(_contains_time_ref(x) for x in objs_raw):
+                errors.append(f"{label}[{j}].objects must not reference timestamps/durations.")
             objs_list = _norm_identifier_list(objs_raw)
-            truth = _parse_bool(sp.get("truth"))
+            raw_truth = sp.get("truth")
+            if not isinstance(raw_truth, bool):
+                errors.append(f"{label}[{j}].truth must be a JSON boolean (true/false).")
+            truth = _parse_bool(raw_truth)
             if truth is None:
+                errors.append(f"{label}[{j}].truth missing/invalid (expected boolean true/false).")
                 truth = True
             if not rel:
                 errors.append(f"{label}[{j}].relation is empty (expected a non-empty string).")
@@ -1483,17 +1070,25 @@ def normalize_stage3_step_output(
             obj_raw = ap.get("object_name", "")
             if _contains_frame_ref(obj_raw):
                 errors.append(f"{label}[{j}].object_name must not reference frame/image indices.")
+            if _contains_time_ref(obj_raw):
+                errors.append(f"{label}[{j}].object_name must not reference timestamps/durations.")
             obj = _norm_identifier(obj_raw)
             affs_raw = ap.get("affordance_types")
             if isinstance(affs_raw, str):
                 if _contains_frame_ref(affs_raw):
                     errors.append(f"{label}[{j}].affordance_types must not reference frame/image indices.")
+                if _contains_time_ref(affs_raw):
+                    errors.append(f"{label}[{j}].affordance_types must not reference timestamps/durations.")
             elif isinstance(affs_raw, list) and any(_contains_frame_ref(x) for x in affs_raw):
                 errors.append(f"{label}[{j}].affordance_types must not reference frame/image indices.")
+            elif isinstance(affs_raw, list) and any(_contains_time_ref(x) for x in affs_raw):
+                errors.append(f"{label}[{j}].affordance_types must not reference timestamps/durations.")
             aff_list = _norm_identifier_list(affs_raw)
             reasons_raw = ap.get("reasons", "")
             if _contains_frame_ref(reasons_raw):
                 errors.append(f"{label}[{j}].reasons must not reference frame/image indices.")
+            if _contains_time_ref(reasons_raw):
+                errors.append(f"{label}[{j}].reasons must not reference timestamps/durations.")
             reasons = _norm_str(reasons_raw)
             if not obj:
                 errors.append(f"{label}[{j}].object_name is empty (expected a non-empty string).")
@@ -1518,6 +1113,10 @@ def normalize_stage3_step_output(
             d.get("patient", "")
         ):
             errors.append(f"{label}.causal_chain agent/action/patient must not reference frame/image indices.")
+        if _contains_time_ref(d.get("agent", "")) or _contains_time_ref(d.get("action", "")) or _contains_time_ref(
+            d.get("patient", "")
+        ):
+            errors.append(f"{label}.causal_chain agent/action/patient must not reference timestamps/durations.")
         cc = {
             "agent": _norm_identifier(d.get("agent", "")),
             "action": _norm_str(d.get("action", "")),
@@ -1549,10 +1148,9 @@ def normalize_stage3_step_output(
         return cc
 
     sid = step_json.get("step_id")
-    try:
-        sid_int = int(sid)
-    except Exception:
-        sid_int = None
+    sid_int: Optional[int] = int(sid) if _is_strict_int(sid) else None
+    if sid_int is None:
+        errors.append("step_id missing/invalid (expected int).")
     if sid_int != expected_step_id:
         errors.append(f"step_id mismatch: expected {expected_step_id}, got {sid}")
 
@@ -1568,18 +1166,24 @@ def normalize_stage3_step_output(
         errors.append("Missing/empty rationale.")
     if _contains_frame_ref(rationale):
         errors.append("rationale must not reference frame/image indices.")
+    if _contains_time_ref(rationale):
+        errors.append("rationale must not reference timestamps/durations.")
 
     counterfactual_q = _norm_str(step_json.get("counterfactual_challenge_question", ""))
     if not counterfactual_q:
         errors.append("Missing/empty counterfactual_challenge_question.")
     if _contains_frame_ref(counterfactual_q):
         errors.append("counterfactual_challenge_question must not reference frame/image indices.")
+    if _contains_time_ref(counterfactual_q):
+        errors.append("counterfactual_challenge_question must not reference timestamps/durations.")
 
     expected_outcome = _norm_str(step_json.get("expected_challenge_outcome", ""))
     if not expected_outcome:
         errors.append("Missing/empty expected_challenge_outcome.")
     if _contains_frame_ref(expected_outcome):
         errors.append("expected_challenge_outcome must not reference frame/image indices.")
+    if _contains_time_ref(expected_outcome):
+        errors.append("expected_challenge_outcome must not reference timestamps/durations.")
 
     fr_raw = step_json.get("failure_reflecting")
     if not isinstance(fr_raw, dict):
@@ -1595,6 +1199,8 @@ def normalize_stage3_step_output(
         errors.append("Missing/empty failure_reflecting.recovery_strategy.")
     if _contains_frame_ref(fr_reason) or _contains_frame_ref(fr_recovery):
         errors.append("failure_reflecting fields must not reference frame/image indices.")
+    if _contains_time_ref(fr_reason) or _contains_time_ref(fr_recovery):
+        errors.append("failure_reflecting fields must not reference timestamps/durations.")
 
     step_cc = _norm_causal_chain(step_json.get("causal_chain", {}), label="step")
 
@@ -1617,11 +1223,11 @@ def normalize_stage3_step_output(
         if extra_cf:
             errors.append(f"critical_frames[{i}] contains extra keys (not allowed): {extra_cf}")
 
-        try:
-            fi = int(cf.get("frame_index"))
-        except Exception:
-            errors.append(f"critical_frames[{i}].frame_index missing or non-int.")
+        raw_fi = cf.get("frame_index")
+        if not _is_strict_int(raw_fi):
+            errors.append(f"critical_frames[{i}].frame_index missing/invalid (expected int).")
             continue
+        fi = int(raw_fi)
         if fi < 1 or fi > int(num_frames):
             errors.append(f"critical_frames[{i}].frame_index out of range: {fi}")
         if fi <= prev_idx:
@@ -1644,8 +1250,26 @@ def normalize_stage3_step_output(
             errors.append(f"critical_frames[{i}].action_state_change_description is empty.")
         if _contains_frame_ref(desc):
             errors.append(f"critical_frames[{i}].action_state_change_description must not reference frame/image indices.")
+        if _contains_time_ref(desc):
+            errors.append(f"critical_frames[{i}].action_state_change_description must not reference timestamps/durations.")
 
         cf_cc = _norm_causal_chain(cf.get("causal_chain", {}), label=f"critical_frames[{i}]")
+        # Enforce that the keyframe-level causal_chain agrees with the step-level one.
+        if cf_cc.get("agent") != step_cc.get("agent"):
+            errors.append(
+                f"critical_frames[{i}].causal_chain.agent must match step.causal_chain.agent "
+                f"(expected {step_cc.get('agent')!r}, got {cf_cc.get('agent')!r})."
+            )
+        if _canon_text(cf_cc.get("action")) != _canon_text(step_cc.get("action")):
+            errors.append(
+                f"critical_frames[{i}].causal_chain.action must match step.causal_chain.action "
+                f"(expected {step_cc.get('action')!r}, got {cf_cc.get('action')!r})."
+            )
+        if cf_cc.get("patient") != step_cc.get("patient"):
+            errors.append(
+                f"critical_frames[{i}].causal_chain.patient must match step.causal_chain.patient "
+                f"(expected {step_cc.get('patient')!r}, got {cf_cc.get('patient')!r})."
+            )
 
         interaction = cf.get("interaction")
         if not isinstance(interaction, dict):
@@ -1654,15 +1278,46 @@ def normalize_stage3_step_output(
         extra_inter = sorted(set(interaction.keys()) - {"tools", "materials", "hotspot"})
         if extra_inter:
             errors.append(f"critical_frames[{i}].interaction contains extra keys (not allowed): {extra_inter}")
-        tools = _norm_identifier_list(interaction.get("tools"))
-        materials = _norm_identifier_list(interaction.get("materials"))
         raw_tools = interaction.get("tools")
         raw_materials = interaction.get("materials")
-        if _contains_frame_ref(raw_tools) or _contains_frame_ref(raw_materials):
+
+        if not isinstance(raw_tools, list):
+            errors.append(f"critical_frames[{i}].interaction.tools missing/invalid (expected a list[string]).")
+            raw_tools = []
+        if not isinstance(raw_materials, list):
+            errors.append(f"critical_frames[{i}].interaction.materials missing/invalid (expected a list[string]).")
+            raw_materials = []
+
+        if any(_contains_frame_ref(x) for x in raw_tools) or any(_contains_frame_ref(x) for x in raw_materials):
             errors.append(f"critical_frames[{i}].interaction.tools/materials must not reference frame/image indices.")
-        if not tools and not materials:
+        if any(_contains_time_ref(x) for x in raw_tools) or any(_contains_time_ref(x) for x in raw_materials):
+            errors.append(f"critical_frames[{i}].interaction.tools/materials must not reference timestamps/durations.")
+
+        if any(not (isinstance(x, str) and x.strip()) for x in raw_tools):
+            errors.append(f"critical_frames[{i}].interaction.tools must contain only non-empty strings.")
+        if any(not (isinstance(x, str) and x.strip()) for x in raw_materials):
+            errors.append(f"critical_frames[{i}].interaction.materials must contain only non-empty strings.")
+
+        tools = _norm_identifier_list(raw_tools)
+        materials = _norm_identifier_list(raw_materials)
+
+        if not tools:
+            errors.append(f"critical_frames[{i}].interaction.tools is empty (expected a non-empty list[string]).")
+        if not materials:
+            errors.append(f"critical_frames[{i}].interaction.materials is empty (expected a non-empty list[string]).")
+
+        # Quality: keep interaction aligned with causal_chain identifiers.
+        agent = str(step_cc.get("agent", "") or "")
+        if agent and agent not in tools:
             errors.append(
-                f"critical_frames[{i}].interaction.tools/materials is empty (expected at least one tool or material)."
+                f"critical_frames[{i}].interaction.tools must include the causal_chain.agent "
+                f"(expected agent={agent!r}, tools={tools})."
+            )
+        patient = str(step_cc.get("patient", "") or "")
+        if patient and patient not in materials:
+            errors.append(
+                f"critical_frames[{i}].interaction.materials must include the causal_chain.patient "
+                f"(expected patient={patient!r}, materials={materials})."
             )
 
         hotspot = interaction.get("hotspot")
@@ -1680,6 +1335,8 @@ def normalize_stage3_step_output(
         hs_mech = _norm_str(hs_mech_raw)
         if _contains_frame_ref(hs_desc_raw) or _contains_frame_ref(hs_type_raw) or _contains_frame_ref(hs_mech_raw):
             errors.append(f"critical_frames[{i}].interaction.hotspot must not reference frame/image indices.")
+        if _contains_time_ref(hs_desc_raw) or _contains_time_ref(hs_type_raw) or _contains_time_ref(hs_mech_raw):
+            errors.append(f"critical_frames[{i}].interaction.hotspot must not reference timestamps/durations.")
         if not hs_desc or not hs_type or not hs_mech:
             errors.append(
                 f"critical_frames[{i}].interaction.hotspot must include non-empty description/affordance_type/mechanism."
