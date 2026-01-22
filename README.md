@@ -20,8 +20,8 @@
   - `stage3_refine_and_keyframes.py`：对每个 step clip 重新采样帧并补全关键帧/证据等字段。
   - `validate_three_stage_output.py`：输出一致性校验（尤其是不同 frame manifest 的索引空间）。
   - `common.py` / `prompts.py`：公共逻辑与提示词模板。
-- `ECCV/mani_*video*.py`、`ECCV/nav_*`、`ECCV/generate_*api*.py`：不同任务类型/数据源的生成脚本入口（用于构造训练样本或中间产物）。
-- `ECCV/mani_longvideo_tasks_plan_final.md` 与 `ECCV/*_spec.md`：任务定义、数据 schema 与生成规则的说明文档。
+- `ECCV/two_satge_old/mani_*video*.py`、`ECCV/two_satge_old/nav_*`、`ECCV/two_satge_old/generate_*api*.py`：旧版（两阶段）相关脚本入口。
+- `ECCV/two_satge_old/mani_longvideo_tasks_plan_final.md`：旧版（两阶段）任务定义与数据规则说明文档。
 
 **产出目录（默认视为运行产物）**
 

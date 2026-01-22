@@ -27,6 +27,11 @@ checkpoints/
 # Local temporary outputs (do not commit)
 _tmp*/
 
+# ECCV generated artifacts (do not commit)
+ECCV/causal_spafa_plan_dataset*/
+ECCV/generated_plans_output_*/
+ECCV/causal_plan_dataset/
+
 # Large binary assets (GitHub file-size limit)
 Qwen-PC/qwen-vl-finetune/demo/points/*.ply
 

@@ -14,7 +14,7 @@
 
 - Qwen3-VL web demo: `python Qwen-PC/web_demo_mm.py --backend hf -c <checkpoint-or-hf-id>`
 - Qwen utils (editable install + format/lint): `cd Qwen-PC/qwen-vl-utils && pip install -e . && ruff format . && ruff check .`
-- ECCV long-video generator: `python ECCV/mani_longvideo.py`
+- ECCV long-video generator: `python ECCV/two_satge_old/mani_longvideo.py`
 - ECCV three-stage pipeline: `python ECCV/three_stage/pipeline.py --input-video /abs/path/video.mp4`
 
 ## Coding Style & Naming Conventions

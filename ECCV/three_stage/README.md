@@ -2,8 +2,8 @@
 
 本目录提供一套**独立**的三阶段长视频数据生成管线（VLM + 严格 JSON 校验）。
 
-完整规范与细节说明见：[`THREE_STAGE_PIPELINE.md`](THREE_STAGE_PIPELINE.md)。
-从零跑通指南（含 prompt/校验对齐核验清单）见：[`THREE_STAGE_DATA_GENERATION_GUIDE.md`](THREE_STAGE_DATA_GENERATION_GUIDE.md)。
+完整规范与细节说明见：[`THREE_STAGE_PIPELINE_WITH_EXAMPLES.md`](THREE_STAGE_PIPELINE_WITH_EXAMPLES.md)。
+从零跑通指南（含 prompt/校验对齐核验清单）见：同上。
 
 ## 这套管线解决什么问题？
 
