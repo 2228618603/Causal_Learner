@@ -769,12 +769,20 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Validate a THREE-STAGE video output directory (schema + files + index semantics).")
     parser.add_argument("--video-output-dir", help="Path to one <video_id>/ output directory.")
+    parser.add_argument("--output-root", help="Validate all <video_id>/ subdirectories under this output root.")
     parser.add_argument("--check-deps", action="store_true", help="Also verify runtime dependencies (opencv-python, openai, ffmpeg).")
     parser.add_argument("--self-test", action="store_true", help="Run an internal self-test (creates a temporary dummy output dir).")
+    parser.add_argument(
+        "--fail-on-warnings",
+        action="store_true",
+        help="Treat warnings as failures (non-zero exit code) when validating one dir or an output root.",
+    )
+    parser.add_argument("--report-json", help="Optional: write a machine-readable validation report to this JSON path.")
     args = parser.parse_args()
 
-    if not args.video_output_dir and not args.self_test:
-        raise SystemExit("Provide --video-output-dir or use --self-test.")
+    modes = [bool(args.video_output_dir), bool(args.output_root), bool(args.self_test)]
+    if sum(1 for x in modes if x) != 1:
+        raise SystemExit("Provide exactly one of: --video-output-dir, --output-root, or --self-test.")
 
     if args.self_test:
         with tempfile.TemporaryDirectory(prefix="three_stage_selftest_", dir=os.path.dirname(__file__)) as tmp:
@@ -788,9 +796,80 @@ def main() -> None:
                 print("ERRORS:")
                 for e in errors:
                     print(" - " + e)
+            if args.fail_on_warnings and warnings:
+                ok = False
+            if args.report_json:
+                write_json(
+                    args.report_json,
+                    {
+                        "mode": "self_test",
+                        "video_out": os.path.abspath(video_out),
+                        "ok": bool(ok),
+                        "errors": errors,
+                        "warnings": warnings,
+                    },
+                )
             raise SystemExit(0 if ok else 1)
 
+    if args.output_root:
+        output_root = args.output_root
+        if not os.path.isdir(output_root):
+            raise SystemExit(f"Not a directory: {output_root}")
+        names = sorted([n for n in os.listdir(output_root) if n and not n.startswith(".")])
+        candidates: List[str] = []
+        for n in names:
+            p = os.path.join(output_root, n)
+            if not os.path.isdir(p):
+                continue
+            # Heuristic: only consider folders that look like a video output dir.
+            if os.path.exists(os.path.join(p, "stage1")) or os.path.exists(os.path.join(p, "run_summary.json")):
+                candidates.append(p)
+
+        if not candidates:
+            raise SystemExit(f"No candidate <video_id>/ directories found under: {output_root}")
+
+        all_ok = True
+        report: Dict[str, Any] = {
+            "mode": "output_root",
+            "output_root": os.path.abspath(output_root),
+            "checked_count": 0,
+            "passed_count": 0,
+            "failed_count": 0,
+            "results": [],
+        }
+        for video_out in candidates:
+            ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=args.check_deps)
+            ok_effective = bool(ok) and not (args.fail_on_warnings and warnings)
+            all_ok = all_ok and ok_effective
+            report["checked_count"] += 1
+            report["passed_count"] += 1 if ok_effective else 0
+            report["failed_count"] += 0 if ok_effective else 1
+            report["results"].append(
+                {
+                    "video_out": os.path.abspath(video_out),
+                    "video_id": os.path.basename(video_out.rstrip("/")),
+                    "ok": bool(ok_effective),
+                    "errors": errors,
+                    "warnings": warnings,
+                }
+            )
+
+            status = "OK" if ok_effective else "FAIL"
+            print(f"{status}\t{os.path.basename(video_out)}\terrors={len(errors)}\twarnings={len(warnings)}")
+            if not ok_effective and errors:
+                for e in errors[:20]:
+                    print(" - " + e)
+            if args.fail_on_warnings and warnings:
+                for w in warnings[:20]:
+                    print(" - " + w)
+
+        if args.report_json:
+            write_json(args.report_json, report)
+        raise SystemExit(0 if all_ok else 1)
+
     ok, errors, warnings = validate_three_stage_video_output_dir(args.video_output_dir, check_deps=args.check_deps)
+    if args.fail_on_warnings and warnings:
+        ok = False
     if warnings:
         print("WARNINGS:")
         for w in warnings:
@@ -799,6 +878,17 @@ def main() -> None:
         print("ERRORS:")
         for e in errors:
             print(" - " + e)
+    if args.report_json:
+        write_json(
+            args.report_json,
+            {
+                "mode": "video_output_dir",
+                "video_out": os.path.abspath(str(args.video_output_dir)),
+                "ok": bool(ok),
+                "errors": errors,
+                "warnings": warnings,
+            },
+        )
     raise SystemExit(0 if ok else 1)
 
 

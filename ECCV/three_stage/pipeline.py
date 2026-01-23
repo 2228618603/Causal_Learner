@@ -5,17 +5,22 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 from typing import List
 
 from common import (
-    ApiConfig,
+    add_api_cli_args,
+    add_sampling_cli_args,
     OutputDirCollisionError,
-    SamplingConfig,
     VIDEO_EXTS,
+    api_config_from_args,
     collect_videos,
     default_output_root,
+    ensure_video_out_dir_safe,
     logger,
     now_utc_iso,
+    sampling_config_from_args,
+    three_stage_schema_fingerprint,
     update_run_summary,
     video_id_from_path,
 )
@@ -31,23 +36,8 @@ def main() -> None:
     src.add_argument("--input-video-dir", help="Directory of videos to process.")
     parser.add_argument("--output-root", default=default_output_root(), help="Output root under ECCV/three_stage/...")
 
-    parser.add_argument("--api-key", default=os.environ.get("API_KEY", "EMPTY"))
-    parser.add_argument("--api-base", default=os.environ.get("API_BASE_URL", "http://model.mify.ai.srv/v1"))
-    parser.add_argument("--provider", default=os.environ.get("MODEL_PROVIDER_ID", "vertex_ai"))
-    parser.add_argument("--model", default=os.environ.get("MODEL_NAME", "gemini-3-pro-preview"))
-    parser.add_argument("--max-tokens", type=int, default=int(os.environ.get("MAX_TOKENS", "30000")))
-    parser.add_argument("--temperature", type=float, default=float(os.environ.get("TEMPERATURE", "0.2")))
-    parser.add_argument("--api-call-retries", type=int, default=int(os.environ.get("API_CALL_RETRIES", "3")))
-    parser.add_argument(
-        "--api-call-retry-backoff-sec",
-        type=float,
-        default=float(os.environ.get("API_CALL_RETRY_BACKOFF_SEC", "1.0")),
-    )
-    parser.add_argument("--no-embed-index", action="store_true")
-    parser.add_argument("--verbose", action="store_true")
-
-    parser.add_argument("--max-frames", type=int, default=50)
-    parser.add_argument("--jpeg-quality", type=int, default=95)
+    add_api_cli_args(parser, include_no_embed_index=True)
+    add_sampling_cli_args(parser, default_max_frames=50, default_jpeg_quality=95)
 
     parser.add_argument("--ffmpeg-bin", default="ffmpeg")
     parser.add_argument("--cut-mode", choices=["copy", "reencode"], default="reencode")
@@ -61,6 +51,16 @@ def main() -> None:
 
     parser.add_argument("--stages", default="1,2,3", help="Comma-separated subset of stages to run (e.g., 1,2 or 3).")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--allow-legacy-resume",
+        action="store_true",
+        help="Allow resuming cached outputs whose run_summary.json lacks schema_fingerprint (legacy outputs).",
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Run dependency/collision checks and exit (does not call the model, does not cut clips).",
+    )
     parser.add_argument(
         "--continue-on-error",
         action="store_true",
@@ -77,19 +77,8 @@ def main() -> None:
     if not stages.issubset({"1", "2", "3"}):
         raise SystemExit(f"Invalid --stages: {args.stages}")
 
-    api_cfg = ApiConfig(
-        api_key=args.api_key,
-        api_base_url=args.api_base,
-        model_provider_id=args.provider,
-        model_name=args.model,
-        max_tokens=args.max_tokens,
-        temperature=args.temperature,
-        api_call_retries=args.api_call_retries,
-        api_call_retry_backoff_sec=args.api_call_retry_backoff_sec,
-        embed_index_on_api_images=not args.no_embed_index,
-        verbose=args.verbose,
-    )
-    sampling_cfg = SamplingConfig(max_frames=args.max_frames, jpeg_quality=args.jpeg_quality)
+    api_cfg = api_config_from_args(args)
+    sampling_cfg = sampling_config_from_args(args)
 
     videos: List[str] = []
     if args.input_video:
@@ -98,6 +87,62 @@ def main() -> None:
         videos = collect_videos(args.input_video_dir, VIDEO_EXTS)
     if not videos:
         raise SystemExit("No videos found.")
+
+    schema_fp = three_stage_schema_fingerprint()
+
+    missing_inputs = [vp for vp in videos if not os.path.isfile(vp)]
+    if missing_inputs:
+        raise SystemExit("Missing/non-file inputs:\n" + "\n".join(f"- {p}" for p in missing_inputs))
+
+    # Fail fast on filename-stem collisions: the pipeline uses `video_id_from_path()` for `<video_out>/`.
+    vid_to_paths: dict[str, List[str]] = {}
+    for vp in videos:
+        vid_to_paths.setdefault(video_id_from_path(vp), []).append(vp)
+    dup = {vid: ps for vid, ps in vid_to_paths.items() if len(ps) > 1}
+    if dup:
+        lines: List[str] = ["Duplicate video_id detected (filename stem collision):"]
+        for vid, ps in sorted(dup.items()):
+            lines.append(f"- video_id={vid}:")
+            for p in ps:
+                lines.append(f"  - {p}")
+        lines.append("Rename colliding videos (or use different --output-root per source set) to avoid corrupt outputs.")
+        raise SystemExit("\n".join(lines))
+
+    if args.preflight_only:
+        errs: List[str] = []
+        try:
+            import cv2  # noqa: F401
+        except Exception as e:
+            errs.append(f"Missing dependency: opencv-python (cv2). Install: pip install opencv-python. Detail: {e}")
+        try:
+            import openai  # noqa: F401
+        except Exception as e:
+            errs.append(f"Missing dependency: openai. Install: pip install openai. Detail: {e}")
+
+        if "2" in stages:
+            if shutil.which(args.ffmpeg_bin) is None and not os.path.exists(args.ffmpeg_bin):
+                errs.append(
+                    f"ffmpeg binary not found: '{args.ffmpeg_bin}'. Install ffmpeg or pass a valid path via --ffmpeg-bin."
+                )
+        try:
+            os.makedirs(args.output_root, exist_ok=True)
+        except Exception as e:
+            errs.append(f"Failed to create output_root: {args.output_root}: {e}")
+
+        for vp in videos:
+            vid = video_id_from_path(vp)
+            video_out = os.path.join(args.output_root, vid)
+            try:
+                ensure_video_out_dir_safe(video_out, vp)
+            except OutputDirCollisionError as e:
+                errs.append(str(e).strip())
+
+        if errs:
+            for e in errs:
+                logger.error("[preflight] " + e.replace("\n", " | "))
+            raise SystemExit(1)
+        logger.info(f"[preflight] OK (schema_fingerprint={schema_fp})")
+        raise SystemExit(0)
 
     for vp in videos:
         vid = video_id_from_path(vp)
@@ -116,6 +161,7 @@ def main() -> None:
                         sampling_cfg,
                         overwrite=args.overwrite,
                         max_retries=args.stage1_retries,
+                        allow_legacy_resume=args.allow_legacy_resume,
                     )
                 elif sid == "2":
                     run_stage2_for_video(
@@ -130,6 +176,7 @@ def main() -> None:
                         crf=args.crf,
                         preset=args.preset,
                         keep_audio=args.keep_audio,
+                        allow_legacy_resume=args.allow_legacy_resume,
                     )
                 else:
                     run_stage3_for_video(
@@ -139,6 +186,7 @@ def main() -> None:
                         sampling_cfg,
                         overwrite=args.overwrite,
                         max_retries=args.stage3_retries,
+                        allow_legacy_resume=args.allow_legacy_resume,
                     )
             except OutputDirCollisionError as e:
                 stage_failed = True
@@ -159,6 +207,7 @@ def main() -> None:
                             "source_video": os.path.abspath(vp),
                             "video_id": vid,
                             "output_root": os.path.abspath(args.output_root),
+                            "schema_fingerprint": schema_fp,
                             "updated_at_utc": now_utc_iso(),
                             f"stage{sid}": {
                                 "status": "failed",
@@ -192,6 +241,7 @@ def main() -> None:
                             "source_video": os.path.abspath(vp),
                             "video_id": vid,
                             "output_root": os.path.abspath(args.output_root),
+                            "schema_fingerprint": schema_fp,
                             "updated_at_utc": now_utc_iso(),
                             "post_validate": {
                                 "status": "completed",
@@ -213,6 +263,7 @@ def main() -> None:
                             "source_video": os.path.abspath(vp),
                             "video_id": vid,
                             "output_root": os.path.abspath(args.output_root),
+                            "schema_fingerprint": schema_fp,
                             "updated_at_utc": now_utc_iso(),
                             "post_validate": {
                                 "status": "failed",

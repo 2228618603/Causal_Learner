@@ -5,6 +5,8 @@
 完整规范与细节说明见：[`THREE_STAGE_PIPELINE_WITH_EXAMPLES.md`](THREE_STAGE_PIPELINE_WITH_EXAMPLES.md)。
 从零跑通指南（含 prompt/校验对齐核验清单）见：同上。
 
+Present case（schema 示例输出）：[`causal_plan_with_keyframes.json`](causal_plan_with_keyframes.json)（仅用于展示；真实运行产物位于 `<output_root>/<video_id>/causal_plan_with_keyframes.json`）。
+
 ## 这套管线解决什么问题？
 
 长视频直接“一次性看全+输出全量标注”往往会遇到：
@@ -19,6 +21,7 @@
 
 - 从 `ECCV/` 目录运行：`python3 three_stage/pipeline.py --input-video /abs/path/video.mp4`
 - 默认输出目录：`ECCV/three_stage/causal_spafa_plan_dataset_long/<video_id>/`
+- `<video_id>` 来自视频文件名的 stem（去掉扩展名）；批量跑前确保不同视频的文件名 stem 不重复，否则会导致输出冲突（pipeline 会直接报错拒绝）
 - Stage2 的索引：基于 full video 的 50 帧池，**1-based**；`end_frame_index` 是 **exclusive 边界**
 - Stage2 的索引范围：`start_frame_index ∈ 1..num_frames`，`end_frame_index ∈ 2..num_frames+1`（最后一步通常 `end_last == num_frames+1` 覆盖到视频末尾）
 - Stage3 的 `critical_frames[*].frame_index`：基于**每个 step clip 自己的** 50 帧池，**1-based**
@@ -106,6 +109,8 @@ python3 three_stage/stage3_refine_and_keyframes.py --input-video /abs/path/video
 ## 常用参数（影响质量/速度/可复现性）
 
 - `--overwrite`：强制重跑（默认会“断点续跑”，只有当缓存产物通过严格检查才会跳过模型调用）
+- `--preflight-only`：只做依赖/输出碰撞/输入检查后退出（不调用模型、不切片），建议批量跑前先跑一次
+- `--allow-legacy-resume`：允许断点续跑“旧产物”（`run_summary.json` 不含 `schema_fingerprint` 的历史输出）；默认更严格以避免跨 schema 混用
 - `--continue-on-error`：批量跑目录时，单个视频失败不阻塞后续视频（失败会写入该视频的 `run_summary.json`）
 - `--stages 1,2,3`：选择运行阶段子集
 - `--post-validate`：在 Stage3 成功后自动对 `<video_id>/` 做一次输出校验（等价于运行 `validate_three_stage_output.py`）
@@ -133,6 +138,12 @@ python3 three_stage/stage3_refine_and_keyframes.py --input-video /abs/path/video
 
 ```bash
 python3 three_stage/validate_three_stage_output.py --video-output-dir /abs/path/to/<video_id> --check-deps
+```
+
+对整个输出根目录做批量核验（逐个 `<video_id>/` 汇总结果）：
+
+```bash
+python3 three_stage/validate_three_stage_output.py --output-root /abs/path/to/output_root --report-json /abs/path/report.json
 ```
 
 ## 关于产物

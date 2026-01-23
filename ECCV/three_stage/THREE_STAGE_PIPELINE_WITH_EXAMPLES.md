@@ -33,6 +33,14 @@ python3 ECCV/three_stage/pipeline.py --input-video /abs/path/video.mp4
 - `--max-frames`：抽帧上限（默认 50）
 - `--stages 1,2,3`：只跑某些阶段（例如 `--stages 1,2`）
 - `--overwrite`：强制重跑（默认会复用“已存在且通过严格校验”的缓存产物）
+- `--post-validate`：Stage3 成功后自动执行一次后验收（等价于跑 `validate_three_stage_output.py`）
+- `--continue-on-error`：批量跑目录时，单个视频失败不阻塞后续视频（失败信息写入该视频的 `run_summary.json`）
+- `--preflight-only`：只做依赖/输入/输出碰撞检查并退出（不调用模型、不切片），建议大规模跑前先跑一次
+- `--allow-legacy-resume`：允许断点续跑“旧产物”（`run_summary.json` 不含 `schema_fingerprint` 的历史输出）；默认更严格以避免跨 schema 混用
+
+重要提示（批量跑前务必确认）：
+
+- `<video_id>` 来自视频文件名的 stem（去掉扩展名）。如果不同视频的文件名 stem 重复，会导致输出目录冲突并破坏数据；`pipeline.py` 会在 `--input-video-dir` 模式下直接拒绝这种情况，请先重命名视频。
 
 ---
 
@@ -444,7 +452,7 @@ python3 ECCV/three_stage/pipeline.py --input-video /abs/path/video.mp4
 
 产出（Stage3 输出文件）：
 
-- `<step_folder>/frame_manifest.json`：该 step clip 帧池（**注意：这是独立索引空间**）
+- `<step_folder>/frame_manifest.json`：该 step clip 帧池（**注意：frame_index_1based 是独立索引空间**；`timestamp_sec` 记录的是原视频时间轴上的秒数，等于 clip 内时间 + `clip_start_sec`）
 - `<step_folder>/step_final.json`：该 step 最终 JSON（严格 schema）
 - `<step_folder>/frame_###_ts_XX.XXs.jpg`：关键帧 JPEG（由脚本保存）
 - `<video_id>/causal_plan_with_keyframes.json`：最终合并 JSON
@@ -1004,6 +1012,7 @@ python3 ECCV/three_stage/pipeline.py --input-video /abs/path/video.mp4
   "source_video": "/abs/path/video.mp4",
   "video_id": "video",
   "output_root": "/abs/path/to/ECCV/three_stage/causal_spafa_plan_dataset_long",
+  "schema_fingerprint": "sha256:<hash_of_prompts_py>",
   "updated_at_utc": "2026-01-22T10:00:00Z",
   "stage1": { "status": "completed", "generated_at_utc": "2026-01-22T10:00:00Z" },
   "stage2": { "status": "completed", "generated_at_utc": "2026-01-22T10:00:00Z" },
@@ -1039,6 +1048,12 @@ python3 ECCV/three_stage/pipeline.py --input-video /abs/path/video.mp4
 
 ```bash
 python3 ECCV/three_stage/validate_three_stage_output.py --video-output-dir /abs/path/to/<video_id> --check-deps
+```
+
+对整个输出根目录做批量核验（逐个 `<video_id>/` 汇总结果）：
+
+```bash
+python3 ECCV/three_stage/validate_three_stage_output.py --output-root /abs/path/to/output_root --report-json /abs/path/report.json
 ```
 
 它会检查：

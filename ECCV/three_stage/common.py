@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import logging
 import os
@@ -11,6 +12,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 try:
@@ -52,11 +54,76 @@ class ApiConfig:
     api_call_retry_backoff_sec: float = float(os.environ.get("API_CALL_RETRY_BACKOFF_SEC", "1.0"))
 
 
+def add_api_cli_args(parser: Any, *, include_no_embed_index: bool = True) -> None:
+    parser.add_argument("--api-key", default=os.environ.get("API_KEY", "EMPTY"), help="API key (or set env: API_KEY).")
+    parser.add_argument(
+        "--api-base",
+        default=os.environ.get("API_BASE_URL", "http://model.mify.ai.srv/v1"),
+        help="OpenAI-compatible base URL (or set env: API_BASE_URL).",
+    )
+    parser.add_argument(
+        "--provider",
+        default=os.environ.get("MODEL_PROVIDER_ID", "vertex_ai"),
+        help="Model provider id (sent as header X-Model-Provider-Id; or set env: MODEL_PROVIDER_ID).",
+    )
+    parser.add_argument("--model", default=os.environ.get("MODEL_NAME", "gemini-3-pro-preview"), help="Model name.")
+    parser.add_argument("--max-tokens", type=int, default=int(os.environ.get("MAX_TOKENS", "30000")), help="Max tokens.")
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=float(os.environ.get("TEMPERATURE", "0.2")),
+        help="Sampling temperature (lower is usually more stable).",
+    )
+    parser.add_argument(
+        "--api-call-retries",
+        type=int,
+        default=int(os.environ.get("API_CALL_RETRIES", "3")),
+        help="Retries for a single model call (transport/service errors).",
+    )
+    parser.add_argument(
+        "--api-call-retry-backoff-sec",
+        type=float,
+        default=float(os.environ.get("API_CALL_RETRY_BACKOFF_SEC", "1.0")),
+        help="Backoff seconds for model-call retries (exponential).",
+    )
+    if include_no_embed_index:
+        parser.add_argument(
+            "--no-embed-index",
+            action="store_true",
+            help="Do not draw 1-based frame indices onto images (will use text labels instead).",
+        )
+    parser.add_argument("--verbose", action="store_true", help="Log raw model outputs.")
+
+
+def api_config_from_args(args: Any) -> ApiConfig:
+    return ApiConfig(
+        api_key=getattr(args, "api_key"),
+        api_base_url=getattr(args, "api_base"),
+        model_provider_id=getattr(args, "provider"),
+        model_name=getattr(args, "model"),
+        max_tokens=int(getattr(args, "max_tokens")),
+        temperature=float(getattr(args, "temperature")),
+        api_call_retries=int(getattr(args, "api_call_retries")),
+        api_call_retry_backoff_sec=float(getattr(args, "api_call_retry_backoff_sec")),
+        embed_index_on_api_images=not bool(getattr(args, "no_embed_index", False)),
+        verbose=bool(getattr(args, "verbose", False)),
+    )
+
+
 @dataclass
 class SamplingConfig:
     max_frames: int = DEFAULT_MAX_FRAMES
     resize_dimension: Optional[Tuple[int, int]] = None
     jpeg_quality: int = 95
+
+
+def add_sampling_cli_args(parser: Any, *, default_max_frames: int = 50, default_jpeg_quality: int = 95) -> None:
+    parser.add_argument("--max-frames", type=int, default=int(default_max_frames), help="Max frames sampled per pool.")
+    parser.add_argument("--jpeg-quality", type=int, default=int(default_jpeg_quality), help="JPEG quality (1-100).")
+
+
+def sampling_config_from_args(args: Any) -> SamplingConfig:
+    return SamplingConfig(max_frames=int(getattr(args, "max_frames")), jpeg_quality=int(getattr(args, "jpeg_quality")))
 
 
 def default_output_root() -> str:
@@ -732,6 +799,33 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
     if not isinstance(steps, list):
         steps = []
         warnings.append("Top-level 'steps' is not a list; replaced with empty list.")
+
+    # If the model provided a coherent step_id sequence (1..N), prefer that ordering to preserve chronology.
+    non_object_steps = sum(1 for s in steps if not isinstance(s, dict))
+    if non_object_steps:
+        warnings.append(f"Found {non_object_steps} non-object step entries; they will be skipped.")
+
+    dict_steps = [s for s in steps if isinstance(s, dict)]
+    parsed_step_ids: List[int] = []
+    step_ids_ok = bool(dict_steps)
+    for s in dict_steps:
+        try:
+            sid = int(s.get("step_id"))
+        except Exception:
+            step_ids_ok = False
+            break
+        if sid <= 0:
+            step_ids_ok = False
+            break
+        parsed_step_ids.append(sid)
+    if (
+        step_ids_ok
+        and len(set(parsed_step_ids)) == len(parsed_step_ids)
+        and set(parsed_step_ids) == set(range(1, len(parsed_step_ids) + 1))
+    ):
+        if parsed_step_ids != sorted(parsed_step_ids):
+            warnings.append("Reordered steps by provided step_id (1..N) to preserve chronology.")
+        steps = sorted(dict_steps, key=lambda x: int(x.get("step_id")))
 
     seen_goals: Dict[str, int] = {}
     for idx, step in enumerate(steps, start=1):
@@ -1411,6 +1505,62 @@ def save_keyframe_images_from_manifest(
 
 def now_utc_iso() -> str:
     return datetime.utcnow().isoformat() + "Z"
+
+
+def get_run_summary_schema_fingerprint(run_summary_path: str) -> Optional[str]:
+    if not os.path.exists(run_summary_path):
+        return None
+    try:
+        rs = read_json(run_summary_path)
+    except Exception:
+        return None
+    raw = rs.get("schema_fingerprint")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return None
+
+
+@lru_cache(maxsize=1)
+def three_stage_schema_fingerprint() -> str:
+    """Fingerprint the prompts/schema spec used by the three-stage pipeline.
+
+    This is primarily used to prevent unsafe "resume" across prompt/schema changes.
+    """
+    prompts_path = os.path.join(os.path.dirname(__file__), "prompts.py")
+    try:
+        with open(prompts_path, "rb") as f:
+            data = f.read()
+    except Exception:
+        return "sha256:unknown"
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def guard_schema_fingerprint(
+    run_summary_path: str,
+    video_out: str,
+    *,
+    stage: str,
+    overwrite: bool,
+    allow_legacy_resume: bool,
+    will_resume: bool,
+) -> str:
+    current_fp = three_stage_schema_fingerprint()
+    existing_fp = get_run_summary_schema_fingerprint(run_summary_path)
+    if existing_fp is not None and existing_fp != current_fp and not overwrite:
+        raise RuntimeError(
+            f"Refusing to run {stage}: schema_fingerprint mismatch.\n"
+            f"- video_out: {os.path.abspath(video_out)}\n"
+            f"- existing: {existing_fp}\n"
+            f"- current : {current_fp}\n"
+            "Use --overwrite to regenerate outputs, or use a different --output-root."
+        )
+    if will_resume and existing_fp is None and not allow_legacy_resume:
+        raise RuntimeError(
+            f"Refusing to resume {stage} legacy outputs without schema_fingerprint in run_summary.json.\n"
+            f"- video_out: {os.path.abspath(video_out)}\n"
+            "Re-run with --overwrite, or pass --allow-legacy-resume to bypass this check."
+        )
+    return current_fp
 
 
 def call_chat_completion(client: Any, cfg: ApiConfig, messages: List[Dict[str, Any]], max_tokens: int) -> str:

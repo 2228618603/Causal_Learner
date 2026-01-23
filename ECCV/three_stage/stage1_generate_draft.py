@@ -6,14 +6,15 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from common import (
     _contains_frame_ref,
     _contains_time_ref,
-    ApiConfig,
-    SamplingConfig,
+    add_api_cli_args,
+    add_sampling_cli_args,
     VIDEO_EXTS,
+    api_config_from_args,
     build_api_content,
     build_retry_prefix,
     call_chat_completion,
@@ -21,11 +22,14 @@ from common import (
     default_output_root,
     ensure_video_out_dir_safe,
     extract_json_from_response,
+    guard_schema_fingerprint,
     initialize_api_client,
+    logger,
     normalize_draft_plan,
     now_utc_iso,
     read_json,
     sample_video_to_frames,
+    sampling_config_from_args,
     save_sampled_frames_jpegs,
     update_run_summary,
     video_id_from_path,
@@ -34,6 +38,9 @@ from common import (
     write_text,
 )
 from prompts import SYSTEM_PROMPT_ANALYST, build_stage1_user_prompt
+
+if TYPE_CHECKING:
+    from common import ApiConfig, SamplingConfig
 
 
 _STAGE1_ALLOWED_TOP_KEYS = {"high_level_goal", "steps"}
@@ -355,6 +362,8 @@ def run_stage1_for_video(
     sampling_cfg: SamplingConfig,
     overwrite: bool,
     max_retries: int,
+    *,
+    allow_legacy_resume: bool = False,
 ) -> str:
     vid = video_id_from_path(video_path)
     video_out = os.path.join(output_root, vid)
@@ -368,7 +377,17 @@ def run_stage1_for_video(
     user_prompt_path = os.path.join(stage1_dir, "stage1_user_prompt.txt")
     run_summary_path = os.path.join(video_out, "run_summary.json")
 
-    if not overwrite and _can_resume_stage1(draft_path, manifest_path):
+    will_resume = not overwrite and _can_resume_stage1(draft_path, manifest_path)
+    schema_fp = guard_schema_fingerprint(
+        run_summary_path,
+        video_out,
+        stage="Stage 1",
+        overwrite=overwrite,
+        allow_legacy_resume=allow_legacy_resume,
+        will_resume=will_resume,
+    )
+    if will_resume:
+        logger.info(f"[stage1] Resume: using cached outputs under {os.path.relpath(video_out, output_root)}")
         return video_out
 
     # Record source metadata early so reruns can detect/avoid output collisions even if Stage1 fails mid-run.
@@ -378,6 +397,7 @@ def run_stage1_for_video(
             "source_video": os.path.abspath(video_path),
             "video_id": vid,
             "output_root": os.path.abspath(output_root),
+            "schema_fingerprint": schema_fp,
             "updated_at_utc": now_utc_iso(),
             "stage1": {"status": "running", "started_at_utc": now_utc_iso()},
         },
@@ -500,40 +520,19 @@ def main() -> None:
     src.add_argument("--input-video-dir", help="Directory of videos to process.")
     parser.add_argument("--output-root", default=default_output_root(), help="Output root under ECCV/three_stage/...")
 
-    parser.add_argument("--api-key", default=os.environ.get("API_KEY", "EMPTY"))
-    parser.add_argument("--api-base", default=os.environ.get("API_BASE_URL", "http://model.mify.ai.srv/v1"))
-    parser.add_argument("--provider", default=os.environ.get("MODEL_PROVIDER_ID", "vertex_ai"))
-    parser.add_argument("--model", default=os.environ.get("MODEL_NAME", "gemini-3-pro-preview"))
-    parser.add_argument("--max-tokens", type=int, default=int(os.environ.get("MAX_TOKENS", "30000")))
-    parser.add_argument("--temperature", type=float, default=float(os.environ.get("TEMPERATURE", "0.2")))
-    parser.add_argument("--api-call-retries", type=int, default=int(os.environ.get("API_CALL_RETRIES", "3")))
-    parser.add_argument(
-        "--api-call-retry-backoff-sec",
-        type=float,
-        default=float(os.environ.get("API_CALL_RETRY_BACKOFF_SEC", "1.0")),
-    )
-    parser.add_argument("--no-embed-index", action="store_true", help="Do not overlay frame index/timestamp onto images.")
-    parser.add_argument("--verbose", action="store_true", help="Print raw model output.")
-
-    parser.add_argument("--max-frames", type=int, default=50)
-    parser.add_argument("--jpeg-quality", type=int, default=95)
+    add_api_cli_args(parser, include_no_embed_index=False)
+    add_sampling_cli_args(parser, default_max_frames=50, default_jpeg_quality=95)
     parser.add_argument("--max-retries", type=int, default=3)
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--allow-legacy-resume",
+        action="store_true",
+        help="Allow resuming cached outputs whose run_summary.json lacks schema_fingerprint (legacy outputs).",
+    )
     args = parser.parse_args()
 
-    api_cfg = ApiConfig(
-        api_key=args.api_key,
-        api_base_url=args.api_base,
-        model_provider_id=args.provider,
-        model_name=args.model,
-        max_tokens=args.max_tokens,
-        temperature=args.temperature,
-        api_call_retries=args.api_call_retries,
-        api_call_retry_backoff_sec=args.api_call_retry_backoff_sec,
-        embed_index_on_api_images=not args.no_embed_index,
-        verbose=args.verbose,
-    )
-    sampling_cfg = SamplingConfig(max_frames=args.max_frames, jpeg_quality=args.jpeg_quality)
+    api_cfg = api_config_from_args(args)
+    sampling_cfg = sampling_config_from_args(args)
 
     videos: List[str] = []
     if args.input_video:
@@ -552,6 +551,7 @@ def main() -> None:
             sampling_cfg,
             overwrite=args.overwrite,
             max_retries=args.max_retries,
+            allow_legacy_resume=args.allow_legacy_resume,
         )
 
 

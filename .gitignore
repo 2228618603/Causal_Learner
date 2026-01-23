@@ -31,6 +31,8 @@ _tmp*/
 ECCV/causal_spafa_plan_dataset*/
 ECCV/generated_plans_output_*/
 ECCV/causal_plan_dataset/
+ECCV/three_stage/causal_spafa_plan_dataset*/
+ECCV/three_stage/generated_plans_output_*/
 
 # Large binary assets (GitHub file-size limit)
 Qwen-PC/qwen-vl-finetune/demo/points/*.ply
