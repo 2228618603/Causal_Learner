@@ -295,10 +295,10 @@ def main() -> None:
     parser.add_argument(
         "--num-workers",
         type=int,
-        default=1,
+        default=4,
         help=(
             "Parallelize across videos with this many worker processes (ProcessPoolExecutor). "
-            "Default=1 (sequential, current behavior)."
+            "Default=4."
         ),
     )
 
