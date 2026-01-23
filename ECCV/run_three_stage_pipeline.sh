@@ -19,9 +19,8 @@ set -eu
 #   OVERWRITE=1 \
 #   sh run_three_stage_pipeline.sh
 
-# 默认进入脚本所在目录（应为 <repo>/ECCV）
-SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-ECCV_ROOT="${ECCV_ROOT:-$SCRIPT_DIR}"
+# 默认进入指定 ECCV 目录（你的机器环境）
+ECCV_ROOT="${ECCV_ROOT:-/e2e-data/evad-tech-vla/luzheng1/home/luz/Qwen-PC/ECCV}"
 if [ ! -d "$ECCV_ROOT" ]; then
   echo "Error: ECCV_ROOT 目录不存在：$ECCV_ROOT" >&2
   echo "请确认该机器上的 ECCV 路径，或通过环境变量 ECCV_ROOT 覆盖。" >&2
@@ -29,7 +28,7 @@ if [ ! -d "$ECCV_ROOT" ]; then
 fi
 cd "$ECCV_ROOT"
 
-INPUT_VIDEO_DIR="${INPUT_VIDEO_DIR:-}"
+INPUT_VIDEO_DIR="${INPUT_VIDEO_DIR:-/e2e-data/embodied-research-data/luzheng/kitchen/long}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-$PWD/long_three_stage_out}"
 STAGES="${STAGES:-1,2,3}"
 FFMPEG_BIN="${FFMPEG_BIN:-ffmpeg}"
