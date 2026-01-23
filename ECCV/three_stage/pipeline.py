@@ -7,7 +7,8 @@ import argparse
 import os
 import shutil
 import time
-from typing import List, Optional
+from concurrent.futures import CancelledError, FIRST_COMPLETED, ProcessPoolExecutor, wait
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from common import (
     add_api_cli_args,
@@ -80,6 +81,198 @@ def _append_schema_mismatch_txt(
         return
 
 
+def _run_one_video_pipeline(
+    *,
+    video_path: str,
+    output_root: str,
+    stages: Sequence[str],
+    api_cfg: Any,
+    sampling_cfg: Any,
+    overwrite: bool,
+    allow_legacy_resume: bool,
+    stage1_retries: int,
+    stage2_retries: int,
+    stage3_retries: int,
+    ffmpeg_bin: str,
+    cut_mode: str,
+    seek_slop_sec: float,
+    crf: int,
+    preset: str,
+    keep_audio: bool,
+    post_validate: bool,
+) -> Dict[str, Any]:
+    """Run the 3-stage pipeline for one video (optionally including post-validate).
+
+    Designed to be ProcessPool-friendly: takes only picklable inputs and returns a summary dict.
+    """
+    t0 = time.perf_counter()
+    vp = str(video_path)
+    vid = video_id_from_path(vp)
+    video_out = os.path.join(output_root, vid)
+    schema_fp = three_stage_schema_fingerprint()
+
+    stage_failed = False
+    failed_stage: Optional[str] = None
+    stage_error: str = ""
+    schema_mismatch: Optional[Dict[str, Any]] = None
+
+    logger.info(f"[pipeline-worker] video_id={vid} start: {os.path.abspath(vp)}")
+
+    for sid in ("1", "2", "3"):
+        if sid not in set(stages):
+            continue
+        try:
+            t_stage = time.perf_counter()
+            logger.info(f"[pipeline-worker] video_id={vid} stage={sid} start")
+            if sid == "1":
+                run_stage1_for_video(
+                    vp,
+                    output_root,
+                    api_cfg,
+                    sampling_cfg,
+                    overwrite=overwrite,
+                    max_retries=int(stage1_retries),
+                    allow_legacy_resume=allow_legacy_resume,
+                )
+            elif sid == "2":
+                run_stage2_for_video(
+                    vp,
+                    output_root,
+                    api_cfg,
+                    ffmpeg_bin=ffmpeg_bin,
+                    overwrite=overwrite,
+                    max_retries=int(stage2_retries),
+                    cut_mode=cut_mode,
+                    seek_slop_sec=float(seek_slop_sec),
+                    crf=int(crf),
+                    preset=preset,
+                    keep_audio=bool(keep_audio),
+                    allow_legacy_resume=allow_legacy_resume,
+                )
+            else:
+                run_stage3_for_video(
+                    vp,
+                    output_root,
+                    api_cfg,
+                    sampling_cfg,
+                    overwrite=overwrite,
+                    max_retries=int(stage3_retries),
+                    allow_legacy_resume=allow_legacy_resume,
+                )
+            logger.info(
+                f"[pipeline-worker] video_id={vid} stage={sid} done in {format_duration(time.perf_counter() - t_stage)}"
+            )
+        except OutputDirCollisionError as e:
+            stage_failed = True
+            failed_stage = sid
+            stage_error = f"{type(e).__name__}: {e}"
+            logger.error(f"[pipeline-worker] video_id={vid} stage={sid} aborted: {stage_error}")
+            # Do NOT write into run_summary.json here: the directory may belong to another source video.
+            break
+        except (Exception, SystemExit) as e:
+            stage_failed = True
+            failed_stage = sid
+            stage_error = f"{type(e).__name__}: {e}"
+            logger.exception(f"[pipeline-worker] video_id={vid} stage={sid} failed: {stage_error}")
+            try:
+                update_run_summary(
+                    os.path.join(video_out, "run_summary.json"),
+                    {
+                        "source_video": os.path.abspath(vp),
+                        "video_id": vid,
+                        "output_root": os.path.abspath(output_root),
+                        "schema_fingerprint": schema_fp,
+                        "updated_at_utc": now_utc_iso(),
+                        f"stage{sid}": {
+                            "status": "failed",
+                            "failed_at_utc": now_utc_iso(),
+                            "error": stage_error,
+                        },
+                    },
+                )
+            except Exception:
+                pass
+            break
+
+    video_ok = not stage_failed
+    if video_ok and post_validate and "3" in set(stages):
+        try:
+            from validate_three_stage_output import validate_three_stage_video_output_dir
+
+            v0 = time.perf_counter()
+            logger.info(f"[pipeline-worker] video_id={vid} post-validate start")
+            ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=False)
+            for w in warnings:
+                logger.warning(f"[validate] video_id={vid}: {w}")
+            if not ok:
+                video_ok = False
+                schema_mismatch = {"errors": errors, "warnings": warnings, "note": "post_validate_schema_mismatch"}
+                raise RuntimeError(" | ".join(errors[:20]))
+            logger.info(
+                f"[pipeline-worker] video_id={vid} post-validate OK in {format_duration(time.perf_counter() - v0)} "
+                f"(warnings={len(warnings)})"
+            )
+            try:
+                update_run_summary(
+                    os.path.join(video_out, "run_summary.json"),
+                    {
+                        "source_video": os.path.abspath(vp),
+                        "video_id": vid,
+                        "output_root": os.path.abspath(output_root),
+                        "schema_fingerprint": schema_fp,
+                        "updated_at_utc": now_utc_iso(),
+                        "post_validate": {
+                            "status": "completed",
+                            "validated_at_utc": now_utc_iso(),
+                            "warnings_count": len(warnings),
+                            "warnings_sample": warnings[:10],
+                        },
+                    },
+                )
+            except Exception:
+                pass
+        except Exception as e:
+            video_ok = False
+            msg = f"{type(e).__name__}: {e}"
+            logger.exception(f"[pipeline-worker] post-validate failed for video_id={vid}: {msg}")
+            if schema_mismatch is None:
+                schema_mismatch = {"errors": [msg], "warnings": [], "note": "post_validate_exception"}
+            try:
+                update_run_summary(
+                    os.path.join(video_out, "run_summary.json"),
+                    {
+                        "source_video": os.path.abspath(vp),
+                        "video_id": vid,
+                        "output_root": os.path.abspath(output_root),
+                        "schema_fingerprint": schema_fp,
+                        "updated_at_utc": now_utc_iso(),
+                        "post_validate": {
+                            "status": "failed",
+                            "failed_at_utc": now_utc_iso(),
+                            "error": msg,
+                        },
+                    },
+                )
+            except Exception:
+                pass
+
+    elapsed_sec = time.perf_counter() - t0
+    logger.info(
+        f"[pipeline-worker] video_id={vid} done: ok={int(bool(video_ok))} elapsed={format_duration(elapsed_sec)}"
+    )
+    return {
+        "video_id": vid,
+        "video_path": vp,
+        "video_out": video_out,
+        "ok": bool(video_ok),
+        "stage_failed": bool(stage_failed),
+        "failed_stage": failed_stage,
+        "stage_error": stage_error,
+        "schema_mismatch": schema_mismatch,
+        "elapsed_sec": float(elapsed_sec),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Three-stage pipeline: draft -> localize/cut -> refine+keyframes.")
     src = parser.add_mutually_exclusive_group(required=True)
@@ -99,6 +292,15 @@ def main() -> None:
     parser.add_argument("--stage1-retries", type=int, default=3)
     parser.add_argument("--stage2-retries", type=int, default=3)
     parser.add_argument("--stage3-retries", type=int, default=3)
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=1,
+        help=(
+            "Parallelize across videos with this many worker processes (ProcessPoolExecutor). "
+            "Default=1 (sequential, current behavior)."
+        ),
+    )
 
     parser.add_argument("--stages", default="1,2,3", help="Comma-separated subset of stages to run (e.g., 1,2 or 3).")
     parser.add_argument("--overwrite", action="store_true")
@@ -211,6 +413,130 @@ def main() -> None:
     schema_mismatch_txt = str(getattr(args, "schema_mismatch_txt", "") or "").strip()
     if args.post_validate and not schema_mismatch_txt:
         schema_mismatch_txt = os.path.join(args.output_root, "schema_mismatch_videos.txt")
+
+    # Parallel mode (multi-video only).
+    num_workers = int(getattr(args, "num_workers", 1) or 1)
+    if num_workers > 1 and not args.input_video:
+        max_workers = min(max(1, num_workers), len(videos))
+        logger.info(
+            "[pipeline] Start: "
+            f"videos={total} stages={','.join(sorted(stages))} "
+            f"output_root={os.path.abspath(args.output_root)} "
+            f"overwrite={bool(args.overwrite)} continue_on_error={bool(args.continue_on_error)} post_validate={bool(args.post_validate)}"
+        )
+        logger.info(
+            "[pipeline] API: "
+            f"base={api_cfg.api_base_url} provider={api_cfg.model_provider_id} model={api_cfg.model_name} "
+            f"max_tokens={int(api_cfg.max_tokens)} temp={float(api_cfg.temperature)} "
+            f"call_retries={int(api_cfg.api_call_retries)} backoff_sec={float(api_cfg.api_call_retry_backoff_sec)}"
+        )
+        logger.info(
+            "[pipeline] Sampling: "
+            f"max_frames={int(sampling_cfg.max_frames)} jpeg_quality={int(sampling_cfg.jpeg_quality)} "
+            f"embed_index_on_api_images={bool(api_cfg.embed_index_on_api_images)}"
+        )
+        logger.info(f"[pipeline] Parallel mode enabled: workers={max_workers} videos={total}")
+        processed = 0
+        stop_submitting = False
+
+        def _submit(ex: ProcessPoolExecutor, vp0: str) -> Any:
+            return ex.submit(
+                _run_one_video_pipeline,
+                video_path=vp0,
+                output_root=args.output_root,
+                stages=tuple(sorted(stages)),
+                api_cfg=api_cfg,
+                sampling_cfg=sampling_cfg,
+                overwrite=bool(args.overwrite),
+                allow_legacy_resume=bool(args.allow_legacy_resume),
+                stage1_retries=int(args.stage1_retries),
+                stage2_retries=int(args.stage2_retries),
+                stage3_retries=int(args.stage3_retries),
+                ffmpeg_bin=str(args.ffmpeg_bin),
+                cut_mode=str(args.cut_mode),
+                seek_slop_sec=float(args.seek_slop_sec),
+                crf=int(args.crf),
+                preset=str(args.preset),
+                keep_audio=bool(args.keep_audio),
+                post_validate=bool(args.post_validate),
+            )
+
+        remaining = iter(videos)
+        futures: Dict[Any, str] = {}
+        with ProcessPoolExecutor(max_workers=max_workers) as ex:
+            for _ in range(max_workers):
+                try:
+                    vp0 = next(remaining)
+                except StopIteration:
+                    break
+                futures[_submit(ex, vp0)] = vp0
+
+            while futures:
+                done, _pending = wait(list(futures.keys()), return_when=FIRST_COMPLETED)
+                for fut in done:
+                    vp_done = futures.pop(fut, "")
+                    try:
+                        res = fut.result()
+                    except CancelledError:
+                        continue
+                    except Exception as e:
+                        processed += 1
+                        failed_videos += 1
+                        msg = f"{type(e).__name__}: {e}"
+                        logger.exception(f"[pipeline] Worker crashed for {os.path.basename(vp_done)}: {msg}")
+                        if not args.continue_on_error:
+                            stop_submitting = True
+                    else:
+                        processed += 1
+                        vid = str(res.get("video_id") or video_id_from_path(vp_done))
+                        ok = bool(res.get("ok"))
+                        if ok:
+                            ok_videos += 1
+                        else:
+                            failed_videos += 1
+                            if not args.continue_on_error:
+                                stop_submitting = True
+                        mismatch = res.get("schema_mismatch")
+                        if args.post_validate and mismatch:
+                            _append_schema_mismatch_txt(
+                                schema_mismatch_txt,
+                                video_id=vid,
+                                source_video=vp_done,
+                                video_out=str(res.get("video_out") or os.path.join(args.output_root, vid)),
+                                errors=list(mismatch.get("errors") or []),
+                                warnings=list(mismatch.get("warnings") or []),
+                                note=str(mismatch.get("note") or ""),
+                            )
+
+                    elapsed = time.perf_counter() - run_started
+                    eta = (elapsed / processed) * (total - processed) if processed > 0 else 0.0
+                    logger.info(
+                        "[pipeline] Progress: "
+                        f"{processed}/{total} processed (ok={ok_videos}, failed={failed_videos}) "
+                        f"elapsed={format_duration(elapsed)} eta={format_duration(eta)}"
+                    )
+
+                    if stop_submitting:
+                        # Best-effort: cancel tasks that haven't started yet.
+                        for pending_fut in list(futures.keys()):
+                            pending_fut.cancel()
+                        continue
+
+                    try:
+                        vp_next = next(remaining)
+                    except StopIteration:
+                        vp_next = ""
+                    if vp_next:
+                        futures[_submit(ex, vp_next)] = vp_next
+
+        total_elapsed = time.perf_counter() - run_started
+        logger.info(
+            "[pipeline] Done: "
+            f"processed={total} ok={ok_videos} failed={failed_videos} elapsed={format_duration(total_elapsed)}"
+        )
+        if not args.continue_on_error and failed_videos:
+            raise SystemExit(1)
+        return
 
     logger.info(
         "[pipeline] Start: "

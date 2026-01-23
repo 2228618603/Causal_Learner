@@ -8,6 +8,7 @@ python3 three_stage/pipeline.py \
   --input-video-dir /abs/path/to/videos \
   --output-root "$(pwd)/long_three_stage_out" \
   --stages 1,2,3 \
+  --num-workers 8 \
   --overwrite \
   --ffmpeg-bin ffmpeg \
   --post-validate \

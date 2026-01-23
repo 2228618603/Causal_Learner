@@ -15,6 +15,7 @@ set -eu
 #   ECCV_ROOT=/abs/path/to/ECCV \
 #   INPUT_VIDEO_DIR=/abs/path/to/videos \
 #   OUTPUT_ROOT=/abs/path/to/out \
+#   NUM_WORKERS=8 \
 #   OVERWRITE=1 \
 #   sh run_three_stage_pipeline.sh
 
@@ -32,6 +33,7 @@ INPUT_VIDEO_DIR="${INPUT_VIDEO_DIR:-}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-$PWD/long_three_stage_out}"
 STAGES="${STAGES:-1,2,3}"
 FFMPEG_BIN="${FFMPEG_BIN:-ffmpeg}"
+NUM_WORKERS="${NUM_WORKERS:-1}"
 
 # 强制 API 配置（按你的要求写死）
 
@@ -66,6 +68,9 @@ set -- \
   --stages "$STAGES" \
   --ffmpeg-bin "$FFMPEG_BIN"
 
+if [ "${NUM_WORKERS}" != "1" ]; then
+  set -- "$@" --num-workers "${NUM_WORKERS}"
+fi
 if [ "$OVERWRITE" = "1" ]; then
   set -- "$@" --overwrite
 fi
