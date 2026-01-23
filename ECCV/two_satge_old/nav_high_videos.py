@@ -17,8 +17,8 @@ print(">>> [INFO] 脚本开始执行：初始化客户端和配置...")
 # --- 用户配置区 (User Configuration Area) ---
 
 # 1.1. API凭证和地址
-API_KEY="sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s"
-API_BASE_URL="http://model.mify.ai.srv/v1"
+API_KEY = os.environ.get("API_KEY", "EMPTY")
+API_BASE_URL = os.environ.get("API_BASE_URL", "http://model.mify.ai.srv/v1")
 
 # 1.2. 指定包含所有视频的根文件夹
 input_video_directory = "/e2e-data/embodied-research-data/EmbodiedData/data/ScanNet_v2/videos"

@@ -39,7 +39,7 @@ def main():
     parser.add_argument('--stream-save', action='store_true', default=True)
     parser.add_argument('--live-combined', action='store_true', default=True)
     # API
-    parser.add_argument('--api-key', default=os.environ.get('API_KEY', 'sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s'))
+    parser.add_argument('--api-key', default=os.environ.get('API_KEY', 'EMPTY'))
     parser.add_argument('--api-base', default=os.environ.get('API_BASE_URL', 'http://model.mify.ai.srv/v1'))
     parser.add_argument('--provider', default=os.environ.get('MODEL_PROVIDER_ID', 'vertex_ai'))
     parser.add_argument('--model', default=os.environ.get('MODEL_NAME', 'gemini-3-pro-preview'))

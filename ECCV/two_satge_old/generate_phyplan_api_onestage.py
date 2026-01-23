@@ -799,7 +799,7 @@ if __name__ == "__main__":
     parser.add_argument('--force', action='store_true', default=False)
     
     # API 配置
-    parser.add_argument('--api-key', default=os.environ.get('API_KEY', 'sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s'))
+    parser.add_argument('--api-key', default=os.environ.get('API_KEY', 'EMPTY'))
     parser.add_argument('--api-base', default=os.environ.get('API_BASE_URL', 'http://model.mify.ai.srv/v1'))
     parser.add_argument('--model', default=os.environ.get('MODEL_NAME', 'gemini-3-pro-preview'))
     

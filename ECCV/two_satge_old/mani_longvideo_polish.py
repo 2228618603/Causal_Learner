@@ -38,7 +38,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 class ScriptConfig:
     """Centralized configuration for the script."""
     # --- API Credentials ---
-    API_KEY: str = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    API_KEY: str = os.environ.get("API_KEY", "EMPTY")
     API_BASE_URL: str = "http://model.mify.ai.srv/v1"
     MODEL_PROVIDER_ID: str = "vertex_ai"
     # MODEL_PROVIDER_ID: str = "volcengine_maas"
@@ -65,7 +65,7 @@ class ScriptConfig:
 PLANNING_CONFIG = ScriptConfig(
     VIDEO_PATH="placeholder.mp4", 
     OUTPUT_BASE_FOLDER="causal_spafa_plan_dataset_long",
-    API_KEY="sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s",
+    API_KEY=os.environ.get("API_KEY", "EMPTY"),
     API_BASE_URL="http://model.mify.ai.srv/v1",
     MODEL_PROVIDER_ID="vertex_ai",
     MODEL_NAME="gemini-2.5-pro",
@@ -75,7 +75,7 @@ PLANNING_CONFIG = ScriptConfig(
 SELECTION_CONFIG = ScriptConfig(
     VIDEO_PATH="placeholder.mp4",
     OUTPUT_BASE_FOLDER="causal_spafa_plan_dataset_long",
-    API_KEY="sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s",
+    API_KEY=os.environ.get("API_KEY", "EMPTY"),
     API_BASE_URL="http://model.mify.ai.srv/v1",
     MODEL_PROVIDER_ID="vertex_ai",
     MODEL_NAME="gemini-2.5-pro",
