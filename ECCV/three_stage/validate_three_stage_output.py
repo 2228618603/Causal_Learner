@@ -9,8 +9,15 @@ import shutil
 import tempfile
 from typing import Any, Dict, List, Optional, Tuple
 
-from common import normalize_stage3_step_output, read_json, sanitize_filename, validate_stage2_localization, write_json
+from common import normalize_stage3_step_output, now_utc_iso, read_json, sanitize_filename, validate_stage2_localization, write_json
 from stage1_generate_draft import _draft_hard_errors, _stage1_raw_schema_errors
+
+
+def _one_line(text: Any, *, max_len: int = 500) -> str:
+    line = str(text or "").replace("\t", " ").replace("\r", " ").replace("\n", " ").strip()
+    if len(line) > max_len:
+        return line[: max_len - 3] + "..."
+    return line
 
 
 def _keyframe_filename(frame_index_1based: int, timestamp_sec: float) -> str:
@@ -471,6 +478,29 @@ def validate_three_stage_video_output_dir(video_out: str, *, check_deps: bool = 
     return len(errors) == 0, errors, warnings
 
 
+def _write_schema_mismatch_line(
+    txt_file, *, video_out: str, ok_effective: bool, errors: List[str], warnings: List[str], fail_on_warnings: bool
+) -> None:
+    vid = os.path.basename(video_out.rstrip("/"))
+    err_sample = " | ".join(_one_line(err, max_len=200) for err in errors[:6])
+    txt_file.write(
+        "\t".join(
+            [
+                now_utc_iso(),
+                f"video_id={vid}",
+                f"video_out={_one_line(os.path.abspath(video_out), max_len=350)}",
+                f"final_json={_one_line(os.path.abspath(os.path.join(video_out, 'causal_plan_with_keyframes.json')), max_len=350)}",
+                f"ok={int(bool(ok_effective))}",
+                f"errors={len(errors)}",
+                f"warnings={len(warnings)}",
+                f"fail_on_warnings={int(bool(fail_on_warnings))}",
+                f"error_sample={err_sample}",
+            ]
+        )
+        + "\n"
+    )
+
+
 def _write_dummy_file(path: str, data: bytes = b"x") -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
@@ -778,6 +808,13 @@ def main() -> None:
         help="Treat warnings as failures (non-zero exit code) when validating one dir or an output root.",
     )
     parser.add_argument("--report-json", help="Optional: write a machine-readable validation report to this JSON path.")
+    parser.add_argument(
+        "--schema-mismatch-txt",
+        help=(
+            "Optional: write failing video outputs (schema mismatch) to this .txt file "
+            "(one line per failed <video_id>/, convenient for re-generation)."
+        ),
+    )
     args = parser.parse_args()
 
     modes = [bool(args.video_output_dir), bool(args.output_root), bool(args.self_test)]
@@ -837,31 +874,52 @@ def main() -> None:
             "failed_count": 0,
             "results": [],
         }
-        for video_out in candidates:
-            ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=args.check_deps)
-            ok_effective = bool(ok) and not (args.fail_on_warnings and warnings)
-            all_ok = all_ok and ok_effective
-            report["checked_count"] += 1
-            report["passed_count"] += 1 if ok_effective else 0
-            report["failed_count"] += 0 if ok_effective else 1
-            report["results"].append(
-                {
-                    "video_out": os.path.abspath(video_out),
-                    "video_id": os.path.basename(video_out.rstrip("/")),
-                    "ok": bool(ok_effective),
-                    "errors": errors,
-                    "warnings": warnings,
-                }
+        mismatch_file = None
+        if args.schema_mismatch_txt:
+            os.makedirs(os.path.dirname(args.schema_mismatch_txt) or ".", exist_ok=True)
+            mismatch_file = open(args.schema_mismatch_txt, "w", encoding="utf-8")
+            mismatch_file.write("# three_stage validate failures (schema mismatch)\n")
+            mismatch_file.write(
+                "# columns: time_utc, video_id, video_out, final_json, ok, errors, warnings, fail_on_warnings, error_sample\n"
             )
+        try:
+            for video_out in candidates:
+                ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=args.check_deps)
+                ok_effective = bool(ok) and not (args.fail_on_warnings and warnings)
+                all_ok = all_ok and ok_effective
+                report["checked_count"] += 1
+                report["passed_count"] += 1 if ok_effective else 0
+                report["failed_count"] += 0 if ok_effective else 1
+                report["results"].append(
+                    {
+                        "video_out": os.path.abspath(video_out),
+                        "video_id": os.path.basename(video_out.rstrip("/")),
+                        "ok": bool(ok_effective),
+                        "errors": errors,
+                        "warnings": warnings,
+                    }
+                )
 
-            status = "OK" if ok_effective else "FAIL"
-            print(f"{status}\t{os.path.basename(video_out)}\terrors={len(errors)}\twarnings={len(warnings)}")
-            if not ok_effective and errors:
-                for e in errors[:20]:
-                    print(" - " + e)
-            if args.fail_on_warnings and warnings:
-                for w in warnings[:20]:
-                    print(" - " + w)
+                status = "OK" if ok_effective else "FAIL"
+                print(f"{status}\t{os.path.basename(video_out)}\terrors={len(errors)}\twarnings={len(warnings)}")
+                if not ok_effective and errors:
+                    for e in errors[:20]:
+                        print(" - " + e)
+                if args.fail_on_warnings and warnings:
+                    for w in warnings[:20]:
+                        print(" - " + w)
+                if mismatch_file and not ok_effective:
+                    _write_schema_mismatch_line(
+                        mismatch_file,
+                        video_out=video_out,
+                        ok_effective=ok_effective,
+                        errors=errors,
+                        warnings=warnings,
+                        fail_on_warnings=bool(args.fail_on_warnings),
+                    )
+        finally:
+            if mismatch_file:
+                mismatch_file.close()
 
         if args.report_json:
             write_json(args.report_json, report)
@@ -878,6 +936,22 @@ def main() -> None:
         print("ERRORS:")
         for e in errors:
             print(" - " + e)
+    if args.schema_mismatch_txt and not ok:
+        os.makedirs(os.path.dirname(args.schema_mismatch_txt) or ".", exist_ok=True)
+        with open(args.schema_mismatch_txt, "a", encoding="utf-8") as txt_file:
+            if os.path.getsize(args.schema_mismatch_txt) == 0:
+                txt_file.write("# three_stage validate failures (schema mismatch)\n")
+                txt_file.write(
+                    "# columns: time_utc, video_id, video_out, final_json, ok, errors, warnings, fail_on_warnings, error_sample\n"
+                )
+            _write_schema_mismatch_line(
+                txt_file,
+                video_out=str(args.video_output_dir),
+                ok_effective=bool(ok),
+                errors=errors,
+                warnings=warnings,
+                fail_on_warnings=bool(args.fail_on_warnings),
+            )
     if args.report_json:
         write_json(
             args.report_json,

@@ -6,7 +6,8 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
-from typing import List
+import time
+from typing import List, Optional
 
 from common import (
     add_api_cli_args,
@@ -17,6 +18,7 @@ from common import (
     collect_videos,
     default_output_root,
     ensure_video_out_dir_safe,
+    format_duration,
     logger,
     now_utc_iso,
     sampling_config_from_args,
@@ -27,6 +29,55 @@ from common import (
 from stage1_generate_draft import run_stage1_for_video
 from stage2_localize_and_cut import run_stage2_for_video
 from stage3_refine_and_keyframes import run_stage3_for_video
+
+
+def _one_line(text: str, *, max_len: int = 500) -> str:
+    line = str(text or "").replace("\t", " ").replace("\r", " ").replace("\n", " ").strip()
+    if len(line) > max_len:
+        return line[: max_len - 3] + "..."
+    return line
+
+
+def _append_schema_mismatch_txt(
+    path: str,
+    *,
+    video_id: str,
+    source_video: str,
+    video_out: str,
+    errors: Optional[List[str]] = None,
+    warnings: Optional[List[str]] = None,
+    note: str = "",
+) -> None:
+    if not path:
+        return
+    errors = errors or []
+    warnings = warnings or []
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    is_new = not os.path.exists(path)
+    try:
+        with open(path, "a", encoding="utf-8") as txt_file:
+            if is_new:
+                txt_file.write("# three_stage schema mismatch records (post-validate failures)\n")
+                txt_file.write("# columns: time_utc, video_id, source_video, video_out, errors, warnings, note, error_sample\n")
+            err_sample = " | ".join(_one_line(err, max_len=200) for err in errors[:6])
+            txt_file.write(
+                "\t".join(
+                    [
+                        now_utc_iso(),
+                        f"video_id={video_id}",
+                        f"source_video={_one_line(os.path.abspath(source_video), max_len=300)}",
+                        f"video_out={_one_line(os.path.abspath(video_out), max_len=300)}",
+                        f"errors={len(errors)}",
+                        f"warnings={len(warnings)}",
+                        f"note={_one_line(note, max_len=200)}" if note else "note=",
+                        f"error_sample={err_sample}",
+                    ]
+                )
+                + "\n"
+            )
+    except Exception:
+        # Best-effort logging; never fail the pipeline due to an auxiliary file write.
+        return
 
 
 def main() -> None:
@@ -70,6 +121,14 @@ def main() -> None:
         "--post-validate",
         action="store_true",
         help="After successful Stage 3, run `validate_three_stage_output.py` checks on the output folder.",
+    )
+    parser.add_argument(
+        "--schema-mismatch-txt",
+        default="",
+        help=(
+            "Optional: write post-validate schema-mismatch records to this .txt file (default: "
+            "<output_root>/schema_mismatch_videos.txt when --post-validate is enabled)."
+        ),
     )
     args = parser.parse_args()
 
@@ -144,15 +203,46 @@ def main() -> None:
         logger.info(f"[preflight] OK (schema_fingerprint={schema_fp})")
         raise SystemExit(0)
 
-    for vp in videos:
+    total = len(videos)
+    run_started = time.perf_counter()
+    ok_videos = 0
+    failed_videos = 0
+
+    schema_mismatch_txt = str(getattr(args, "schema_mismatch_txt", "") or "").strip()
+    if args.post_validate and not schema_mismatch_txt:
+        schema_mismatch_txt = os.path.join(args.output_root, "schema_mismatch_videos.txt")
+
+    logger.info(
+        "[pipeline] Start: "
+        f"videos={total} stages={','.join(sorted(stages))} "
+        f"output_root={os.path.abspath(args.output_root)} "
+        f"overwrite={bool(args.overwrite)} continue_on_error={bool(args.continue_on_error)} post_validate={bool(args.post_validate)}"
+    )
+    logger.info(
+        "[pipeline] API: "
+        f"base={api_cfg.api_base_url} provider={api_cfg.model_provider_id} model={api_cfg.model_name} "
+        f"max_tokens={int(api_cfg.max_tokens)} temp={float(api_cfg.temperature)} "
+        f"call_retries={int(api_cfg.api_call_retries)} backoff_sec={float(api_cfg.api_call_retry_backoff_sec)}"
+    )
+    logger.info(
+        "[pipeline] Sampling: "
+        f"max_frames={int(sampling_cfg.max_frames)} jpeg_quality={int(sampling_cfg.jpeg_quality)} "
+        f"embed_index_on_api_images={bool(api_cfg.embed_index_on_api_images)}"
+    )
+
+    for idx, vp in enumerate(videos, start=1):
         vid = video_id_from_path(vp)
         video_out = os.path.join(args.output_root, vid)
+
+        logger.info(f"[pipeline] ({idx}/{total}) video_id={vid} start: {os.path.abspath(vp)}")
 
         stage_failed = False
         for sid in ("1", "2", "3"):
             if sid not in stages:
                 continue
             try:
+                t0 = time.perf_counter()
+                logger.info(f"[pipeline] ({idx}/{total}) video_id={vid} stage={sid} start")
                 if sid == "1":
                     run_stage1_for_video(
                         vp,
@@ -188,6 +278,8 @@ def main() -> None:
                         max_retries=args.stage3_retries,
                         allow_legacy_resume=args.allow_legacy_resume,
                     )
+                dt = time.perf_counter() - t0
+                logger.info(f"[pipeline] ({idx}/{total}) video_id={vid} stage={sid} done in {format_duration(dt)}")
             except OutputDirCollisionError as e:
                 stage_failed = True
                 msg = f"{type(e).__name__}: {e}"
@@ -223,17 +315,44 @@ def main() -> None:
                 raise
 
         if stage_failed:
+            failed_videos += 1
+            elapsed = time.perf_counter() - run_started
+            processed = ok_videos + failed_videos
+            eta = (elapsed / processed) * (total - processed) if processed > 0 else 0.0
+            logger.info(
+                "[pipeline] Progress: "
+                f"{processed}/{total} processed (ok={ok_videos}, failed={failed_videos}) "
+                f"elapsed={format_duration(elapsed)} eta={format_duration(eta)}"
+            )
             continue
 
+        video_ok = True
         if args.post_validate and "3" in stages:
+            logged_to_txt = False
             try:
                 from validate_three_stage_output import validate_three_stage_video_output_dir
 
+                v0 = time.perf_counter()
+                logger.info(f"[pipeline] ({idx}/{total}) video_id={vid} post-validate start")
                 ok, errors, warnings = validate_three_stage_video_output_dir(video_out, check_deps=False)
                 for w in warnings:
                     logger.warning(f"[validate] video_id={vid}: {w}")
                 if not ok:
+                    _append_schema_mismatch_txt(
+                        schema_mismatch_txt,
+                        video_id=vid,
+                        source_video=vp,
+                        video_out=video_out,
+                        errors=errors,
+                        warnings=warnings,
+                        note="post_validate_schema_mismatch",
+                    )
+                    logged_to_txt = True
                     raise RuntimeError(" | ".join(errors[:20]))
+                logger.info(
+                    f"[pipeline] ({idx}/{total}) video_id={vid} post-validate OK in {format_duration(time.perf_counter() - v0)} "
+                    f"(warnings={len(warnings)})"
+                )
                 try:
                     update_run_summary(
                         os.path.join(video_out, "run_summary.json"),
@@ -254,8 +373,19 @@ def main() -> None:
                 except Exception:
                     pass
             except Exception as e:
+                video_ok = False
                 msg = f"{type(e).__name__}: {e}"
                 logger.exception(f"[pipeline] post-validate failed for video_id={vid}: {msg}")
+                if not logged_to_txt:
+                    _append_schema_mismatch_txt(
+                        schema_mismatch_txt,
+                        video_id=vid,
+                        source_video=vp,
+                        video_out=video_out,
+                        errors=[msg],
+                        warnings=[],
+                        note="post_validate_exception",
+                    )
                 try:
                     update_run_summary(
                         os.path.join(video_out, "run_summary.json"),
@@ -276,6 +406,25 @@ def main() -> None:
                     pass
                 if not args.continue_on_error:
                     raise
+
+        if video_ok:
+            ok_videos += 1
+        else:
+            failed_videos += 1
+        elapsed = time.perf_counter() - run_started
+        processed = ok_videos + failed_videos
+        eta = (elapsed / processed) * (total - processed) if processed > 0 else 0.0
+        logger.info(
+            "[pipeline] Progress: "
+            f"{processed}/{total} processed (ok={ok_videos}, failed={failed_videos}) "
+            f"elapsed={format_duration(elapsed)} eta={format_duration(eta)}"
+        )
+
+    total_elapsed = time.perf_counter() - run_started
+    logger.info(
+        "[pipeline] Done: "
+        f"processed={total} ok={ok_videos} failed={failed_videos} elapsed={format_duration(total_elapsed)}"
+    )
 
 
 if __name__ == "__main__":
