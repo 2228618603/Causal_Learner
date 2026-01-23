@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from common import (
@@ -22,6 +23,7 @@ from common import (
     default_output_root,
     ensure_video_out_dir_safe,
     extract_json_from_response,
+    format_duration,
     guard_schema_fingerprint,
     initialize_api_client,
     logger,
@@ -365,6 +367,7 @@ def run_stage1_for_video(
     *,
     allow_legacy_resume: bool = False,
 ) -> str:
+    t_start = time.perf_counter()
     vid = video_id_from_path(video_path)
     video_out = os.path.join(output_root, vid)
     ensure_video_out_dir_safe(video_out, video_path)
@@ -387,8 +390,13 @@ def run_stage1_for_video(
         will_resume=will_resume,
     )
     if will_resume:
-        logger.info(f"[stage1] Resume: using cached outputs under {os.path.relpath(video_out, output_root)}")
+        logger.info(f"[stage1] video_id={vid} resume: {os.path.relpath(video_out, output_root)}")
         return video_out
+
+    logger.info(
+        f"[stage1] video_id={vid} start: overwrite={bool(overwrite)} "
+        f"max_frames={int(sampling_cfg.max_frames)} src={os.path.abspath(video_path)}"
+    )
 
     # Record source metadata early so reruns can detect/avoid output collisions even if Stage1 fails mid-run.
     update_run_summary(
@@ -404,6 +412,7 @@ def run_stage1_for_video(
     )
 
     frames, dims = sample_video_to_frames(video_path, sampling_cfg)
+    logger.info(f"[stage1] video_id={vid} sampled_frames={len(frames)} dims={dims}")
     save_sampled_frames_jpegs(frames, sampled_frames_dir)
     write_frame_manifest(frames, sampled_frames_dir, manifest_path)
 
@@ -432,6 +441,7 @@ def run_stage1_for_video(
 
     for attempt in range(1, max_retries + 1):
         attempts = attempt
+        logger.info(f"[stage1] video_id={vid} model_call attempt={attempt}/{max_retries}")
         if attempt == 1:
             user_content = base_user_content
         else:
@@ -474,6 +484,11 @@ def run_stage1_for_video(
         raise RuntimeError(f"Stage 1 failed after {attempts} attempts: " + " | ".join(last_errors[:10]))
 
     write_json(draft_path, normalized)
+    step_count = len(normalized.get("steps", [])) if isinstance(normalized, dict) else 0
+    logger.info(
+        f"[stage1] video_id={vid} completed: steps={step_count} attempts={attempts} warnings={len(warnings)} "
+        f"elapsed={format_duration(time.perf_counter() - t_start)}"
+    )
 
     update_run_summary(
         run_summary_path,

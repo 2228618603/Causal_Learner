@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from common import (
@@ -20,6 +21,7 @@ from common import (
     default_output_root,
     ensure_video_out_dir_safe,
     extract_json_from_response,
+    format_duration,
     initialize_api_client,
     guard_schema_fingerprint,
     logger,
@@ -349,6 +351,7 @@ def run_stage3_for_video(
     *,
     allow_legacy_resume: bool = False,
 ) -> str:
+    t_start = time.perf_counter()
     vid = video_id_from_path(video_path)
     video_out = os.path.join(output_root, vid)
     ensure_video_out_dir_safe(video_out, video_path)
@@ -379,8 +382,13 @@ def run_stage3_for_video(
         will_resume=will_resume,
     )
     if will_resume:
-        logger.info(f"[stage3] Resume: using cached outputs under {os.path.relpath(video_out, output_root)}")
+        logger.info(f"[stage3] video_id={vid} resume: {os.path.relpath(video_out, output_root)}")
         return video_out
+
+    logger.info(
+        f"[stage3] video_id={vid} start: overwrite={bool(overwrite)} max_frames={int(sampling_cfg.max_frames)} "
+        f"src={os.path.abspath(video_path)}"
+    )
 
     draft = read_json(draft_path)
     high_level_goal = str(draft.get("high_level_goal", "")).strip()
@@ -404,6 +412,8 @@ def run_stage3_for_video(
 
     final_steps: List[Dict[str, Any]] = []
     ordered_steps = sorted([s for s in draft_steps if isinstance(s, dict)], key=lambda x: int(x.get("step_id", 0)))
+    total_steps = len(ordered_steps)
+    logger.info(f"[stage3] video_id={vid} steps={total_steps} (sampling per-clip)")
     outline_lines: List[str] = []
     for st in ordered_steps:
         try:
@@ -415,9 +425,12 @@ def run_stage3_for_video(
             outline_lines.append(f"- Step {sid}: {goal}")
     draft_plan_outline = "\n".join(outline_lines)
 
-    for step in ordered_steps:
+    for i_step, step in enumerate(ordered_steps, start=1):
         sid = int(step.get("step_id", 0))
         goal = str(step.get("step_goal", "")).strip()
+        goal_short = " ".join(goal.split())
+        if len(goal_short) > 80:
+            goal_short = goal_short[:77] + "..."
         if sid not in seg_by_id:
             raise RuntimeError(f"Missing Stage 2 segment for step_id={sid}")
         seg = seg_by_id[sid]
@@ -457,9 +470,18 @@ def run_stage3_for_video(
                 max_frames_fallback=sampling_cfg.max_frames,
             )
             if cached is not None:
+                logger.info(
+                    f"[stage3] video_id={vid} step {i_step}/{total_steps} step_id={sid}: "
+                    f"reuse cached step_final goal='{goal_short}'"
+                )
                 final_steps.append(cached)
                 continue
 
+        step_started = time.perf_counter()
+        logger.info(
+            f"[stage3] video_id={vid} step {i_step}/{total_steps} step_id={sid}: "
+            f"goal='{goal_short}' clip={os.path.relpath(clip_path, video_out)} ({clip_start_sec:.2f}s..{clip_end_sec:.2f}s)"
+        )
         sampled_frames, _ = sample_video_to_frames(clip_path, sampling_cfg)
         # Convert clip-local timestamps to original-video timestamps so that downstream tools
         # (e.g., extract_last_frame_segments.py) can cut segments on the source video timeline.
@@ -492,6 +514,9 @@ def run_stage3_for_video(
         normalized_step: Optional[Dict[str, Any]] = None
 
         for attempt in range(1, max_retries + 1):
+            logger.info(
+                f"[stage3] video_id={vid} step {i_step}/{total_steps} step_id={sid} model_call attempt={attempt}/{max_retries}"
+            )
             if attempt == 1:
                 user_content = base_user_content
             else:
@@ -539,6 +564,10 @@ def run_stage3_for_video(
             },
         )
 
+        logger.info(
+            f"[stage3] video_id={vid} step {i_step}/{total_steps} step_id={sid} done in "
+            f"{format_duration(time.perf_counter() - step_started)}"
+        )
         final_steps.append(normalized_step)
 
     final_plan = {"high_level_goal": high_level_goal, "steps": final_steps}
@@ -573,6 +602,9 @@ def run_stage3_for_video(
         },
     )
 
+    logger.info(
+        f"[stage3] video_id={vid} completed: steps={len(final_steps)} elapsed={format_duration(time.perf_counter() - t_start)}"
+    )
     return video_out
 
 

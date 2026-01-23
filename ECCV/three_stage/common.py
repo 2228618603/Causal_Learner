@@ -35,14 +35,40 @@ DEFAULT_MAX_FRAMES = 50
 VIDEO_EXTS = (".mp4", ".avi", ".mov", ".mkv", ".webm")
 
 
+def format_duration(seconds: float) -> str:
+    """Format seconds into a short human-readable duration string."""
+    try:
+        total = float(seconds)
+    except Exception:
+        return str(seconds)
+    if total < 0:
+        total = 0.0
+    if total < 60:
+        return f"{total:.1f}s"
+    total_int = int(round(total))
+    s = total_int % 60
+    m = (total_int // 60) % 60
+    h = (total_int // 3600) % 24
+    d = total_int // 86400
+    parts: List[str] = []
+    if d:
+        parts.append(f"{d}d")
+    if h:
+        parts.append(f"{h}h")
+    if m:
+        parts.append(f"{m}m")
+    parts.append(f"{s}s")
+    return "".join(parts)
+
+
 @dataclass
 class ApiConfig:
     api_key: str = os.environ.get("API_KEY", "EMPTY")
     api_base_url: str = os.environ.get("API_BASE_URL", "http://model.mify.ai.srv/v1")
-    model_provider_id: str = os.environ.get("MODEL_PROVIDER_ID", "vertex_ai")
-    model_name: str = os.environ.get("MODEL_NAME", "gemini-3-pro-preview")
-    max_tokens: int = int(os.environ.get("MAX_TOKENS", "30000"))
-    temperature: float = float(os.environ.get("TEMPERATURE", "0.2"))
+    model_provider_id: str = os.environ.get("MODEL_PROVIDER_ID", "volcengine_maas")
+    model_name: str = os.environ.get("MODEL_NAME", "doubao-seed-1-8-251228")
+    max_tokens: int = int(os.environ.get("MAX_TOKENS", "32000"))
+    temperature: float = float(os.environ.get("TEMPERATURE", "0.8"))
     embed_index_on_api_images: bool = os.environ.get("EMBED_INDEX_ON_API_IMAGES", "1").strip().lower() in {
         "1",
         "true",
@@ -63,15 +89,15 @@ def add_api_cli_args(parser: Any, *, include_no_embed_index: bool = True) -> Non
     )
     parser.add_argument(
         "--provider",
-        default=os.environ.get("MODEL_PROVIDER_ID", "vertex_ai"),
+        default=os.environ.get("MODEL_PROVIDER_ID", "volcengine_maas"),
         help="Model provider id (sent as header X-Model-Provider-Id; or set env: MODEL_PROVIDER_ID).",
     )
-    parser.add_argument("--model", default=os.environ.get("MODEL_NAME", "gemini-3-pro-preview"), help="Model name.")
-    parser.add_argument("--max-tokens", type=int, default=int(os.environ.get("MAX_TOKENS", "30000")), help="Max tokens.")
+    parser.add_argument("--model", default=os.environ.get("MODEL_NAME", "doubao-seed-1-8-251228"), help="Model name.")
+    parser.add_argument("--max-tokens", type=int, default=int(os.environ.get("MAX_TOKENS", "32000")), help="Max tokens.")
     parser.add_argument(
         "--temperature",
         type=float,
-        default=float(os.environ.get("TEMPERATURE", "0.2")),
+        default=float(os.environ.get("TEMPERATURE", "0.8")),
         help="Sampling temperature (lower is usually more stable).",
     )
     parser.add_argument(

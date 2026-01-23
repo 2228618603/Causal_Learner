@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import shutil
+import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from common import (
@@ -22,6 +23,7 @@ from common import (
     estimate_min_positive_delta_sec,
     ensure_video_out_dir_safe,
     extract_json_from_response,
+    format_duration,
     initialize_api_client,
     guard_schema_fingerprint,
     logger,
@@ -162,6 +164,7 @@ def run_stage2_for_video(
     keep_audio: bool = False,
     allow_legacy_resume: bool = False,
 ) -> str:
+    t_start = time.perf_counter()
     vid = video_id_from_path(video_path)
     video_out = os.path.join(output_root, vid)
     ensure_video_out_dir_safe(video_out, video_path)
@@ -187,8 +190,13 @@ def run_stage2_for_video(
         will_resume=will_resume,
     )
     if will_resume:
-        logger.info(f"[stage2] Resume: using cached outputs under {os.path.relpath(video_out, output_root)}")
+        logger.info(f"[stage2] video_id={vid} resume: {os.path.relpath(video_out, output_root)}")
         return video_out
+
+    logger.info(
+        f"[stage2] video_id={vid} start: overwrite={bool(overwrite)} cut_mode={cut_mode} "
+        f"src={os.path.abspath(video_path)}"
+    )
 
     # Fail fast before any model call.
     if shutil.which(ffmpeg_bin) is None:
@@ -226,6 +234,7 @@ def run_stage2_for_video(
     frames = load_frames_from_manifest(manifest_path)
     num_frames = len(frames)
     ts_list = [float(fr.get("timestamp_sec", 0.0)) for fr in frames]
+    logger.info(f"[stage2] video_id={vid} draft_steps={len(ordered_steps)} stage1_frames={num_frames}")
 
     base_prompt = build_stage2_user_prompt(high_level_goal, draft_plan_outline, num_frames)
     system_text = "You are an expert video step temporal localization assistant. Return strict JSON only (no markdown, no extra text)."
@@ -260,7 +269,7 @@ def run_stage2_for_video(
                         write_text(sys_prompt_path, system_text)
                     if not os.path.exists(user_prompt_path):
                         write_text(user_prompt_path, base_prompt)
-                    logger.info(f"[stage2] Reusing cached localization: {os.path.relpath(loc_path, video_out)}")
+                    logger.info(f"[stage2] video_id={vid} reusing cached localization: {os.path.relpath(loc_path, video_out)}")
                 else:
                     last_errors = errors
         except Exception as e:
@@ -297,6 +306,7 @@ def run_stage2_for_video(
         system_msg = {"role": "system", "content": system_text}
 
         for attempt in range(1, max_retries + 1):
+            logger.info(f"[stage2] video_id={vid} localize attempt={attempt}/{max_retries}")
             if attempt == 1:
                 user_content = base_user_content
             else:
@@ -326,6 +336,8 @@ def run_stage2_for_video(
         if last_content:
             write_text(raw_path, last_content)
         raise RuntimeError(f"Stage 2 failed after {max_retries} attempts: " + " | ".join(last_errors[:10]))
+
+    logger.info(f"[stage2] video_id={vid} localization OK (source={'cache' if localization_from_cache else 'model'})")
 
     # Persist raw outputs
     if last_content:
@@ -362,6 +374,8 @@ def run_stage2_for_video(
         )
 
     for i, b in enumerate(bounds):
+        step_no = i + 1
+        total_steps = len(bounds)
         sid = int(b["step_id"])
         goal = str(b["step_goal"])
         sidx = int(b["start_frame_index"])
@@ -392,6 +406,13 @@ def run_stage2_for_video(
         slug = sanitize_filename(goal)
         clip_name = f"step{sid:02d}_{slug}.mp4"
         clip_path = os.path.join(clips_dir, clip_name)
+        goal_short = " ".join(str(goal).split())
+        if len(goal_short) > 80:
+            goal_short = goal_short[:77] + "..."
+        logger.info(
+            f"[stage2] video_id={vid} clip {step_no}/{total_steps} step_id={sid}: "
+            f"{start_sec:.2f}s..{end_sec:.2f}s goal='{goal_short}' -> {os.path.relpath(clip_path, video_out)}"
+        )
         if (
             not overwrite
             and localization_from_cache
@@ -411,7 +432,9 @@ def run_stage2_for_video(
                         f"Existing clip is older than the cached localization (possible mismatch): {clip_path}. "
                         "Delete stage2/step_clips or re-run with --overwrite."
                     )
-            logger.info(f"[stage2] Reusing existing clip (overwrite disabled): {os.path.relpath(clip_path, video_out)}")
+            logger.info(
+                f"[stage2] video_id={vid} reusing existing clip (overwrite disabled): {os.path.relpath(clip_path, video_out)}"
+            )
         elif not overwrite and os.path.exists(clip_path):
             raise RuntimeError(
                 f"Found an existing clip but overwrite is disabled: {clip_path}. "
@@ -497,6 +520,9 @@ def run_stage2_for_video(
         },
     )
 
+    logger.info(
+        f"[stage2] video_id={vid} completed: clips={len(segments)} elapsed={format_duration(time.perf_counter() - t_start)}"
+    )
     return video_out
 
 
