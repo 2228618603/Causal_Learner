@@ -298,9 +298,10 @@ def run_stage2_for_video(
             frames,
             api_cfg.embed_index_on_api_images,
             include_manifest=False,
-            # When indices are embedded on images, avoid additional "Frame N" text labels that can increase
-            # token cost and tempt the model to echo frame numbers in free-form text.
-            include_frame_labels=not api_cfg.embed_index_on_api_images,
+            # Always include explicit "Frame N" text labels to reduce index mistakes caused by
+            # OCR/counting errors on long frame pools.
+            # (Stage 2 outputs only indices, so label-echo risk is minimal.)
+            include_frame_labels=True,
         )
         base_user_content = [{"type": "text", "text": base_prompt}] + frames_content
         system_msg = {"role": "system", "content": system_text}

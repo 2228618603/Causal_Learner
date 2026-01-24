@@ -12,7 +12,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
 import json
 
-import mani_longvideo as base
+import mani_longvideo_gemini as base
 
 
 def _should_skip(video_path: str, output_base: str) -> bool:

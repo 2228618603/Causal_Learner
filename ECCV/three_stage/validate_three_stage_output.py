@@ -667,22 +667,10 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
                 "agent": "hands",
                 "action": "move",
                 "patient": "obj_a",
-                "causal_precondition_on_spatial": [{"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}],
-                "causal_precondition_on_affordance": [
-                    {
-                        "object_name": "obj_a",
-                        "affordance_types": ["graspable"],
-                        "reasons": "The object is reachable and can be grasped.",
-                    }
-                ],
-                "causal_effect_on_spatial": [{"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}],
-                "causal_effect_on_affordance": [
-                    {
-                        "object_name": "obj_a",
-                        "affordance_types": ["positioned"],
-                        "reasons": "After moving, the object ends up in the new position.",
-                    }
-                ],
+                "causal_precondition_on_spatial": "1. The hands are contacting obj_a.\n2. obj_a is accessible on the work surface.",
+                "causal_precondition_on_affordance": "1. obj_a is graspable without obstruction.\n2. The placement area for obj_a is available.",
+                "causal_effect_on_spatial": "1. obj_a ends up on_top_of obj_b.\n2. The hands release contact with obj_a after placement.",
+                "causal_effect_on_affordance": "1. obj_a becomes positioned_in_target_location.\n2. obj_b becomes supporting_surface_for_obj_a.",
             },
             "counterfactual_challenge_question": "What if obj_a is missing?",
             "expected_challenge_outcome": "The step cannot be completed.",
@@ -690,80 +678,34 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
             "critical_frames": [
                 {
                     "frame_index": fi1,
-                    "action_state_change_description": "Initiate moving obj_a using hands; motion begins.",
+                    "action_state_change_description": "The hands begin moving obj_a away from its starting position.",
                     "causal_chain": {
-                        "agent": "hands",
-                        "action": "move",
-                        "patient": "obj_a",
-                        "causal_precondition_on_spatial": [
-                            {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
-                        ],
-                        "causal_precondition_on_affordance": [
-                            {
-                                "object_name": "obj_a",
-                                "affordance_types": ["graspable"],
-                                "reasons": "The object is reachable and can be grasped.",
-                            }
-                        ],
-                        "causal_effect_on_spatial": [
-                            {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
-                        ],
-                        "causal_effect_on_affordance": [
-                            {
-                                "object_name": "obj_a",
-                                "affordance_types": ["moving"],
-                                "reasons": "The object is being moved by the applied force.",
-                            }
-                        ],
+                        "causal_precondition_on_spatial": "1. The hands are in contact with obj_a.\n2. obj_a is not yet on_top_of obj_b.",
+                        "causal_precondition_on_affordance": "1. obj_a provides a grasp point for the fingers.\n2. The path toward obj_b is not blocked.",
+                        "causal_effect_on_spatial": "1. obj_a shifts position toward obj_b.\n2. The hands maintain contact with obj_a immediately after the motion.",
+                        "causal_effect_on_affordance": "1. obj_a becomes in_motion_under_hand_control.\n2. obj_a remains graspable during the transfer.",
                     },
                     "interaction": {
-                        "tools": ["hands"],
-                        "materials": ["obj_a"],
-                        "hotspot": {
-                            "description": "The graspable region of obj_a.",
-                            "affordance_type": "graspable",
-                            "mechanism": "Grip force transfers motion to the object.",
-                        },
+                        "description": "The graspable region of obj_a.",
+                        "affordance_type": "grasp_point",
+                        "mechanism": "Grip force transfers motion to the object.",
                     },
                 },
                 {
                     "frame_index": fi2,
-                    "action_state_change_description": "Complete the movement; obj_a reaches the new position on obj_b.",
+                    "action_state_change_description": "The hands complete placing obj_a onto obj_b so it becomes supported.",
                     "causal_chain": {
-                        "agent": "hands",
-                        "action": "move",
-                        "patient": "obj_a",
-                        "causal_precondition_on_spatial": [
-                            {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
-                        ],
-                        "causal_precondition_on_affordance": [
-                            {
-                                "object_name": "obj_a",
-                                "affordance_types": ["movable"],
-                                "reasons": "The object can be repositioned by applied force.",
-                            }
-                        ],
-                        "causal_effect_on_spatial": [
-                            {"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}
-                        ],
-                        "causal_effect_on_affordance": [
-                            {
-                                "object_name": "obj_a",
-                                "affordance_types": ["positioned"],
-                                "reasons": "The object ends in the target placement location.",
-                            }
-                        ],
+                        "causal_precondition_on_spatial": "1. obj_a is aligned above obj_b.\n2. The hands are still controlling obj_a's position.",
+                        "causal_precondition_on_affordance": "1. obj_b provides a stable supporting surface.\n2. obj_a can be lowered without obstruction.",
+                        "causal_effect_on_spatial": "1. obj_a becomes on_top_of obj_b.\n2. The hands reduce contact force after the object is supported.",
+                        "causal_effect_on_affordance": "1. obj_a becomes placed_and_stable.\n2. obj_b becomes supporting_surface_for_obj_a.",
                     },
                     "interaction": {
-                        "tools": ["hands"],
-                        "materials": ["obj_a"],
-                        "hotspot": {
-                            "description": "The region of obj_a contacted by the fingers/palm.",
-                            "affordance_type": "graspable",
-                            "mechanism": "Applied force controls the final placement against gravity.",
-                        },
+                        "description": "The region of obj_a contacted by the fingers/palm.",
+                        "affordance_type": "contact_surface",
+                        "mechanism": "Applied force controls the final placement against gravity.",
                     },
-                }
+                },
             ],
         }
         write_json(os.path.join(step_folder, "step_final.json"), step_final)
