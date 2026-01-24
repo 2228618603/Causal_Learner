@@ -1,0 +1,111 @@
+{
+  "step_id": 4,
+  "step_goal": "Retrieve metal spoon and cereal box from storage",
+  "rationale": "This step is necessary because the metal spoon is required to mix cereal and plant-based milk, and the cereal box contains the dry grain ingredient that forms the core of the meal. Retrieving both items makes them accessible for the subsequent step of combining cereal and milk in the mug.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "open kitchen drawer to retrieve metal spoon, then open lower cabinet to retrieve cereal box, placing both on the dining table",
+    "patient": "metal_spoon_and_cereal_box",
+    "causal_precondition_on_spatial": [
+      {"relation": "inside", "objects": ["metal_spoon", "kitchen_drawer"], "truth": true},
+      {"relation": "inside", "objects": ["cereal_box", "lower_cabinet"], "truth": true},
+      {"relation": "closed", "objects": ["kitchen_drawer"], "truth": true},
+      {"relation": "closed", "objects": ["lower_cabinet"], "truth": true}
+    ],
+    "causal_precondition_on_affordance": [
+      {"object_name": "kitchen_drawer", "affordance_types": ["slide_openable", "storage_accessible"], "reasons": "The drawer has a visible metal handle and no obstructions, allowing it to be pulled open to access utensils stored inside."},
+      {"object_name": "lower_cabinet", "affordance_types": ["swing_openable", "storage_accessible"], "reasons": "The cabinet has a visible metal handle and no obstructions, allowing it to be swung open to access the cereal box stored inside."}
+    ],
+    "causal_effect_on_spatial": [
+      {"relation": "on_top_of", "objects": ["metal_spoon", "dining_table"], "truth": true},
+      {"relation": "on_top_of", "objects": ["cereal_box", "dining_table"], "truth": true},
+      {"relation": "closed", "objects": ["kitchen_drawer"], "truth": true},
+      {"relation": "closed", "objects": ["lower_cabinet"], "truth": true}
+    ],
+    "causal_effect_on_affordance": [
+      {"object_name": "metal_spoon", "affordance_types": ["ready_for_stirring"], "reasons": "The spoon is placed on the dining table within easy reach, so it can be used immediately to mix cereal and milk once the cereal is added to the mug."},
+      {"object_name": "cereal_box", "affordance_types": ["ready_for_pouring"], "reasons": "The cereal box is placed on the dining table, making it accessible to pour dry cereal into the milk-filled mug."}
+    ]
+  },
+  "counterfactual_challenge_question": "What if the lower cabinet door was stuck and could not be opened?",
+  "expected_challenge_outcome": "The cereal box cannot be retrieved from the cabinet, so an alternative dry breakfast item would need to be used, or the meal would be limited to just plant-based milk, as the core dry grain ingredient is unavailable.",
+  "failure_reflecting": {
+    "reason": "The metal spoon slips from the hand and falls onto the floor, picking up dirt and debris from the surface.",
+    "recovery_strategy": "Wash the metal spoon thoroughly with soap and warm water to remove dirt and debris, then dry it with a clean towel before using it to mix cereal and milk."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 13,
+      "action_state_change_description": "Hand initiates opening the kitchen drawer to access the metal spoon stored inside, starting the retrieval process for both items.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "open kitchen drawer to retrieve metal spoon, then open lower cabinet to retrieve cereal box, placing both on the dining table",
+        "patient": "metal_spoon_and_cereal_box",
+        "causal_precondition_on_spatial": [
+          {"relation": "inside", "objects": ["metal_spoon", "kitchen_drawer"], "truth": true},
+          {"relation": "closed", "objects": ["kitchen_drawer"], "truth": true},
+          {"relation": "inside", "objects": ["cereal_box", "lower_cabinet"], "truth": true},
+          {"relation": "closed", "objects": ["lower_cabinet"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {"object_name": "kitchen_drawer", "affordance_types": ["slide_openable", "storage_accessible"], "reasons": "The drawer has a visible metal handle and no obstructions, allowing it to be pulled open to access the metal spoon inside."},
+          {"object_name": "lower_cabinet", "affordance_types": ["swing_openable", "storage_accessible"], "reasons": "The cabinet has a visible metal handle and no obstructions, confirming it can be opened later to retrieve the cereal box."}
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "open", "objects": ["kitchen_drawer"], "truth": true},
+          {"relation": "accessible", "objects": ["metal_spoon"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {"object_name": "metal_spoon", "affordance_types": ["retrievable"], "reasons": "Opening the drawer exposes the metal spoon, making it possible to grasp and remove it from the drawer."},
+          {"object_name": "kitchen_drawer", "affordance_types": ["storage_accessible"], "reasons": "The open drawer allows access to its contents, enabling retrieval of the metal spoon."}
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["metal_spoon_and_cereal_box"],
+        "hotspot": {
+          "description": "kitchen drawer metal handle",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between the hand and the metal handle allows transfer of pulling force to slide the drawer open, exposing the contents inside."
+        }
+      }
+    },
+    {
+      "frame_index": 46,
+      "action_state_change_description": "Cereal box is placed on the dining table, completing the retrieval of both the metal spoon and cereal box, with both items now accessible on the table.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "open kitchen drawer to retrieve metal spoon, then open lower cabinet to retrieve cereal box, placing both on the dining table",
+        "patient": "metal_spoon_and_cereal_box",
+        "causal_precondition_on_spatial": [
+          {"relation": "held_by", "objects": ["cereal_box", "hands"], "truth": true},
+          {"relation": "above", "objects": ["cereal_box", "dining_table"], "truth": true},
+          {"relation": "on_top_of", "objects": ["metal_spoon", "dining_table"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {"object_name": "cereal_box", "affordance_types": ["portable"], "reasons": "The cereal box has a rigid, graspable structure that can be carried by hand without damage."},
+          {"object_name": "dining_table", "affordance_types": ["supportive_surface"], "reasons": "The flat, stable table surface can safely support the cereal box and metal spoon."}
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "on_top_of", "objects": ["cereal_box", "dining_table"], "truth": true},
+          {"relation": "on_top_of", "objects": ["metal_spoon", "dining_table"], "truth": true},
+          {"relation": "closed", "objects": ["lower_cabinet"], "truth": true},
+          {"relation": "closed", "objects": ["kitchen_drawer"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {"object_name": "cereal_box", "affordance_types": ["ready_for_pouring"], "reasons": "The cereal box is now positioned on the dining table within easy reach, enabling access to the dry cereal inside for pouring into the milk-filled mug."},
+          {"object_name": "metal_spoon", "affordance_types": ["ready_for_stirring"], "reasons": "The metal spoon remains on the table, accessible for mixing cereal and milk once the cereal is added."}
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["metal_spoon_and_cereal_box"],
+        "hotspot": {
+          "description": "cereal box side panel",
+          "affordance_type": "grasp_surface",
+          "mechanism": "Friction between the hand and the cereal box side panel allows controlled lowering of the box onto the table, ensuring stable placement."
+        }
+      }
+    }
+  ]
+}

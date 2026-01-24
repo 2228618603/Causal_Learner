@@ -1,0 +1,10 @@
+{
+  "step_id": 1,
+  "step_goal": "Fill electric kettle with water and position it for heating",
+  "clip_path": "../stage2/step_clips/step01_fill_electric_kettle_with_water_and_position_it_for_heating.mp4",
+  "clip_start_sec": 0.0,
+  "clip_end_sec": 11.01101101101101,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:30:59.109349Z",
+  "manifest_path": "frame_manifest.json"
+}

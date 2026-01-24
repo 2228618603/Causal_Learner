@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Combine drained rice with vegetable mixture",
+  "clip_path": "../stage2/step_clips/step04_combine_drained_rice_with_vegetable_mixture.mp4",
+  "clip_start_sec": 150.60060060060061,
+  "clip_end_sec": 168.96896896896897,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T13:53:41.183568Z",
+  "manifest_path": "frame_manifest.json"
+}

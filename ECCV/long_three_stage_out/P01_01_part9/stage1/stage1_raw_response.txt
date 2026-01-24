@@ -1,0 +1,275 @@
+{
+  "high_level_goal": "To cook, season, mix, and serve a rice-and-vegetable dish into a bowl and plate, then prepare the dining table with utensils to make the dish ready for consumption.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Add seasoning to the rice-vegetable mixture in the pan.",
+      "rationale": "Introduces flavor to the plain rice and vegetable base, which is necessary to make the dish palatable for consumption.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "pour seasoning onto",
+        "patient": "rice_vegetable_mixture",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["rice_vegetable_mixture", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["right_hand", "seasoning_container"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "seasoning_container",
+            "affordance_types": ["pourable"],
+            "reasons": "The seasoning container has an open top, allowing the granular seasoning to flow out when tilted, which is required to add the seasoning to the mixture."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": ["seasoning", "rice_vegetable_mixture"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "rice_vegetable_mixture",
+            "affordance_types": ["flavored"],
+            "reasons": "The seasoning is now distributed on the surface of the mixture, giving it the potential to have a seasoned taste once mixed."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the seasoning container was closed during this step?",
+      "expected_challenge_outcome": "No seasoning would be added to the rice-vegetable mixture, leaving it unflavored and unpalatable.",
+      "failure_reflecting": {
+        "reason": "Seasoning is poured unevenly, leaving some areas of the mixture with too much seasoning and others with none.",
+        "recovery_strategy": "Use the spatula to immediately mix the mixture to distribute the seasoning evenly before it burns or clumps."
+      }
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Thoroughly mix the seasoned rice-vegetable mixture in the pan.",
+      "rationale": "Distributes the added seasoning throughout the rice and vegetables, ensuring consistent flavor and combining all ingredients evenly, which is necessary for a uniform-tasting dish.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "stir and toss with spatula",
+        "patient": "rice_vegetable_mixture",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["rice_vegetable_mixture", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["right_hand", "cooking_spatula"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["seasoning", "rice_vegetable_mixture"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "cooking_spatula",
+            "affordance_types": ["mixable"],
+            "reasons": "The flat, wide surface of the spatula can scoop and turn the mixture, which is required to stir and combine the ingredients evenly."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "distributed",
+            "objects": ["seasoning", "rice_vegetable_mixture"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "rice_vegetable_mixture",
+            "affordance_types": ["ready_to_serve"],
+            "reasons": "The mixture is now evenly seasoned and cooked, making it suitable to be transferred to serving vessels."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the stove was turned off during this step?",
+      "expected_challenge_outcome": "The mixture would cool down quickly, and the seasoning might not blend as well with the warm ingredients, leading to less flavor absorption.",
+      "failure_reflecting": {
+        "reason": "The spatula scrapes the pan too hard, leaving scratch marks and potentially mixing small metal shavings into the dish.",
+        "recovery_strategy": "Stop using the spatula, switch to a softer silicone spatula, and carefully remove any visible shavings from the mixture."
+      }
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Transfer mixture from pan to a serving bowl.",
+      "rationale": "Portions a serving of the cooked dish into a bowl, making it accessible for consumption and reducing the amount left in the pan for subsequent serving.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "scoop and deposit with spatula",
+        "patient": "rice_vegetable_mixture",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["rice_vegetable_mixture", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["left_hand", "serving_bowl"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["right_hand", "cooking_spatula"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "cooking_spatula",
+            "affordance_types": ["scooping"],
+            "reasons": "The spatula's rigid, wide surface can hold a portion of the mixture when lifted, which is required to transfer it to the bowl."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["rice_vegetable_mixture", "serving_bowl"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "serving_bowl",
+            "affordance_types": ["contains_food"],
+            "reasons": "The bowl now holds a portion of the cooked dish, making it ready to be presented or eaten."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the bowl was tilted at a steep angle during this step?",
+      "expected_challenge_outcome": "The scooped mixture would slide off the bowl's edge and onto the counter, wasting food and creating a mess.",
+      "failure_reflecting": {
+        "reason": "Some mixture sticks to the pan and is not transferred to the bowl.",
+        "recovery_strategy": "Use the spatula to scrape the sides and bottom of the pan to loosen the stuck mixture, then transfer it to the bowl."
+      }
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Transfer remaining mixture from pan to a serving plate.",
+      "rationale": "Portions the remaining cooked dish into a plate, ensuring all food is transferred from the cooking pan to serving vessels, ready for consumption.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "scoop, scrape, and deposit with spatula",
+        "patient": "remaining_rice_vegetable_mixture",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["remaining_rice_vegetable_mixture", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["left_hand", "serving_plate"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["right_hand", "cooking_spatula"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "cooking_spatula",
+            "affordance_types": ["scraping", "scooping"],
+            "reasons": "The spatula's flat edge can scrape stuck food from the pan, and its wide surface can hold the mixture, which is required to transfer the remaining food to the plate."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["remaining_rice_vegetable_mixture", "serving_plate"],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": ["rice_vegetable_mixture", "frying_pan"],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "serving_plate",
+            "affordance_types": ["contains_food"],
+            "reasons": "The plate now holds all remaining portions of the cooked dish, making it ready to be presented or eaten."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": ["empty", "ready_to_clean"],
+            "reasons": "The pan is now free of food residue, making it suitable for washing."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the pan was not tilted during this step?",
+      "expected_challenge_outcome": "The remaining mixture would stay at the bottom of the pan, making it harder to scoop and transfer, potentially leaving food stuck in the pan.",
+      "failure_reflecting": {
+        "reason": "Some mixture falls off the spatula and onto the counter during transfer.",
+        "recovery_strategy": "Wipe the counter with a paper towel to clean the spilled food, and transfer any salvageable portions to the plate."
+      }
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Prepare dining table with utensils for serving.",
+      "rationale": "Sets up the dining area with necessary utensils to enable easy consumption of the served dish, completing the preparation for eating.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "place utensils on dining table",
+        "patient": "dining_utensils",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": ["dining_utensils", "counter"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["placemat", "dining_table"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "dining_utensils",
+            "affordance_types": ["usable_for_eating"],
+            "reasons": "The utensils are clean and intact, which is required to serve and eat the food."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": ["dining_utensils", "placemat"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "dining_table",
+            "affordance_types": ["ready_for_serving"],
+            "reasons": "The table now has utensils placed on a placemat, making it prepared for the served dish to be brought over and eaten."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the placemat was not on the table during this step?",
+      "expected_challenge_outcome": "The utensils would be placed directly on the table, which could leave marks or make it harder to clean up after eating.",
+      "failure_reflecting": {
+        "reason": "Utensils are placed unevenly and fall off the table.",
+        "recovery_strategy": "Retrieve the fallen utensils, check for cleanliness, and re-place them neatly on the placemat."
+      }
+    }
+  ]
+}

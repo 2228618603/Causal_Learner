@@ -1,0 +1,1389 @@
+{
+  "high_level_goal": "To prepare a complete cooked meal by sautéing mixed vegetables, seasoning a liquid base for rice, and incorporating tofu pieces into the vegetable mixture.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Add chopped red onion to sautéed vegetables in frying pan",
+      "rationale": "This step integrates chopped red onion into the existing sautéed vegetable mix, allowing the onion to soften, caramelize, and infuse its flavor into the dish while cooking alongside other vegetables, which is essential for developing the overall savory profile of the meal.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scoop and transfer chopped red onion from cutting board to frying pan then stir to integrate with sautéed vegetables",
+        "patient": "chopped_red_onion",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "chopped_red_onion",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive",
+              "hot"
+            ],
+            "reasons": "The frying pan is on a stove with visible sautéed vegetables, indicating it is actively heating and suitable for cooking the onion."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "scoopable",
+              "stirrable"
+            ],
+            "reasons": "The spatula has a wide, flat surface that can collect small onion pieces and mix them with other vegetables."
+          },
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": [
+              "transferable"
+            ],
+            "reasons": "The onion is chopped into small, manageable pieces that can be moved with a spatula."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "chopped_red_onion",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "chopped_red_onion",
+              "cutting_board"
+            ],
+            "truth": false
+          },
+          {
+            "relation": "mixed_with",
+            "objects": [
+              "chopped_red_onion",
+              "sautéed_vegetables"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": [
+              "cookable_in_pan"
+            ],
+            "reasons": "The onion is placed in the hot frying pan, exposing it to heat for sautéing."
+          },
+          {
+            "object_name": "mixed_vegetables",
+            "affordance_types": [
+              "flavor_enhanced"
+            ],
+            "reasons": "The addition of red onion introduces new flavor compounds that will meld with the existing vegetables as they cook together."
+          },
+          {
+            "object_name": "cutting_board",
+            "affordance_types": [
+              "empty"
+            ],
+            "reasons": "All onion pieces have been transferred from the cutting board to the frying pan."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the cutting board was tilted too steeply while transferring the onion?",
+      "expected_challenge_outcome": "Most of the chopped red onion would slide off the cutting board onto the kitchen counter or floor instead of being scooped into the frying pan, resulting in lost ingredients and incomplete integration into the vegetable mix.",
+      "failure_reflecting": {
+        "reason": "Some chopped onion pieces stick to the spatula or cutting board and are not transferred to the frying pan, remaining on the utensil or surface.",
+        "recovery_strategy": "Scrape the stuck onion pieces from the spatula into the frying pan using the edge of the cutting board, or wipe the spatula against the inner wall of the pan to dislodge any remaining onion bits."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Holds a cutting board with chopped red onion and a spatula, preparing to scoop and transfer the onion to the frying pan.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scoop and transfer chopped red onion from cutting board to frying pan then stir to integrate with sautéed vegetables",
+            "patient": "chopped_red_onion",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "frying_pan",
+                  "stove"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "chopped_red_onion",
+                  "cutting_board"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "cutting_board"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "spatula"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "hot"
+                ],
+                "reasons": "The frying pan is on a stove with visible sautéed vegetables, indicating it is actively heating and suitable for cooking the onion."
+              },
+              {
+                "object_name": "spatula",
+                "affordance_types": [
+                  "scoopable"
+                ],
+                "reasons": "The spatula has a wide, flat surface that can collect small onion pieces for transfer."
+              },
+              {
+                "object_name": "chopped_red_onion",
+                "affordance_types": [
+                  "transferable"
+                ],
+                "reasons": "The onion is chopped into small, manageable pieces that can be moved with a spatula."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "moving_toward",
+                "objects": [
+                  "chopped_red_onion",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "chopped_red_onion",
+                "affordance_types": [
+                  "in_motion"
+                ],
+                "reasons": "The spatula is positioned to push the onion pieces toward the edge of the cutting board for transfer to the pan."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "spatula"
+            ],
+            "materials": [
+              "chopped_red_onion",
+              "cutting_board",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Flat surface of the spatula and upper edge of the cutting board",
+              "affordance_type": "scoop_point",
+              "mechanism": "Friction between the spatula's flat surface and onion pieces allows the spatula to collect and move the onion toward the frying pan."
+            }
+          }
+        },
+        {
+          "frame_index": 50,
+          "action_state_change_description": "Chopped red onion is fully mixed into the sautéed vegetables in the frying pan, and the cutting board is empty.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scoop and transfer chopped red onion from cutting board to frying pan then stir to integrate with sautéed vegetables",
+            "patient": "chopped_red_onion",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "chopped_red_onion",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "spatula"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "hot"
+                ],
+                "reasons": "The frying pan remains on the stove, maintaining heat to cook the mixed vegetables."
+              },
+              {
+                "object_name": "spatula",
+                "affordance_types": [
+                  "stirrable"
+                ],
+                "reasons": "The spatula's flat surface can move and mix the vegetables and onion within the pan."
+              },
+              {
+                "object_name": "chopped_red_onion",
+                "affordance_types": [
+                  "mixable"
+                ],
+                "reasons": "The onion pieces are small enough to blend evenly with the existing sautéed vegetables."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "mixed_with",
+                "objects": [
+                  "chopped_red_onion",
+                  "sautéed_vegetables"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "chopped_red_onion",
+                  "cutting_board"
+                ],
+                "truth": false
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "chopped_red_onion",
+                "affordance_types": [
+                  "cookable_in_pan"
+                ],
+                "reasons": "The onion is evenly distributed in the hot frying pan, exposed to consistent heat for sautéing."
+              },
+              {
+                "object_name": "mixed_vegetables",
+                "affordance_types": [
+                  "flavor_enhanced"
+                ],
+                "reasons": "The onion is integrated into the vegetable mix, allowing flavor compounds to meld as they cook together."
+              },
+              {
+                "object_name": "cutting_board",
+                "affordance_types": [
+                  "empty"
+                ],
+                "reasons": "All onion pieces have been transferred from the cutting board to the frying pan."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "spatula"
+            ],
+            "materials": [
+              "chopped_red_onion",
+              "sautéed_vegetables",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Inner surface of the frying pan and edge of the spatula",
+              "affordance_type": "mixing_surface",
+              "mechanism": "Torque applied via the spatula moves the onion and vegetables, creating contact and mixing them evenly within the hot pan to ensure uniform cooking."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Stir mixed vegetables in frying pan for even cooking",
+      "rationale": "This step distributes heat and vegetable ingredients throughout the frying pan to prevent localized burning, ensure uniform cooking of all vegetable components, and blend initial flavors from sautéing. It also dislodges any pieces stuck to the pan bottom, maintaining consistent texture and preventing overcooking in specific areas.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "agitate mixed vegetables with spatula in a circular motion",
+        "patient": "mixed_vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "spatula"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contacting",
+            "objects": [
+              "spatula",
+              "mixed_vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove_burner"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "heat_resistant",
+              "mixing_tool"
+            ],
+            "reasons": "The spatula has a heat-resistant handle and flat, wide surface suitable for lifting and moving hot vegetables without melting or breaking."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heated"
+            ],
+            "reasons": "The frying pan is placed on an active stove burner, providing the heat needed to cook the vegetables during stirring."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "uniformly_distributed_in",
+            "objects": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "not_stuck_to",
+            "objects": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "mixed_vegetables",
+            "affordance_types": [
+              "evenly_heated",
+              "partially_cooked"
+            ],
+            "reasons": "Stirring exposes all vegetable pieces to the pan's heated surface, resulting in uniform partial cooking and softened texture."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the frying pan was not pre-heated before starting to stir the vegetables?",
+      "expected_challenge_outcome": "The vegetables would not receive uniform heat exposure, so no meaningful cooking or softening would occur. Stirring would only move the vegetables without contributing to browning or flavor development, requiring additional heating time after stopping stirring.",
+      "failure_reflecting": {
+        "reason": "Vegetable pieces stick firmly to the pan bottom despite regular stirring, leading to uneven browning and potential burning of stuck pieces.",
+        "recovery_strategy": "Reduce the stove burner heat slightly, use the spatula to scrape all stuck vegetable pieces loose from the pan bottom, add a small amount of cooking oil to the pan, and continue stirring more frequently to prevent future sticking."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Right hand initiates circular stirring motion with spatula to agitate mixed vegetables in the frying pan.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "agitate mixed vegetables with spatula in a circular motion",
+            "patient": "mixed_vegetables",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "right_hand",
+                  "spatula"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "contacting",
+                "objects": [
+                  "spatula",
+                  "mixed_vegetables"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "frying_pan",
+                  "stove_burner"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "spatula",
+                "affordance_types": [
+                  "heat_resistant",
+                  "mixing_tool"
+                ],
+                "reasons": "The spatula has a heat-resistant handle and flat, wide surface suitable for lifting and moving hot vegetables without melting or breaking."
+              },
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heated"
+                ],
+                "reasons": "The frying pan is placed on an active stove burner, providing the heat needed to cook the vegetables during stirring."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "moving_through",
+                "objects": [
+                  "mixed_vegetables",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "mixed_vegetables",
+                "affordance_types": [
+                  "heat_distribution_initiated"
+                ],
+                "reasons": "The stirring motion begins to expose different vegetable pieces to the pan's heated surface, initiating uniform heat transfer."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "spatula"
+            ],
+            "materials": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Flat, wide blade of the spatula",
+              "affordance_type": "mixing_surface",
+              "mechanism": "The spatula's blade uses friction and force to lift and move vegetable pieces, transferring force from the hand to the vegetables to distribute them across the pan's heated surface."
+            }
+          }
+        },
+        {
+          "frame_index": 44,
+          "action_state_change_description": "Stirring motion concludes, mixed vegetables are uniformly distributed across the frying pan, and the spatula is lifted away from the vegetable mixture.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "agitate mixed vegetables with spatula in a circular motion",
+            "patient": "mixed_vegetables",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "moving_through",
+                "objects": [
+                  "mixed_vegetables",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "right_hand",
+                  "spatula"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heated"
+                ],
+                "reasons": "The frying pan remains on the active stove burner, maintaining heat exposure for the vegetables throughout stirring."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "uniformly_distributed_in",
+                "objects": [
+                  "mixed_vegetables",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "not_contacting",
+                "objects": [
+                  "spatula",
+                  "mixed_vegetables"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "mixed_vegetables",
+                "affordance_types": [
+                  "evenly_heated",
+                  "partially_cooked"
+                ],
+                "reasons": "The completed stirring motion has exposed all vegetable pieces to the pan's heat, resulting in uniform partial cooking and softened texture."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "spatula"
+            ],
+            "materials": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Flat, wide blade of the spatula",
+              "affordance_type": "mixing_surface",
+              "mechanism": "The spatula's blade has finished transferring force to distribute vegetables, ensuring even heat exposure across all pieces before being lifted away."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Add salt to the small metal pot on the stove",
+      "rationale": "This step seasons the water in the small metal pot to enhance the flavor of the rice that will be cooked in it, ensuring the finished rice has a balanced, savory taste instead of being bland. It creates a seasoned liquid base that will infuse flavor into the rice during cooking, which is critical for a palatable final dish.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scoop salt from container, deposit into small metal pot, and stir to dissolve in water",
+        "patient": "salt",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "small_metal_pot",
+              "stove"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "water",
+              "small_metal_pot"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "salt_container"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "salt_container",
+            "affordance_types": [
+              "open",
+              "dispensable"
+            ],
+            "reasons": "The salt container's spout is positioned to allow pouring/scooping, providing unobstructed access to the salt inside."
+          },
+          {
+            "object_name": "small_metal_pot",
+            "affordance_types": [
+              "receivable"
+            ],
+            "reasons": "The pot is free of obstructions and holds water, making it ready to receive and mix with added salt."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "salt",
+              "small_metal_pot"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "dissolved_in",
+            "objects": [
+              "salt",
+              "water"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "salt_container",
+              "spice_rack"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "water",
+            "affordance_types": [
+              "seasoned"
+            ],
+            "reasons": "The salt has dissolved into the water, creating a salty solution that will flavor rice cooked in it."
+          },
+          {
+            "object_name": "salt_container",
+            "affordance_types": [
+              "stored"
+            ],
+            "reasons": "The salt container is returned to its storage position on the spice rack, no longer accessible for immediate scooping."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the small metal pot had no water in it when salt was added?",
+      "expected_challenge_outcome": "The salt would sit undissolved at the bottom of the dry pot; when water is later added, it would take longer to dissolve evenly, potentially leading to overly salty patches in the cooked rice unless thoroughly stirred during or after water addition.",
+      "failure_reflecting": {
+        "reason": "Salt is spilled onto the stove or kitchen counter instead of into the small metal pot during transfer.",
+        "recovery_strategy": "Wipe up the spilled salt with a paper towel, then scoop a fresh portion of salt into the pot to ensure the correct amount is added for proper seasoning of the rice base."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 14,
+          "action_state_change_description": "Salt is being poured from the container onto a metal spoon positioned directly over the small metal pot, initiating the salt addition process.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scoop salt from container, deposit into small metal pot, and stir to dissolve in water",
+            "patient": "salt",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "small_metal_pot",
+                  "stove"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "inside",
+                "objects": [
+                  "water",
+                  "small_metal_pot"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "salt_container"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "salt_container",
+                "affordance_types": [
+                  "open",
+                  "dispensable"
+                ],
+                "reasons": "The salt container's spout is open, allowing salt to flow onto the spoon for transfer."
+              },
+              {
+                "object_name": "small_metal_pot",
+                "affordance_types": [
+                  "receivable"
+                ],
+                "reasons": "The pot is placed on the stove with water inside, ready to receive the salt."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "salt",
+                  "metal_spoon"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "salt",
+                "affordance_types": [
+                  "transferable"
+                ],
+                "reasons": "The salt is now positioned on the spoon, ready to be deposited into the small metal pot's water."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "metal_spoon"
+            ],
+            "materials": [
+              "salt",
+              "salt_container",
+              "small_metal_pot",
+              "water"
+            ],
+            "hotspot": {
+              "description": "salt container spout",
+              "affordance_type": "pouring_point",
+              "mechanism": "Gravity causes salt to flow from the container's open spout onto the spoon, transferring the salt for subsequent deposit into the pot."
+            }
+          }
+        },
+        {
+          "frame_index": 30,
+          "action_state_change_description": "Salt has been deposited into the small metal pot's water and stirred, resulting in a fully seasoned salt-water solution ready for rice cooking.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scoop salt from container, deposit into small metal pot, and stir to dissolve in water",
+            "patient": "salt",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "salt",
+                  "small_metal_pot"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "metal_spoon"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "water",
+                "affordance_types": [
+                  "dissolving_medium"
+                ],
+                "reasons": "The water in the pot provides a fluid medium for the salt to dissolve into."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "dissolved_in",
+                "objects": [
+                  "salt",
+                  "water"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "above",
+                "objects": [
+                  "metal_spoon",
+                  "small_metal_pot"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "water",
+                "affordance_types": [
+                  "seasoned"
+                ],
+                "reasons": "The salt has mixed evenly into the water, creating a salty solution that will flavor rice cooked in it."
+              },
+              {
+                "object_name": "metal_spoon",
+                "affordance_types": [
+                  "ready_for_storage"
+                ],
+                "reasons": "The spoon has finished stirring the salt into the water and is lifted from the pot, no longer needed for mixing."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "metal_spoon"
+            ],
+            "materials": [
+              "salt",
+              "small_metal_pot",
+              "water"
+            ],
+            "hotspot": {
+              "description": "small metal pot interior surface",
+              "affordance_type": "mixing_surface",
+              "mechanism": "The spoon's stirring motion creates fluid flow in the water, accelerating salt dissolution and ensuring even distribution throughout the pot's liquid."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Retrieve rice package from kitchen cabinet",
+      "rationale": "This step is necessary to obtain the rice ingredient, which is a core component of the meal. Retrieving it makes the rice accessible to add to the seasoned liquid base in the pot, enabling the cooking of rice alongside the sautéed vegetables and tofu.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "reach into open kitchen cabinet, grasp rice package, and pull it out to place on kitchen counter",
+        "patient": "rice_package",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "rice_package",
+              "kitchen_cabinet"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "open",
+            "objects": [
+              "kitchen_cabinet_door"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "rice_package",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The rice package has a rigid, sealed surface that provides friction for fingers to grip and pull it out of the cabinet."
+          },
+          {
+            "object_name": "kitchen_cabinet",
+            "affordance_types": [
+              "accessible"
+            ],
+            "reasons": "The cabinet door is open, creating a clear path for hands to reach the shelf holding the rice package."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "rice_package",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "rice_package",
+              "kitchen_cabinet"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "rice_package",
+            "affordance_types": [
+              "ready_for_preparation"
+            ],
+            "reasons": "The rice package is now on the kitchen counter, positioned to be opened and poured into the seasoned liquid base for cooking."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the rice package was wedged under a heavy potato on the cabinet shelf?",
+      "expected_challenge_outcome": "The hands would not be able to pull the rice package out of the cabinet without first moving the potato, as the potato's weight and position block access to the package and prevent sufficient force from being applied to pull it free.",
+      "failure_reflecting": {
+        "reason": "The rice package slips from the hands while being pulled out of the cabinet, falling to the kitchen floor and picking up surface dirt.",
+        "recovery_strategy": "Pick up the rice package, inspect the packaging for tears or damage, wipe the exterior with a clean cloth to remove dirt, and place it on the kitchen counter to proceed with preparation."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 2,
+          "action_state_change_description": "Hand extends into the open kitchen cabinet toward the rice package to initiate grasping.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "reach into open kitchen cabinet, grasp rice package, and pull it out to place on kitchen counter",
+            "patient": "rice_package",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "rice_package",
+                  "kitchen_cabinet"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "open",
+                "objects": [
+                  "kitchen_cabinet_door"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "rice_package",
+                "affordance_types": [
+                  "graspable"
+                ],
+                "reasons": "The rice package has a rigid, sealed surface that provides friction for fingers to grip and pull it out of the cabinet."
+              },
+              {
+                "object_name": "kitchen_cabinet",
+                "affordance_types": [
+                  "accessible"
+                ],
+                "reasons": "The cabinet door is open, creating a clear path for hands to reach the shelf holding the rice package."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": [
+                  "hands",
+                  "rice_package"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "rice_package",
+                "affordance_types": [
+                  "being_moved"
+                ],
+                "reasons": "The hand's grip applies force to the package, initiating movement out of the cabinet."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "rice_package"
+            ],
+            "hotspot": {
+              "description": "Sealed outer surface of the rice package",
+              "affordance_type": "grasp_point",
+              "mechanism": "Friction between finger pads and the package's surface enables the hand to grip and apply pulling force."
+            }
+          }
+        },
+        {
+          "frame_index": 17,
+          "action_state_change_description": "Rice package is fully retrieved from the cabinet and held above the kitchen counter, ready to be placed down.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "reach into open kitchen cabinet, grasp rice package, and pull it out to place on kitchen counter",
+            "patient": "rice_package",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "rice_package"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "outside",
+                "objects": [
+                  "rice_package",
+                  "kitchen_cabinet"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "rice_package",
+                "affordance_types": [
+                  "movable"
+                ],
+                "reasons": "The hand's secure grip maintains control of the package while moving it toward the counter."
+              },
+              {
+                "object_name": "kitchen_counter",
+                "affordance_types": [
+                  "supportive"
+                ],
+                "reasons": "The flat counter surface can safely hold the rice package once placed."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "rice_package",
+                  "kitchen_counter"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "rice_package",
+                "affordance_types": [
+                  "ready_for_preparation"
+                ],
+                "reasons": "The rice package is positioned on the counter, making it easy to open and pour into the seasoned liquid base."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "rice_package"
+            ],
+            "hotspot": {
+              "description": "Bottom and side surfaces of the rice package",
+              "affordance_type": "support_surface",
+              "mechanism": "The hands apply upward and stabilizing force to the package to keep it balanced while moving it to the counter."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Add tofu pieces to frying pan and stir with vegetables",
+      "rationale": "This step integrates tofu into the sautéed vegetable mixture to heat the tofu through, allowing it to absorb flavors from the vegetables and become a cooked protein component of the meal, ensuring even distribution for consistent cooking.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "transfer tofu pieces from plastic container to frying pan, then stir with spatula to mix with sautéed vegetables",
+        "patient": "tofu_pieces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "tofu_container"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "sautéed_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove_burner"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "tofu_container",
+            "affordance_types": [
+              "open"
+            ],
+            "reasons": "The plastic lid of the tofu container is removed, exposing the tofu pieces for transfer."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "hot",
+              "cookware"
+            ],
+            "reasons": "The frying pan remains on the stove with sautéed vegetables, indicating it is hot enough to cook the tofu."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "graspable",
+              "mixing_tool"
+            ],
+            "reasons": "The spatula is accessible in the frying pan, ready for stirring the mixture."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "tofu_pieces",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "mixed_with",
+            "objects": [
+              "tofu_pieces",
+              "sautéed_vegetables"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "tofu_vegetable_mix",
+            "affordance_types": [
+              "ready_for_continuous_cooking",
+              "flavor_absorbing"
+            ],
+            "reasons": "The tofu is evenly distributed with the vegetables, ensuring consistent heat exposure and flavor absorption as it cooks."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the spatula was not available to stir the mixture after adding tofu?",
+      "expected_challenge_outcome": "The tofu pieces would clump together in the pan, leading to uneven heating and inconsistent flavor absorption, with some pieces remaining undercooked while others may burn due to concentrated heat contact.",
+      "failure_reflecting": {
+        "reason": "Tofu pieces stick to the bottom of the frying pan when added, preventing even mixing with vegetables and causing uneven cooking.",
+        "recovery_strategy": "Use the spatula to gently scrape the stuck tofu pieces from the pan bottom while stirring in a circular motion, ensuring they are fully incorporated into the vegetable mixture for even heat distribution."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 30,
+          "action_state_change_description": "Tofu pieces are being poured from the plastic container into the frying pan containing sautéed vegetables.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "transfer tofu pieces from plastic container to frying pan, then stir with spatula to mix with sautéed vegetables",
+            "patient": "tofu_pieces",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "tofu_container"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "open",
+                "objects": [
+                  "tofu_container",
+                  "tofu_container_lid"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "inside",
+                "objects": [
+                  "sautéed_vegetables",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "tofu_container",
+                "affordance_types": [
+                  "pourable"
+                ],
+                "reasons": "The container is tilted by hands, and the open rim allows tofu pieces to flow out via gravity."
+              },
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "receiving"
+                ],
+                "reasons": "The pan has space to accommodate the tofu pieces and already contains sautéed vegetables."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "tofu_pieces",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "contacting",
+                "objects": [
+                  "tofu_pieces",
+                  "sautéed_vegetables"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "tofu_pieces",
+                "affordance_types": [
+                  "heating"
+                ],
+                "reasons": "The tofu pieces are now in contact with the hot frying pan and vegetables, starting to absorb heat and flavors."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "tofu_pieces",
+              "sautéed_vegetables"
+            ],
+            "hotspot": {
+              "description": "rim of tofu plastic container",
+              "affordance_type": "pouring_edge",
+              "mechanism": "Gravitational force pulls tofu pieces through the open rim of the tilted container into the frying pan, enabled by manual tilting of the container by hands."
+            }
+          }
+        },
+        {
+          "frame_index": 50,
+          "action_state_change_description": "Tofu pieces are fully mixed with sautéed vegetables in the frying pan, with even distribution throughout the pan's surface.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "transfer tofu pieces from plastic container to frying pan, then stir with spatula to mix with sautéed vegetables",
+            "patient": "tofu_pieces",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "tofu_pieces",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "spatula"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "frying_pan",
+                  "stove_burner"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "spatula",
+                "affordance_types": [
+                  "mixing_tool"
+                ],
+                "reasons": "The spatula's flat surface can push and lift food to create even mixing."
+              },
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "hot"
+                ],
+                "reasons": "The pan remains on the stove, maintaining heat to cook the mixed tofu and vegetables."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "mixed_with",
+                "objects": [
+                  "tofu_pieces",
+                  "sautéed_vegetables"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "distributed_evenly",
+                "objects": [
+                  "tofu_vegetable_mix",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "tofu_vegetable_mix",
+                "affordance_types": [
+                  "ready_for_final_cooking"
+                ],
+                "reasons": "The even distribution ensures consistent heat exposure, so the mixture is ready to be cooked until the tofu is fully heated through and flavorful."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "spatula"
+            ],
+            "materials": [
+              "tofu_pieces",
+              "sautéed_vegetables"
+            ],
+            "hotspot": {
+              "description": "flat surface of spatula",
+              "affordance_type": "mixing_surface",
+              "mechanism": "Friction between the spatula's flat surface and the food mixture creates a stirring motion that lifts and redistributes tofu and vegetables, achieving even distribution via rotational pushes and pulls."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

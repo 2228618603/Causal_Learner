@@ -1,0 +1,224 @@
+{
+  "step_id": 3,
+  "step_goal": "Wash the vegetables at the sink.",
+  "rationale": "Cleaning the vegetables is a necessary hygiene step to remove surface dirt and contaminants before chopping and cooking.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "rinse_under_water",
+    "patient": "vegetables",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "vegetables"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "contacting",
+        "objects": [
+          "water_stream",
+          "sink_basin"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "sink_tap",
+        "affordance_types": [
+          "dispensing_water"
+        ],
+        "reasons": "The tap must be active and releasing a stream of water to enable the rinsing action."
+      },
+      {
+        "object_name": "vegetables",
+        "affordance_types": [
+          "graspable"
+        ],
+        "reasons": "The vegetables must be held securely to be manipulated under the water stream."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "contacting",
+        "objects": [
+          "vegetables",
+          "water_stream"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "vegetables",
+        "affordance_types": [
+          "clean",
+          "wet"
+        ],
+        "reasons": "Exposure to the running water removes surface debris and wets the skin of the vegetables."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "If the water pressure were extremely low (just a dribble), would this step be effective?",
+  "expected_challenge_outcome": "No, the mechanical force of the flowing water is required to effectively rinse away dirt particles; a dribble would be insufficient.",
+  "failure_reflecting": {
+    "reason": "The water stream might deflect off the curved surface of the vegetables, causing splashing onto the counter.",
+    "recovery_strategy": "Lower the hands deeper into the sink basin or adjust the angle of the vegetable to direct the splash downwards."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 26,
+      "action_state_change_description": "Initiation: The agent positions the first vegetable (zucchini) under the running water stream to begin rinsing.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "rinse_under_water",
+        "patient": "vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contacting",
+            "objects": [
+              "water_stream",
+              "sink_basin"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "sink_tap",
+            "affordance_types": [
+              "dispensing_water"
+            ],
+            "reasons": "The tap must be active and releasing a stream of water to enable the rinsing action."
+          },
+          {
+            "object_name": "vegetables",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The vegetables must be held securely to be manipulated under the water stream."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "vegetables",
+              "water_stream"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "vegetables",
+            "affordance_types": [
+              "clean",
+              "wet"
+            ],
+            "reasons": "Exposure to the running water removes surface debris and wets the skin of the vegetables."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "vegetables"
+        ],
+        "hotspot": {
+          "description": "The outer skin/surface of the zucchini positioned in the water flow.",
+          "affordance_type": "cleanable_surface",
+          "mechanism": "Fluid flow exerts shear force to remove contaminants from the object surface."
+        }
+      }
+    },
+    {
+      "frame_index": 48,
+      "action_state_change_description": "Completion: The agent finishes rinsing the second vegetable (carrot), ensuring all items are cleaned.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "rinse_under_water",
+        "patient": "vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contacting",
+            "objects": [
+              "water_stream",
+              "sink_basin"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "sink_tap",
+            "affordance_types": [
+              "dispensing_water"
+            ],
+            "reasons": "The tap must be active and releasing a stream of water to enable the rinsing action."
+          },
+          {
+            "object_name": "vegetables",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The vegetables must be held securely to be manipulated under the water stream."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "vegetables",
+              "water_stream"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "vegetables",
+            "affordance_types": [
+              "clean",
+              "wet"
+            ],
+            "reasons": "Exposure to the running water removes surface debris and wets the skin of the vegetables."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "vegetables"
+        ],
+        "hotspot": {
+          "description": "The outer skin/surface of the carrot positioned in the water flow.",
+          "affordance_type": "cleanable_surface",
+          "mechanism": "Fluid flow exerts shear force to remove contaminants from the object surface."
+        }
+      }
+    }
+  ]
+}

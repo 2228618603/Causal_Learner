@@ -1,0 +1,275 @@
+{
+  "step_id": 3,
+  "step_goal": "Fill electric kettle with tap water",
+  "rationale": "This step prepares a supply of tap water in the electric kettle, which can then be heated to produce hot water for cooking, cleaning, or serving the finished vegetable dish. Having hot water readily available supports subsequent steps like cooking the vegetables or cleaning kitchen tools.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "open electric kettle lid and fill with tap water",
+    "patient": "electric_kettle",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "electric_kettle"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "aligned_with",
+        "objects": [
+          "electric_kettle",
+          "kitchen_sink"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "open",
+        "objects": [
+          "electric_kettle_lid",
+          "electric_kettle"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "kitchen_faucet",
+        "affordance_types": [
+          "water_emitting"
+        ],
+        "reasons": "The faucet must be able to release water into the kettle, confirmed by visible water flow when activated."
+      },
+      {
+        "object_name": "electric_kettle",
+        "affordance_types": [
+          "water_holding"
+        ],
+        "reasons": "The kettle must have an intact interior to contain tap water, visible from its open lid and undamaged body."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": [
+          "tap_water",
+          "electric_kettle"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "electric_kettle",
+          "kettle_power_base"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "electric_kettle",
+        "affordance_types": [
+          "ready_to_boil"
+        ],
+        "reasons": "The kettle is filled with water to the appropriate level, allowing it to be activated to heat the water."
+      },
+      {
+        "object_name": "electric_kettle_lid",
+        "affordance_types": [
+          "closed"
+        ],
+        "reasons": "The lid is closed after filling, preventing water from spilling during heating and containing heat inside the kettle."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the kettle lid was only partially opened before attempting to fill it?",
+  "expected_challenge_outcome": "Water would splash out of the kettle's restricted opening instead of flowing directly inside, leading to incomplete filling and water spilling onto the sink or countertop due to turbulent water flow caused by the narrow entry path.",
+  "failure_reflecting": {
+    "reason": "Kettle is underfilled with water, meaning it doesn't reach the minimum level required for the heating element to function properly and heat the water effectively.",
+    "recovery_strategy": "Pour additional tap water into the kettle until it reaches the recommended minimum fill line, ensuring the heating element is fully submerged to avoid damage and enable proper boiling."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands grasp the electric kettle lid and begin opening it to access the interior for filling with tap water.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "open electric kettle lid and fill with tap water",
+        "patient": "electric_kettle",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "electric_kettle"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "aligned_with",
+            "objects": [
+              "electric_kettle",
+              "kitchen_sink"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "closed",
+            "objects": [
+              "electric_kettle_lid",
+              "electric_kettle"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "electric_kettle_lid",
+            "affordance_types": [
+              "openable"
+            ],
+            "reasons": "The lid has a graspable tab that allows hands to lift it, visible in the physical interaction."
+          },
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "operable"
+            ],
+            "reasons": "The faucet handle is visible and accessible, indicating it can be activated to release water."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "open",
+            "objects": [
+              "electric_kettle_lid",
+              "electric_kettle"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "electric_kettle",
+            "affordance_types": [
+              "fillable"
+            ],
+            "reasons": "Opening the lid exposes the kettle's interior, allowing tap water to be poured or flowed into it."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "electric_kettle"
+        ],
+        "hotspot": {
+          "description": "electric kettle lid tab",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hands and the lid tab allows rotational force to be applied, lifting the lid to open the kettle's interior."
+        }
+      }
+    },
+    {
+      "frame_index": 35,
+      "action_state_change_description": "The electric kettle is filled with tap water, and the kitchen faucet is turned off to stop water flow.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "open electric kettle lid and fill with tap water",
+        "patient": "electric_kettle",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "open",
+            "objects": [
+              "electric_kettle_lid",
+              "electric_kettle"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "aligned_with",
+            "objects": [
+              "kitchen_faucet_spout",
+              "electric_kettle_interior"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "electric_kettle"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_emitting"
+            ],
+            "reasons": "The faucet was actively releasing water into the kettle, confirmed by visible water flow in the sequence of actions."
+          },
+          {
+            "object_name": "electric_kettle",
+            "affordance_types": [
+              "water_holding"
+            ],
+            "reasons": "The kettle's interior was empty before filling, allowing it to contain the incoming tap water."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "tap_water",
+              "electric_kettle"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "closed",
+            "objects": [
+              "kitchen_faucet_valve"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "electric_kettle",
+            "affordance_types": [
+              "ready_to_boil"
+            ],
+            "reasons": "The kettle is filled with tap water to an appropriate level, enabling it to be heated once placed on its power base."
+          },
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_contained"
+            ],
+            "reasons": "Turning off the faucet stops water flow, containing water within the plumbing system."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "electric_kettle",
+          "tap_water"
+        ],
+        "hotspot": {
+          "description": "kitchen faucet handle",
+          "affordance_type": "valve_control_point",
+          "mechanism": "Applying downward force to the faucet handle closes the internal valve, stopping the flow of tap water from the spout."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "step_id": 2,
+  "step_goal": "Retrieve peeling knife from kitchen drawer",
+  "rationale": "A specialized peeling knife is required to efficiently remove the potato's tough outer skin, which cannot be done effectively with bare hands or a dull tool. Retrieving it from the drawer makes the tool accessible for the subsequent potato peeling step.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "pull open drawer, grasp peeling knife, and lift it out",
+    "patient": "peeling_knife",
+    "causal_precondition_on_spatial": [
+      {"relation": "closed", "objects": ["kitchen_drawer", "drawer_frame"], "truth": true},
+      {"relation": "inside", "objects": ["peeling_knife", "kitchen_drawer"], "truth": true}
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "kitchen_drawer",
+        "affordance_types": ["openable"],
+        "reasons": "Drawer has a handle and slides on tracks, allowing it to be pulled open to access the knife inside."
+      },
+      {
+        "object_name": "peeling_knife",
+        "affordance_types": ["graspable"],
+        "reasons": "The knife has a red handle that provides a secure grip point for the hands."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {"relation": "open", "objects": ["kitchen_drawer", "drawer_frame"], "truth": true},
+      {"relation": "held_by", "objects": ["peeling_knife", "hands"], "truth": true},
+      {"relation": "outside", "objects": ["peeling_knife", "kitchen_drawer"], "truth": true}
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "peeling_knife",
+        "affordance_types": ["usable_for_peeling"],
+        "reasons": "Knife is now held by the agent and positioned outside the drawer, ready to be used for removing potato skin."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the knife's red handle was stuck under a large spatula in the drawer?",
+  "expected_challenge_outcome": "The agent would need to move the spatula first to grasp the knife handle; failing to do so could result in knocking over other utensils or not being able to retrieve the knife.",
+  "failure_reflecting": {
+    "reason": "Drawer jams halfway when pulled open, preventing full access to the knife.",
+    "recovery_strategy": "Apply gentle, consistent force to the drawer handle while wiggling it slightly to free the jammed track, then pull it fully open to retrieve the knife."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 29,
+      "action_state_change_description": "Kitchen drawer is being pulled open to reveal the utensils inside, initiating the retrieval process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pull open drawer, grasp peeling knife, and lift it out",
+        "patient": "peeling_knife",
+        "causal_precondition_on_spatial": [
+          {"relation": "closed", "objects": ["kitchen_drawer", "drawer_frame"], "truth": true},
+          {"relation": "inside", "objects": ["peeling_knife", "kitchen_drawer"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_drawer",
+            "affordance_types": ["openable"],
+            "reasons": "Drawer has a handle and slides on tracks, allowing it to be pulled open."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "open", "objects": ["kitchen_drawer", "drawer_frame"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "kitchen_drawer",
+            "affordance_types": ["access_granted"],
+            "reasons": "Drawer is partially open, making the utensils inside visible and reachable."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["kitchen_drawer", "peeling_knife"],
+        "hotspot": {
+          "description": "Drawer handle",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hand and handle allows pulling force to be transferred to the drawer, sliding it along tracks to open."
+        }
+      }
+    },
+    {
+      "frame_index": 38,
+      "action_state_change_description": "Peeling knife is lifted out of the drawer, fully retrieved and ready for use.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pull open drawer, grasp peeling knife, and lift it out",
+        "patient": "peeling_knife",
+        "causal_precondition_on_spatial": [
+          {"relation": "open", "objects": ["kitchen_drawer", "drawer_frame"], "truth": true},
+          {"relation": "inside", "objects": ["peeling_knife", "kitchen_drawer"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "peeling_knife",
+            "affordance_types": ["graspable"],
+            "reasons": "Knife's red handle is exposed and provides a secure grip point."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "held_by", "objects": ["peeling_knife", "hands"], "truth": true},
+          {"relation": "outside", "objects": ["peeling_knife", "kitchen_drawer"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "peeling_knife",
+            "affordance_types": ["usable_for_peeling"],
+            "reasons": "Knife is now held by the agent, positioned outside the drawer for immediate use."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["peeling_knife"],
+        "hotspot": {
+          "description": "Red knife handle",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hand and handle allows lifting force to be transferred to the knife, pulling it out of the drawer."
+        }
+      }
+    }
+  ]
+}

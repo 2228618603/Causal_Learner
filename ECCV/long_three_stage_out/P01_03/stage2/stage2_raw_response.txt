@@ -1,0 +1,29 @@
+{
+  "steps": [
+    {
+      "step_id": 1,
+      "start_frame_index": 1,
+      "end_frame_index": 5
+    },
+    {
+      "step_id": 2,
+      "start_frame_index": 5,
+      "end_frame_index": 14
+    },
+    {
+      "step_id": 3,
+      "start_frame_index": 14,
+      "end_frame_index": 30
+    },
+    {
+      "step_id": 4,
+      "start_frame_index": 30,
+      "end_frame_index": 40
+    },
+    {
+      "step_id": 5,
+      "start_frame_index": 40,
+      "end_frame_index": 51
+    }
+  ]
+}

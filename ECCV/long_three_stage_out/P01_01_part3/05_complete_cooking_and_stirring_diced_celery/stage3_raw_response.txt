@@ -1,0 +1,173 @@
+{
+  "step_id": 5,
+  "step_goal": "Complete cooking and stirring diced celery",
+  "rationale": "This step ensures diced celery is fully softened and evenly cooked through continuous stirring over active heat, eliminating any remaining crunch and ensuring consistent texture, which makes it ready to be served on the prepared dining table.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "stir and heat diced celery to full doneness",
+    "patient": "diced_celery",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": ["diced_celery", "frying_pan"],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": ["frying_pan", "stove_burner"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "stove_burner",
+        "affordance_types": ["heat_emitting"],
+        "reasons": "The stove burner must be active to transfer conductive heat to the frying pan, which cooks the celery, confirmed by visible steam rising from the pan."
+      },
+      {
+        "object_name": "slotted_spatula",
+        "affordance_types": ["graspable", "stir_capable"],
+        "reasons": "The spatula has an ergonomic handle for gripping and a flat surface to push and move celery pieces, enabling effective stirring."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "evenly_distributed",
+        "objects": ["diced_celery", "frying_pan"],
+        "truth": true
+      },
+      {
+        "relation": "softened",
+        "objects": ["diced_celery"],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "diced_celery",
+        "affordance_types": ["ready_to_serve", "fully_cooked"],
+        "reasons": "Continuous stirring ensures uniform heat exposure, breaking down the celery's cell structure to create a soft, fully cooked texture suitable for serving."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the stove burner was turned off halfway through this final cooking step?",
+  "expected_challenge_outcome": "The celery would stop cooking, remaining partially crunchy and undercooked because no additional conductive heat would be transferred to the pan to soften the celery further.",
+  "failure_reflecting": {
+    "reason": "Celery retains a crunchy, undercooked texture despite stirring, due to insufficient heat exposure or interrupted cooking time.",
+    "recovery_strategy": "Reactivate the stove burner to medium heat, continue stirring the celery in the pan, and check texture periodically until it reaches a uniformly soft, fully cooked state."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands grasp the frying pan handle and slotted spatula, initiating stirring of diced celery over an active stove burner to begin the final cooking step.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "stir and heat diced celery to full doneness",
+        "patient": "diced_celery",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["diced_celery", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["frying_pan", "stove_burner"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "stove_burner",
+            "affordance_types": ["heat_emitting"],
+            "reasons": "The stove burner is active, confirmed by the potential to cook the celery, which is required for the final cooking step."
+          },
+          {
+            "object_name": "slotted_spatula",
+            "affordance_types": ["graspable", "stir_capable"],
+            "reasons": "The spatula's handle is accessible for gripping, and its flat surface can interact with celery pieces to stir them."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving",
+            "objects": ["diced_celery", "slotted_spatula"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "diced_celery",
+            "affordance_types": ["in_motion", "heat_exposed"],
+            "reasons": "Stirring moves the celery pieces, ensuring they are exposed to the pan's heated surface to begin softening and cooking."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands", "slotted_spatula"],
+        "materials": ["diced_celery", "frying_pan"],
+        "hotspot": {
+          "description": "slotted spatula's flat, wide surface",
+          "affordance_type": "stirring_contact_surface",
+          "mechanism": "Friction between the spatula's surface and celery pieces transfers force to move them, preventing localized burning and ensuring even heat exposure."
+        }
+      }
+    },
+    {
+      "frame_index": 50,
+      "action_state_change_description": "Diced celery is fully cooked and evenly softened, with stirring completed, marking the end of the final cooking step.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "stir and heat diced celery to full doneness",
+        "patient": "diced_celery",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["diced_celery", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["frying_pan", "stove_burner"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "stove_burner",
+            "affordance_types": ["heat_emitting"],
+            "reasons": "The stove burner remained active throughout the step to continuously transfer heat to the pan, ensuring the celery cooked fully."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "evenly_distributed",
+            "objects": ["diced_celery", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "softened",
+            "objects": ["diced_celery"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "diced_celery",
+            "affordance_types": ["ready_to_serve", "fully_cooked"],
+            "reasons": "Continuous stirring and heat exposure have broken down the celery's cell structure, creating a uniform soft texture that is suitable for serving."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands", "slotted_spatula"],
+        "materials": ["diced_celery", "frying_pan"],
+        "hotspot": {
+          "description": "frying pan's non-stick inner surface",
+          "affordance_type": "heat_transfer_surface",
+          "mechanism": "Conductive heat from the pan's surface is transferred to the celery, with stirring ensuring all pieces receive equal heat to achieve full doneness without burning."
+        }
+      }
+    }
+  ]
+}

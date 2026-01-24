@@ -1,0 +1,183 @@
+{
+  "step_id": 3,
+  "step_goal": "Check boiled rice doneness in pot",
+  "rationale": "This step is necessary to verify if the boiled rice has reached a soft, fully cooked texture suitable for serving alongside the stir-fried mixture; confirming doneness ensures the rice is ready to be plated and consumed without further cooking adjustments.",
+  "causal_chain": {
+    "agent": "right_hand",
+    "action": "scoop and taste rice sample with metal spoon",
+    "patient": "boiled_rice",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": ["boiled_rice", "rice_pot"],
+        "truth": true
+      },
+      {
+        "relation": "grasping",
+        "objects": ["right_hand", "metal_spoon"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "metal_spoon",
+        "affordance_types": ["scooping"],
+        "reasons": "The spoon has a deep, curved metal bowl that can hold and lift rice grains from the pot, visible from its shape."
+      },
+      {
+        "object_name": "rice_pot",
+        "affordance_types": ["heat_retaining"],
+        "reasons": "Steam rises from the pot, confirming it retains sufficient heat to keep the rice warm and support accurate texture assessment."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "partially_removed",
+        "objects": ["boiled_rice", "rice_pot"],
+        "truth": true
+      },
+      {
+        "relation": "resting_on",
+        "objects": ["metal_spoon", "wooden_countertop"],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "boiled_rice",
+        "affordance_types": ["doneness_confirmed"],
+        "reasons": "Tasting the sampled rice reveals its texture, confirming whether it is fully cooked and ready to serve or requires additional boiling time."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the rice pot was no longer emitting steam and felt cool to the touch?",
+  "expected_challenge_outcome": "The rice would likely be undercooked or uncooked, as the absence of steam indicates the pot has lost heat, preventing sufficient water absorption and starch gelatinization needed for fully cooked rice.",
+  "failure_reflecting": {
+    "reason": "Sampling rice that is too hot burns the mouth, preventing accurate texture assessment.",
+    "recovery_strategy": "Set the spoon with rice sample on the countertop for a short time to cool, or blow gently on the rice to lower its temperature before tasting again."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 36,
+      "action_state_change_description": "Right hand initiates scooping a sample of boiled rice from the rice pot using a metal spoon.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "scoop and taste rice sample with metal spoon",
+        "patient": "boiled_rice",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["boiled_rice", "rice_pot"],
+            "truth": true
+          },
+          {
+            "relation": "grasping",
+            "objects": ["right_hand", "metal_spoon"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_spoon",
+            "affordance_types": ["scooping"],
+            "reasons": "The spoon's deep, curved bowl can hold rice grains, visible from its shape, enabling lifting of a sample."
+          },
+          {
+            "object_name": "rice_pot",
+            "affordance_types": ["accessible"],
+            "reasons": "The pot is positioned within reach of the hand, allowing unobstructed access to the rice."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": ["metal_spoon", "boiled_rice"],
+            "truth": true
+          },
+          {
+            "relation": "partially_removed",
+            "objects": ["boiled_rice", "rice_pot"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "boiled_rice",
+            "affordance_types": ["sample_available"],
+            "reasons": "A portion of rice is lifted from the pot, making it accessible for texture assessment via tasting."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand", "metal_spoon"],
+        "materials": ["boiled_rice"],
+        "hotspot": {
+          "description": "curved bowl of metal spoon",
+          "affordance_type": "scooping_surface",
+          "mechanism": "Friction between the spoon's curved bowl and rice grains allows lifting a sample from the pot when upward force is applied by the hand."
+        }
+      }
+    },
+    {
+      "frame_index": 43,
+      "action_state_change_description": "Metal spoon is returned to the countertop after tasting the rice sample, completing the doneness check.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "scoop and taste rice sample with metal spoon",
+        "patient": "boiled_rice",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": ["metal_spoon", "boiled_rice"],
+            "truth": true
+          },
+          {
+            "relation": "grasping",
+            "objects": ["right_hand", "metal_spoon"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "boiled_rice",
+            "affordance_types": ["tastable"],
+            "reasons": "The rice sample has cooled sufficiently to be tasted without causing mouth injury."
+          },
+          {
+            "object_name": "metal_spoon",
+            "affordance_types": ["manipulable"],
+            "reasons": "The spoon's handle provides a secure grip for controlled movement back to the countertop."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "resting_on",
+            "objects": ["metal_spoon", "wooden_countertop"],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": ["boiled_rice", "rice_pot"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "boiled_rice",
+            "affordance_types": ["doneness_confirmed"],
+            "reasons": "Tasting the sample confirms the rice's texture, determining if it is ready to serve or needs additional cooking."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand", "metal_spoon"],
+        "materials": ["boiled_rice"],
+        "hotspot": {
+          "description": "handle of metal spoon",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between the hand and spoon handle allows controlled placement of the spoon on the countertop after the tasting action is completed."
+        }
+      }
+    }
+  ]
+}

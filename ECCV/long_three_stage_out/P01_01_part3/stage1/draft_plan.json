@@ -1,0 +1,323 @@
+{
+  "high_level_goal": "To cook diced celery, prepare chopped red onion, prepare hot water, and set up a dining area to serve the fully cooked vegetables.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Cook and stir diced celery in frying pan",
+      "rationale": "Heats the celery to soften it, developing flavor and texture necessary for the final cooked dish.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "stir and heat diced celery",
+        "patient": "diced_celery",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove_burner"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "diced_celery",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "stove_burner",
+            "affordance_types": [
+              "heat_emitting"
+            ],
+            "reasons": "Stove burner must be active to generate heat for cooking, confirmed by visible steam rising from the pan."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "evenly_distributed",
+            "objects": [
+              "diced_celery",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "diced_celery",
+            "affordance_types": [
+              "partially_cooked"
+            ],
+            "reasons": "Stirring and heating softens the celery, making it suitable for further cooking or final preparation."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the stove burner was not turned on during this step?",
+      "expected_challenge_outcome": "The celery would not heat up, remaining raw and unsoftened, failing to achieve the desired texture and flavor for the dish.",
+      "failure_reflecting": {
+        "reason": "Celery sticks to the pan due to insufficient stirring, causing uneven cooking and burning.",
+        "recovery_strategy": "Turn down the stove heat, scrape burnt bits from the pan, and stir the celery continuously to redistribute heat evenly."
+      }
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Chop red onion into small pieces",
+      "rationale": "Prepares the onion into uniform small pieces that can be added to the cooking celery to enhance flavor and texture.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "slice and dice red onion",
+        "patient": "red_onion",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "red_onion",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "held",
+            "objects": [
+              "kitchen_knife",
+              "right_hand"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_knife",
+            "affordance_types": [
+              "sharp"
+            ],
+            "reasons": "A sharp knife is required to cleanly cut the onion without crushing it, confirmed by the clean, even slices produced."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "chopped",
+            "objects": [
+              "red_onion",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": [
+              "ready_to_cook"
+            ],
+            "reasons": "The small, uniform pieces are sized appropriately for adding directly to the frying pan to cook with the celery."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the cutting board was slippery and moved during chopping?",
+      "expected_challenge_outcome": "The onion would shift, leading to uneven cuts and increased risk of accidental hand injury from the knife.",
+      "failure_reflecting": {
+        "reason": "Onion pieces are unevenly sized, with large chunks that will not cook uniformly with the celery.",
+        "recovery_strategy": "Gather the large onion pieces and re-chop them to match the size of the smaller pieces using the sharp kitchen knife."
+      }
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Fill electric kettle with tap water",
+      "rationale": "Prepares a supply of hot water for potential use in cooking, cleaning, or serving the finished vegetable dish.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "open kettle lid and fill with tap water",
+        "patient": "electric_kettle",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "aligned_with",
+            "objects": [
+              "electric_kettle",
+              "kitchen_sink"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "open",
+            "objects": [
+              "electric_kettle_lid",
+              "electric_kettle"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_emitting"
+            ],
+            "reasons": "The faucet must function to release water into the kettle, confirmed by visible water flowing into the kettle."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "tap_water",
+              "electric_kettle"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "electric_kettle",
+            "affordance_types": [
+              "ready_to_boil"
+            ],
+            "reasons": "The kettle is filled with water to the appropriate level, allowing it to be activated to produce hot water."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the kettle lid was not opened before attempting to fill it?",
+      "expected_challenge_outcome": "Water would not enter the kettle, instead spilling over the closed lid onto the sink or floor, failing to fill the kettle with water.",
+      "failure_reflecting": {
+        "reason": "Kettle is overfilled with water, increasing risk of spillage when boiling.",
+        "recovery_strategy": "Pour excess water from the kettle back into the kitchen sink until it reaches the recommended fill line."
+      }
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Organize kitchen items and set dining table",
+      "rationale": "Clears countertop clutter and prepares the dining area to serve the cooked vegetables once they are fully prepared.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "store bowls in cabinet and set table with plate and placemat",
+        "patient": "kitchen_bowls_dining_plate_placemat",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "kitchen_bowls",
+              "countertop"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "empty",
+            "objects": [
+              "dining_table",
+              "surface"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_cabinet",
+            "affordance_types": [
+              "door_open"
+            ],
+            "reasons": "Cabinet door must be open to access interior storage space for the bowls, confirmed by the visible open cabinet door."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "kitchen_bowls",
+              "kitchen_cabinet"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "dining_plate",
+              "dining_table"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "dining_table",
+            "affordance_types": [
+              "ready_for_serving"
+            ],
+            "reasons": "The table is set with a plate and placemat, making it suitable for holding the cooked vegetables when they are ready to serve."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the cabinet door was stuck and could not be opened?",
+      "expected_challenge_outcome": "The bowls could not be stored in the cabinet, leaving them on the countertop and cluttering the workspace for further cooking steps.",
+      "failure_reflecting": {
+        "reason": "Placemat is positioned crookedly on the dining table, creating an unorganized serving area.",
+        "recovery_strategy": "Adjust the placemat to align evenly with the edge of the dining table, ensuring a neat and functional serving setup."
+      }
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Complete cooking and stirring diced celery",
+      "rationale": "Ensures the celery is fully cooked, soft, and evenly flavored, making it ready to be served on the prepared dining table.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "stir and heat diced celery to full doneness",
+        "patient": "diced_celery",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "diced_celery",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove_burner"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "stove_burner",
+            "affordance_types": [
+              "heat_emitting"
+            ],
+            "reasons": "The stove burner must remain active to continue heating the celery, confirmed by sustained steam rising from the pan."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "fully_cooked",
+            "objects": [
+              "diced_celery",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "diced_celery",
+            "affordance_types": [
+              "ready_to_serve"
+            ],
+            "reasons": "The celery is fully softened and cooked through, making it suitable for serving on the prepared dining table."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the celery was not stirred during this final cooking step?",
+      "expected_challenge_outcome": "The celery would cook unevenly, with pieces burning on the pan's bottom while other pieces remain undercooked and crunchy.",
+      "failure_reflecting": {
+        "reason": "Celery is undercooked, retaining a crunchy texture instead of the desired soft consistency.",
+        "recovery_strategy": "Continue heating the celery on the active stove burner, stirring frequently, until it reaches the fully softened, cooked texture."
+      }
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "step_id": 3,
+  "step_goal": "Add salt to the small metal pot on the stove",
+  "rationale": "This step seasons the water in the small metal pot to enhance the flavor of the rice that will be cooked in it, ensuring the finished rice has a balanced, savory taste instead of being bland. It creates a seasoned liquid base that will infuse flavor into the rice during cooking, which is critical for a palatable final dish.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scoop salt from container, deposit into small metal pot, and stir to dissolve in water",
+    "patient": "salt",
+    "causal_precondition_on_spatial": [
+      {"relation": "on_top_of", "objects": ["small_metal_pot", "stove"], "truth": true},
+      {"relation": "inside", "objects": ["water", "small_metal_pot"], "truth": true},
+      {"relation": "holding", "objects": ["hands", "salt_container"], "truth": true}
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "salt_container",
+        "affordance_types": ["open", "dispensable"],
+        "reasons": "The salt container's spout is positioned to allow pouring/scooping, providing unobstructed access to the salt inside."
+      },
+      {
+        "object_name": "small_metal_pot",
+        "affordance_types": ["receivable"],
+        "reasons": "The pot is free of obstructions and holds water, making it ready to receive and mix with added salt."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {"relation": "inside", "objects": ["salt", "small_metal_pot"], "truth": true},
+      {"relation": "dissolved_in", "objects": ["salt", "water"], "truth": true},
+      {"relation": "on_top_of", "objects": ["salt_container", "spice_rack"], "truth": true}
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "water",
+        "affordance_types": ["seasoned"],
+        "reasons": "The salt has dissolved into the water, creating a salty solution that will flavor rice cooked in it."
+      },
+      {
+        "object_name": "salt_container",
+        "affordance_types": ["stored"],
+        "reasons": "The salt container is returned to its storage position on the spice rack, no longer accessible for immediate scooping."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the small metal pot had no water in it when salt was added?",
+  "expected_challenge_outcome": "The salt would sit undissolved at the bottom of the dry pot; when water is later added, it would take longer to dissolve evenly, potentially leading to overly salty patches in the cooked rice unless thoroughly stirred during or after water addition.",
+  "failure_reflecting": {
+    "reason": "Salt is spilled onto the stove or kitchen counter instead of into the small metal pot during transfer.",
+    "recovery_strategy": "Wipe up the spilled salt with a paper towel, then scoop a fresh portion of salt into the pot to ensure the correct amount is added for proper seasoning of the rice base."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 14,
+      "action_state_change_description": "Salt is being poured from the container onto a metal spoon positioned directly over the small metal pot, initiating the salt addition process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scoop salt from container, deposit into small metal pot, and stir to dissolve in water",
+        "patient": "salt",
+        "causal_precondition_on_spatial": [
+          {"relation": "on_top_of", "objects": ["small_metal_pot", "stove"], "truth": true},
+          {"relation": "inside", "objects": ["water", "small_metal_pot"], "truth": true},
+          {"relation": "holding", "objects": ["hands", "salt_container"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "salt_container",
+            "affordance_types": ["open", "dispensable"],
+            "reasons": "The salt container's spout is open, allowing salt to flow onto the spoon for transfer."
+          },
+          {
+            "object_name": "small_metal_pot",
+            "affordance_types": ["receivable"],
+            "reasons": "The pot is placed on the stove with water inside, ready to receive the salt."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "on_top_of", "objects": ["salt", "metal_spoon"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "salt",
+            "affordance_types": ["transferable"],
+            "reasons": "The salt is now positioned on the spoon, ready to be deposited into the small metal pot's water."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands", "metal_spoon"],
+        "materials": ["salt", "salt_container", "small_metal_pot", "water"],
+        "hotspot": {
+          "description": "salt container spout",
+          "affordance_type": "pouring_point",
+          "mechanism": "Gravity causes salt to flow from the container's open spout onto the spoon, transferring the salt for subsequent deposit into the pot."
+        }
+      }
+    },
+    {
+      "frame_index": 30,
+      "action_state_change_description": "Salt has been deposited into the small metal pot's water and stirred, resulting in a fully seasoned salt-water solution ready for rice cooking.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scoop salt from container, deposit into small metal pot, and stir to dissolve in water",
+        "patient": "salt",
+        "causal_precondition_on_spatial": [
+          {"relation": "inside", "objects": ["salt", "small_metal_pot"], "truth": true},
+          {"relation": "holding", "objects": ["hands", "metal_spoon"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "water",
+            "affordance_types": ["dissolving_medium"],
+            "reasons": "The water in the pot provides a fluid medium for the salt to dissolve into."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "dissolved_in", "objects": ["salt", "water"], "truth": true},
+          {"relation": "above", "objects": ["metal_spoon", "small_metal_pot"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "water",
+            "affordance_types": ["seasoned"],
+            "reasons": "The salt has mixed evenly into the water, creating a salty solution that will flavor rice cooked in it."
+          },
+          {
+            "object_name": "metal_spoon",
+            "affordance_types": ["ready_for_storage"],
+            "reasons": "The spoon has finished stirring the salt into the water and is lifted from the pot, no longer needed for mixing."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands", "metal_spoon"],
+        "materials": ["salt", "small_metal_pot", "water"],
+        "hotspot": {
+          "description": "small metal pot interior surface",
+          "affordance_type": "mixing_surface",
+          "mechanism": "The spoon's stirring motion creates fluid flow in the water, accelerating salt dissolution and ensuring even distribution throughout the pot's liquid."
+        }
+      }
+    }
+  ]
+}

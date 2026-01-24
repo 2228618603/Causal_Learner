@@ -1,0 +1,250 @@
+{
+  "step_id": 2,
+  "step_goal": "Apply dish soap to cleaning sponge",
+  "rationale": "Creates a soapy solution that breaks down grease and food residue, enabling effective scrubbing and cleaning of kitchen items in subsequent washing steps.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "dispense dish soap onto cleaning sponge",
+    "patient": "cleaning_sponge",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "cleaning_sponge"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "dish_soap_bottle"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "aligned_with",
+        "objects": [
+          "dish_soap_bottle_spout",
+          "cleaning_sponge"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "dish_soap_bottle",
+        "affordance_types": [
+          "dispensable"
+        ],
+        "reasons": "The bottle has an open spout that allows liquid soap to flow out when tilted by applying force."
+      },
+      {
+        "object_name": "cleaning_sponge",
+        "affordance_types": [
+          "absorbent"
+        ],
+        "reasons": "The sponge's porous foam structure can retain liquid soap to form a cleaning lather."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "contains",
+        "objects": [
+          "cleaning_sponge",
+          "dish_soap"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "cleaning_sponge",
+        "affordance_types": [
+          "grease_dissolving"
+        ],
+        "reasons": "The sponge now holds dish soap with surfactant properties that break down grease and food residue on kitchen surfaces."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the cleaning sponge was completely saturated with water before applying soap?",
+  "expected_challenge_outcome": "The water in the sponge would dilute the dish soap, reducing its concentration and grease-dissolving effectiveness, requiring additional soap to be applied to create a usable cleaning lather.",
+  "failure_reflecting": {
+    "reason": "Excessive dish soap is applied to the sponge, leading to thick, hard-to-rinse lather that wastes soap and leaves residue on cleaned items.",
+    "recovery_strategy": "Rinse the sponge thoroughly under running water to flush out excess soap, then squeeze out excess water to adjust the soap concentration for effective cleaning."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 29,
+      "action_state_change_description": "Hands tilt the dish soap bottle over the cleaning sponge, initiating the flow of dish soap onto the sponge's surface.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "dispense dish soap onto cleaning sponge",
+        "patient": "cleaning_sponge",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "cleaning_sponge"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "dish_soap_bottle"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "aligned_with",
+            "objects": [
+              "dish_soap_bottle_spout",
+              "cleaning_sponge"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "dish_soap_bottle",
+            "affordance_types": [
+              "dispensable"
+            ],
+            "reasons": "The bottle's open spout allows liquid soap to flow out when tilted by applied force."
+          },
+          {
+            "object_name": "cleaning_sponge",
+            "affordance_types": [
+              "absorbent"
+            ],
+            "reasons": "The sponge's porous foam structure can retain liquid soap for cleaning."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contains",
+            "objects": [
+              "cleaning_sponge",
+              "dish_soap"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "cleaning_sponge",
+            "affordance_types": [
+              "in_motion",
+              "soap_receiving"
+            ],
+            "reasons": "The sponge is now receiving dish soap, initiating its transformation into a soapy cleaning tool."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "dish_soap_bottle"
+        ],
+        "materials": [
+          "cleaning_sponge",
+          "dish_soap"
+        ],
+        "hotspot": {
+          "description": "Spout of dish soap bottle and top porous surface of cleaning sponge",
+          "affordance_type": "dispensing_point_absorbent_surface",
+          "mechanism": "Gravitational force causes liquid soap to flow from the bottle's spout onto the sponge's porous surface, where capillary action retains the soap."
+        }
+      }
+    },
+    {
+      "frame_index": 36,
+      "action_state_change_description": "Dish soap has been fully dispensed onto the cleaning sponge, and the hands prepare to set down the dish soap bottle.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "dispense dish soap onto cleaning sponge",
+        "patient": "cleaning_sponge",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "cleaning_sponge"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "dish_soap_bottle"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contains",
+            "objects": [
+              "cleaning_sponge",
+              "dish_soap"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "dish_soap_bottle",
+            "affordance_types": [
+              "dispensable"
+            ],
+            "reasons": "The bottle's spout allowed controlled flow of soap until the pouring motion stopped."
+          },
+          {
+            "object_name": "cleaning_sponge",
+            "affordance_types": [
+              "absorbent"
+            ],
+            "reasons": "The sponge's porous structure retained the dispensed soap without leaking."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "ready_for_cleaning",
+            "objects": [
+              "cleaning_sponge"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "cleaning_sponge",
+            "affordance_types": [
+              "grease_dissolving",
+              "cleaning_ready"
+            ],
+            "reasons": "The sponge now contains sufficient dish soap to break down grease and food residue on kitchen items in subsequent steps."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "dish_soap_bottle"
+        ],
+        "materials": [
+          "cleaning_sponge",
+          "dish_soap"
+        ],
+        "hotspot": {
+          "description": "Top porous surface of cleaning sponge holding dispensed dish soap",
+          "affordance_type": "cleaning_lather_base",
+          "mechanism": "The sponge's porous structure traps the dish soap, creating a reservoir of cleaning agent that can be activated with water to form lather."
+        }
+      }
+    }
+  ]
+}

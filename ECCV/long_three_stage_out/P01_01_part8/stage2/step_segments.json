@@ -1,0 +1,71 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_01_part8.MP4",
+  "video_id": "P01_01_part8",
+  "generated_at_utc": "2026-01-23T13:46:35.627686Z",
+  "num_frames": 50,
+  "cut": {
+    "mode": "reencode",
+    "seek_slop_sec": 1.0,
+    "crf": 18,
+    "preset": "veryfast",
+    "keep_audio": false,
+    "ffmpeg_bin": "ffmpeg"
+  },
+  "segments": [
+    {
+      "step_id": 1,
+      "step_goal": "Cook and stir vegetable mixture in frying pan",
+      "start_frame_index": 6,
+      "end_frame_index": 12,
+      "start_sec": 18.36836836836837,
+      "end_sec": 40.40707374040708,
+      "start_image_relpath": "sampled_frames/sample_006_ts_18.37s.jpg",
+      "end_image_relpath": "sampled_frames/sample_012_ts_40.41s.jpg",
+      "clip_relpath": "step_clips/step01_cook_and_stir_vegetable_mixture_in_frying_pan.mp4"
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Cook and test doneness of rice in saucepan",
+      "start_frame_index": 12,
+      "end_frame_index": 37,
+      "start_sec": 40.40707374040708,
+      "end_sec": 132.23223223223223,
+      "start_image_relpath": "sampled_frames/sample_012_ts_40.41s.jpg",
+      "end_image_relpath": "sampled_frames/sample_037_ts_132.23s.jpg",
+      "clip_relpath": "step_clips/step02_cook_and_test_doneness_of_rice_in_saucepan.mp4"
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Drain excess water from cooked rice",
+      "start_frame_index": 37,
+      "end_frame_index": 42,
+      "start_sec": 132.23223223223223,
+      "end_sec": 150.60060060060061,
+      "start_image_relpath": "sampled_frames/sample_037_ts_132.23s.jpg",
+      "end_image_relpath": "sampled_frames/sample_042_ts_150.60s.jpg",
+      "clip_relpath": "step_clips/step03_drain_excess_water_from_cooked_rice.mp4"
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Combine drained rice with vegetable mixture",
+      "start_frame_index": 42,
+      "end_frame_index": 47,
+      "start_sec": 150.60060060060061,
+      "end_sec": 168.96896896896897,
+      "start_image_relpath": "sampled_frames/sample_042_ts_150.60s.jpg",
+      "end_image_relpath": "sampled_frames/sample_047_ts_168.97s.jpg",
+      "clip_relpath": "step_clips/step04_combine_drained_rice_with_vegetable_mixture.mp4"
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Stir and season combined rice and vegetable mixture",
+      "start_frame_index": 47,
+      "end_frame_index": 51,
+      "start_sec": 168.96896896896897,
+      "end_sec": 183.6503169836503,
+      "start_image_relpath": "sampled_frames/sample_047_ts_168.97s.jpg",
+      "end_image_relpath": "sampled_frames/sample_050_ts_179.98s.jpg",
+      "clip_relpath": "step_clips/step05_stir_and_season_combined_rice_and_vegetable_mixture.mp4"
+    }
+  ]
+}

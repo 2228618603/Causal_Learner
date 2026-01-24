@@ -1,0 +1,10 @@
+{
+  "step_id": 5,
+  "step_goal": "Transfer the chopped celery into the pan.",
+  "clip_path": "../stage2/step_clips/step05_transfer_the_chopped_celery_into_the_pan.mp4",
+  "clip_start_sec": 168.96896896896897,
+  "clip_end_sec": 176.30964297630965,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:23:12.273135Z",
+  "manifest_path": "frame_manifest.json"
+}

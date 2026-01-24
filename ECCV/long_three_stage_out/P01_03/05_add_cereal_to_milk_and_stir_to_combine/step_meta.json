@@ -1,0 +1,10 @@
+{
+  "step_id": 5,
+  "step_goal": "Add cereal to milk and stir to combine",
+  "clip_path": "../stage2/step_clips/step05_add_cereal_to_milk_and_stir_to_combine.mp4",
+  "clip_start_sec": 94.57781666666666,
+  "clip_end_sec": 118.83538333333334,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:26:13.786540Z",
+  "manifest_path": "frame_manifest.json"
+}

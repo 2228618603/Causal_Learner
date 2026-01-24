@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Wash knife, fork, and ceramic dish",
+  "clip_path": "../stage2/step_clips/step04_wash_knife_fork_and_ceramic_dish.mp4",
+  "clip_start_sec": 110.19352686019353,
+  "clip_end_sec": 132.23223223223223,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:23:18.153750Z",
+  "manifest_path": "frame_manifest.json"
+}

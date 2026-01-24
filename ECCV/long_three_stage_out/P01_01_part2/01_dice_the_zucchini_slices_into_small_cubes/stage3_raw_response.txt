@@ -1,0 +1,153 @@
+{
+  "step_id": 1,
+  "step_goal": "Dice the zucchini slices into small cubes.",
+  "rationale": "Cutting the zucchini slices into small uniform cubes increases the surface area for faster cooking and ensures even distribution when mixed with other ingredients.",
+  "causal_chain": {
+    "agent": "right_hand",
+    "action": "presses and slices downward",
+    "patient": "zucchini_slices",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": ["zucchini_slices", "cutting_board"],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": ["right_hand", "knife"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "zucchini_slices",
+        "affordance_types": ["cuttable", "stabilized"],
+        "reasons": "The slices must be soft enough to cut and held steady to prevent rolling during the knife thrust."
+      },
+      {
+        "object_name": "knife",
+        "affordance_types": ["sharp"],
+        "reasons": "The blade must be sharp enough to sever the vegetable fibers cleanly."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "contacting",
+        "objects": ["knife", "cutting_board"],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "zucchini_slices",
+        "affordance_types": ["diced", "separated"],
+        "reasons": "The downward slicing action structurally divides the slices into smaller independent cubic units."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "If the zucchini slices were frozen solid, how would the dicing action change?",
+  "expected_challenge_outcome": "The knife would likely fail to penetrate the rigid frozen tissue using normal force, potentially slipping and causing a safety hazard.",
+  "failure_reflecting": {
+    "reason": "The knife blade might slip off the smooth skin of the zucchini if not positioned vertically or if the slices shift.",
+    "recovery_strategy": "Re-stabilize the stack with a claw grip using the left hand and reset the knife angle to be perpendicular to the cutting board."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 6,
+      "action_state_change_description": "Initiation: The right hand positions the knife blade onto the stack of zucchini slices, beginning the downward cutting stroke.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "presses and slices downward",
+        "patient": "zucchini_slices",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": ["knife", "zucchini_slices"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["left_hand", "zucchini_slices"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "zucchini_slices",
+            "affordance_types": ["stabilized"],
+            "reasons": "The left hand holds the slices together to ensure a clean, straight cut through the stack."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["knife", "zucchini_slices"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_slices",
+            "affordance_types": ["being_cut"],
+            "reasons": "The mechanical force from the knife is overcoming the material strength of the vegetable."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand", "knife", "left_hand"],
+        "materials": ["zucchini_slices"],
+        "hotspot": {
+          "description": "knife_handle",
+          "affordance_type": "grasp_point",
+          "mechanism": "The hand grips the handle to transmit downward force and directional control to the blade."
+        }
+      }
+    },
+    {
+      "frame_index": 48,
+      "action_state_change_description": "Completion: The final cutting strokes are complete, leaving a pile of diced zucchini cubes on the board.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "presses and slices downward",
+        "patient": "zucchini_slices",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": ["knife", "cutting_board"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "zucchini_slices",
+            "affordance_types": ["diced"],
+            "reasons": "The repeated slicing has fully separated the original slices into small cubes."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "separated",
+            "objects": ["knife", "zucchini_slices"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_slices",
+            "affordance_types": ["loose_pieces"],
+            "reasons": "The structural integrity of the slices is broken, resulting in loose independent pieces ready for transfer."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand", "knife"],
+        "materials": ["zucchini_slices"],
+        "hotspot": {
+          "description": "knife_blade",
+          "affordance_type": "cutting_surface",
+          "mechanism": "The blade completes its passage through the material, contacting the board and severing the final connections."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,284 @@
+{
+  "step_id": 3,
+  "step_goal": "Complete kitchen cleanup tasks",
+  "rationale": "This step maintains an organized and hygienic kitchen environment by putting away clean utensils and ensuring essential items are properly prepared, preventing clutter from interfering with subsequent cooking, serving, or storage steps and keeping tools accessible for future use.",
+  "causal_chain": {
+    "agent": "both_hands",
+    "action": "fill glass bottle with water, return clean utensils to designated drawer compartments, and arrange kitchen items",
+    "patient": "kitchen_items",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "kitchen_sink",
+          "kitchen_counter"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "in",
+        "objects": [
+          "clean_utensils",
+          "drying_rack"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "empty",
+        "objects": [
+          "glass_bottle"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "kitchen_faucet",
+        "affordance_types": [
+          "water_dispensable"
+        ],
+        "reasons": "The faucet is connected to a functional water supply, allowing it to release water when activated to fill the bottle."
+      },
+      {
+        "object_name": "kitchen_drawer",
+        "affordance_types": [
+          "openable",
+          "storable"
+        ],
+        "reasons": "The drawer has compartments designed for utensil storage and can be opened to access these compartments, enabling organized storage of clean utensils."
+      },
+      {
+        "object_name": "glass_bottle",
+        "affordance_types": [
+          "water_holdable"
+        ],
+        "reasons": "The bottle is made of solid, non-porous glass with a sealed opening, allowing it to contain water without leaking."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "filled_with",
+        "objects": [
+          "glass_bottle",
+          "water"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "inside",
+        "objects": [
+          "clean_utensils",
+          "kitchen_drawer"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "clutter_free",
+        "objects": [
+          "kitchen_counter"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "glass_bottle",
+        "affordance_types": [
+          "ready_for_use"
+        ],
+        "reasons": "The filled bottle is placed in an accessible location, making it available for drinking or other kitchen tasks that require water."
+      },
+      {
+        "object_name": "clean_utensils",
+        "affordance_types": [
+          "organized",
+          "dust_protected"
+        ],
+        "reasons": "Utensils are stored in closed drawer compartments, keeping them organized and protected from dust for easy access in future tasks."
+      },
+      {
+        "object_name": "kitchen_counter",
+        "affordance_types": [
+          "usable_for_preparation"
+        ],
+        "reasons": "The clear counter provides unobstructed space for food preparation, serving, or placing additional kitchen items."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the kitchen faucet was clogged and could only release a slow trickle of water?",
+  "expected_challenge_outcome": "Filling the glass bottle would take significantly longer, and the slow flow might not fully fill the bottle to its capacity, leaving it partially empty and requiring more time to complete this part of the cleanup task.",
+  "failure_reflecting": {
+    "reason": "Clean utensils are haphazardly placed in the drawer without sorting into their designated compartments, leading to disorganization and difficulty locating specific utensils later.",
+    "recovery_strategy": "Open the drawer, remove all utensils, sort them by type (forks, spoons, knives) into their respective compartments, and ensure each utensil is aligned neatly within its compartment before closing the drawer."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 14,
+      "action_state_change_description": "Hands grasp an empty glass bottle at the sink, initiating the cleanup task of filling the bottle with water.",
+      "causal_chain": {
+        "agent": "both_hands",
+        "action": "fill glass bottle with water, return clean utensils to designated drawer compartments, and arrange kitchen items",
+        "patient": "kitchen_items",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "both_hands",
+              "glass_bottle"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "kitchen_sink",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "empty",
+            "objects": [
+              "glass_bottle"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_dispensable"
+            ],
+            "reasons": "The faucet is connected to a functional water supply, allowing it to release water when activated to fill the bottle."
+          },
+          {
+            "object_name": "glass_bottle",
+            "affordance_types": [
+              "water_holdable"
+            ],
+            "reasons": "The bottle is made of solid, non-porous glass with a sealed opening, allowing it to contain water without leaking."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "filled_with",
+            "objects": [
+              "glass_bottle",
+              "water"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "glass_bottle",
+            "affordance_types": [
+              "ready_for_use"
+            ],
+            "reasons": "The filled bottle will be placed in an accessible location, making it available for drinking or other kitchen tasks that require water."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "both_hands"
+        ],
+        "materials": [
+          "glass_bottle",
+          "kitchen_sink",
+          "kitchen_faucet",
+          "kitchen_items"
+        ],
+        "hotspot": {
+          "description": "Glass bottle opening and faucet spout",
+          "affordance_type": "liquid_transfer_point",
+          "mechanism": "Water flows from the faucet spout into the bottle opening due to gravity and water pressure, filling the bottle as the hands maintain alignment between the spout and opening."
+        }
+      }
+    },
+    {
+      "frame_index": 48,
+      "action_state_change_description": "The kitchen drawer is closed after all clean utensils are sorted into their designated compartments, completing the cleanup tasks of storing utensils and organizing kitchen items.",
+      "causal_chain": {
+        "agent": "both_hands",
+        "action": "fill glass bottle with water, return clean utensils to designated drawer compartments, and arrange kitchen items",
+        "patient": "kitchen_items",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "clean_utensils",
+              "kitchen_drawer_compartments"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "open",
+            "objects": [
+              "kitchen_drawer"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_drawer",
+            "affordance_types": [
+              "closeable"
+            ],
+            "reasons": "The drawer is aligned with its frame and has no obstructions, allowing it to be closed to secure the stored utensils."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "closed",
+            "objects": [
+              "kitchen_drawer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "clutter_free",
+            "objects": [
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "clean_utensils",
+            "affordance_types": [
+              "organized",
+              "dust_protected"
+            ],
+            "reasons": "Utensils are stored in closed drawer compartments, keeping them organized and protected from dust for easy access in future tasks."
+          },
+          {
+            "object_name": "kitchen_counter",
+            "affordance_types": [
+              "usable_for_preparation"
+            ],
+            "reasons": "The clear counter provides unobstructed space for food preparation, serving, or placing additional kitchen items."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "both_hands"
+        ],
+        "materials": [
+          "clean_utensils",
+          "kitchen_drawer",
+          "kitchen_items"
+        ],
+        "hotspot": {
+          "description": "Kitchen drawer handle and frame",
+          "affordance_type": "closure_mechanism",
+          "mechanism": "Hands apply downward force on the drawer handle, guiding it along the frame tracks to close the drawer, which secures the utensils inside and prevents dust from entering."
+        }
+      }
+    }
+  ]
+}

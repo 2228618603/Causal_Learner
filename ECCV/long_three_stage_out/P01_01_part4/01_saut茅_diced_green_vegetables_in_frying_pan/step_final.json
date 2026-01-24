@@ -1,0 +1,273 @@
+{
+  "step_id": 1,
+  "step_goal": "Sauté diced green vegetables in frying pan",
+  "rationale": "Softening the diced green vegetables through sautéing breaks down their cellular structure, releases natural aromatic compounds, and creates a tender, flavorful base that integrates seamlessly with subsequent ingredients like grated carrot and red onion.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "stir and sauté diced green vegetables using a spatula",
+    "patient": "diced_green_vegetables",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "frying_pan",
+          "electric_stove"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "inside",
+        "objects": [
+          "diced_green_vegetables",
+          "frying_pan"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "spatula"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "frying_pan",
+        "affordance_types": [
+          "heat_conductive"
+        ],
+        "reasons": "The metal frying pan is placed on an active electric stove, enabling efficient heat transfer to cook the vegetables."
+      },
+      {
+        "object_name": "spatula",
+        "affordance_types": [
+          "stirrable"
+        ],
+        "reasons": "The flat, rigid spatula can apply force to move and flip the diced vegetables for even cooking."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "evenly_distributed",
+        "objects": [
+          "diced_green_vegetables",
+          "frying_pan"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "softened",
+        "objects": [
+          "diced_green_vegetables"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "diced_green_vegetables",
+        "affordance_types": [
+          "flavor_released",
+          "tender_texture"
+        ],
+        "reasons": "Applied heat breaks down vegetable cell walls, releasing aromatic compounds and softening the fibrous structure for a palatable texture."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the electric stove was not turned on before placing the frying pan with diced green vegetables?",
+  "expected_challenge_outcome": "The diced green vegetables would remain raw, firm, and unflavored, as no heat would transfer to the pan to break down their cellular structure or release aromatic compounds.",
+  "failure_reflecting": {
+    "reason": "Diced green vegetables stick to the bottom of the frying pan due to insufficient oil and infrequent stirring, leading to uneven cooking and potential burning.",
+    "recovery_strategy": "Add a small amount of cooking oil to the pan, increase the stove heat slightly, and stir the vegetables continuously with the spatula to lift stuck pieces and ensure uniform heat distribution."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands initiate stirring the diced green vegetables in the frying pan, starting the sautéing process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "stir and sauté diced green vegetables using a spatula",
+        "patient": "diced_green_vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "electric_stove"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "diced_green_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive"
+            ],
+            "reasons": "The metal frying pan is placed on an active electric stove, enabling efficient heat transfer to cook the vegetables."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "stirrable"
+            ],
+            "reasons": "The flat, rigid spatula can apply force to move and flip the diced vegetables for even cooking."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving_toward",
+            "objects": [
+              "diced_green_vegetables",
+              "even_distribution"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "softening",
+            "objects": [
+              "diced_green_vegetables"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "diced_green_vegetables",
+            "affordance_types": [
+              "in_motion",
+              "heat_exposed"
+            ],
+            "reasons": "Stirring moves the vegetables to expose them to uniform pan heat, initiating cellular breakdown and softening."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "spatula"
+        ],
+        "materials": [
+          "diced_green_vegetables",
+          "frying_pan"
+        ],
+        "hotspot": {
+          "description": "spatula's flat edge and frying pan's inner cooking surface",
+          "affordance_type": "stir_contact_surface",
+          "mechanism": "Friction between the spatula's edge and vegetables, combined with pan heat, moves the vegetables to ensure even exposure to cooking heat."
+        }
+      }
+    },
+    {
+      "frame_index": 28,
+      "action_state_change_description": "Diced green vegetables are evenly distributed in the frying pan, showing visible softening and steam release, indicating completion of the initial sautéing phase.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "stir and sauté diced green vegetables using a spatula",
+        "patient": "diced_green_vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "electric_stove"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "diced_green_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive"
+            ],
+            "reasons": "The metal frying pan is placed on an active electric stove, enabling efficient heat transfer to cook the vegetables."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "stirrable"
+            ],
+            "reasons": "The flat, rigid spatula can apply force to move and flip the diced vegetables for even cooking."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "evenly_distributed",
+            "objects": [
+              "diced_green_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "softened",
+            "objects": [
+              "diced_green_vegetables"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "diced_green_vegetables",
+            "affordance_types": [
+              "flavor_released",
+              "tender_texture"
+            ],
+            "reasons": "Sustained heat exposure and stirring break down vegetable cell walls, releasing aromatic compounds and creating a tender texture suitable for integrating with additional ingredients."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "spatula"
+        ],
+        "materials": [
+          "diced_green_vegetables",
+          "frying_pan"
+        ],
+        "hotspot": {
+          "description": "frying pan's inner cooking surface",
+          "affordance_type": "heat_transfer_surface",
+          "mechanism": "Conductive heat from the pan cooks the softened vegetables, releasing steam and aromatic compounds that enhance the base flavor."
+        }
+      }
+    }
+  ]
+}

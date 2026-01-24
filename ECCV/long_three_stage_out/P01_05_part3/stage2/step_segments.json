@@ -1,0 +1,82 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_05_part3.MP4",
+  "video_id": "P01_05_part3",
+  "generated_at_utc": "2026-01-23T14:31:38.870069Z",
+  "num_frames": 50,
+  "cut": {
+    "mode": "reencode",
+    "seek_slop_sec": 1.0,
+    "crf": 18,
+    "preset": "veryfast",
+    "keep_audio": false,
+    "ffmpeg_bin": "ffmpeg"
+  },
+  "segments": [
+    {
+      "step_id": 1,
+      "step_goal": "Pour hot water into a stainless steel pot on the stove",
+      "start_frame_index": 6,
+      "end_frame_index": 11,
+      "start_sec": 18.36836836836837,
+      "end_sec": 36.73673673673674,
+      "start_image_relpath": "sampled_frames/sample_006_ts_18.37s.jpg",
+      "end_image_relpath": "sampled_frames/sample_011_ts_36.74s.jpg",
+      "clip_relpath": "step_clips/step01_pour_hot_water_into_a_stainless_steel_pot_on_the_stove.mp4"
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Add salt to the hot water in the pot",
+      "start_frame_index": 11,
+      "end_frame_index": 16,
+      "start_sec": 36.73673673673674,
+      "end_sec": 55.088421755088426,
+      "start_image_relpath": "sampled_frames/sample_011_ts_36.74s.jpg",
+      "end_image_relpath": "sampled_frames/sample_016_ts_55.09s.jpg",
+      "clip_relpath": "step_clips/step02_add_salt_to_the_hot_water_in_the_pot.mp4"
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Transfer sliced potatoes into the seasoned pot",
+      "start_frame_index": 16,
+      "end_frame_index": 21,
+      "start_sec": 55.088421755088426,
+      "end_sec": 73.4567901234568,
+      "start_image_relpath": "sampled_frames/sample_016_ts_55.09s.jpg",
+      "end_image_relpath": "sampled_frames/sample_021_ts_73.46s.jpg",
+      "clip_relpath": "step_clips/step03_transfer_sliced_potatoes_into_the_seasoned_pot.mp4"
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Open the plastic packaging of sausages",
+      "start_frame_index": 21,
+      "end_frame_index": 28,
+      "start_sec": 73.4567901234568,
+      "end_sec": 99.16583249916583,
+      "start_image_relpath": "sampled_frames/sample_021_ts_73.46s.jpg",
+      "end_image_relpath": "sampled_frames/sample_028_ts_99.17s.jpg",
+      "clip_relpath": "step_clips/step04_open_the_plastic_packaging_of_sausages.mp4"
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Slice bread into individual portions on a cutting board",
+      "start_frame_index": 34,
+      "end_frame_index": 45,
+      "start_sec": 121.20453787120454,
+      "end_sec": 161.6116116116116,
+      "start_image_relpath": "sampled_frames/sample_034_ts_121.20s.jpg",
+      "end_image_relpath": "sampled_frames/sample_045_ts_161.61s.jpg",
+      "clip_relpath": "step_clips/step05_slice_bread_into_individual_portions_on_a_cutting_board.mp4"
+    },
+    {
+      "step_id": 6,
+      "step_goal": "Set the dining table with placemats and plates",
+      "start_frame_index": 45,
+      "end_frame_index": 51,
+      "start_sec": 161.6116116116116,
+      "end_sec": 183.6503169836503,
+      "start_image_relpath": "sampled_frames/sample_045_ts_161.61s.jpg",
+      "end_image_relpath": "sampled_frames/sample_050_ts_179.98s.jpg",
+      "clip_relpath": "step_clips/step06_set_the_dining_table_with_placemats_and_plates.mp4"
+    }
+  ]
+}

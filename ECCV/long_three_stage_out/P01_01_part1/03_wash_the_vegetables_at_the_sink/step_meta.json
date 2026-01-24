@@ -1,0 +1,10 @@
+{
+  "step_id": 3,
+  "step_goal": "Wash the vegetables at the sink.",
+  "clip_path": "../stage2/step_clips/step03_wash_the_vegetables_at_the_sink.mp4",
+  "clip_start_sec": 36.73673673673674,
+  "clip_end_sec": 84.48448448448448,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:07:24.302813Z",
+  "manifest_path": "frame_manifest.json"
+}

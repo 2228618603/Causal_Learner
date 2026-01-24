@@ -1,0 +1,1536 @@
+{
+  "high_level_goal": "To thoroughly clean all used kitchen utensils, cookware, dishes, and cleaning tools, then tidy the sink area and dry hands for a sanitized kitchen workspace.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Scrub and rinse metal box grater",
+      "rationale": "Food residue trapped in the grater's sharp perforations can harbor bacteria, so scrubbing and rinsing removes these particles to sanitize the tool, prevent cross-contamination, and restore its functionality for future food preparation tasks.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub all grating surfaces under running water, rotate to access all sides",
+        "patient": "metal_box_grater",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "metal_box_grater"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "under_running_water",
+            "objects": [
+              "metal_box_grater",
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_box_grater",
+            "affordance_types": [
+              "grating_surfaces_accessible"
+            ],
+            "reasons": "The grater's box shape allows all sides to be rotated into reach for direct scrubbing by hands."
+          },
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_dispensing"
+            ],
+            "reasons": "Visible continuous water flow from the faucet provides the necessary medium to rinse away dislodged food residue."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "free_of_food_residue",
+            "objects": [
+              "metal_box_grater"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "metal_box_grater",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "metal_box_grater",
+            "affordance_types": [
+              "sanitized",
+              "food_prep_ready"
+            ],
+            "reasons": "All visible food residue is removed, eliminating bacterial hiding spots and restoring the grater's ability to safely and effectively shred food."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the grater was not rotated to access all its sides during the scrubbing process?",
+      "expected_challenge_outcome": "Food residue would remain trapped on the un-scrubbed grating surfaces, creating a breeding ground for bacteria that could contaminate future food items processed with the grater.",
+      "failure_reflecting": {
+        "reason": "Tough, dried-on food residue is stuck in the grater's smallest perforations that cannot be dislodged by hand scrubbing alone.",
+        "recovery_strategy": "Use a small, stiff-bristled brush to agitate the stuck residue, then rinse the grater thoroughly under running water to wash away the loosened particles."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Hands grasp the metal box grater under running water and begin scrubbing its visible grating surfaces.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub all grating surfaces under running water, rotate to access all sides",
+            "patient": "metal_box_grater",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "metal_box_grater"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "under_running_water",
+                "objects": [
+                  "metal_box_grater",
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "metal_box_grater",
+                "affordance_types": [
+                  "grating_surfaces_accessible"
+                ],
+                "reasons": "The grater's current orientation presents its largest grating surface directly to the hands for scrubbing."
+              },
+              {
+                "object_name": "kitchen_faucet",
+                "affordance_types": [
+                  "water_dispensing"
+                ],
+                "reasons": "Continuous water flow from the faucet is available to rinse dislodged residue as scrubbing begins."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "being_scrubbed",
+                "objects": [
+                  "hands",
+                  "metal_box_grater"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "residue_dislodged",
+                "objects": [
+                  "metal_box_grater"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "metal_box_grater",
+                "affordance_types": [
+                  "residue_loosened"
+                ],
+                "reasons": "Friction from hands scrubbing the grating surfaces begins to break down and dislodge trapped food residue."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "metal_box_grater"
+            ],
+            "hotspot": {
+              "description": "Perforated grating surfaces on the side of the metal box grater",
+              "affordance_type": "scrub_target",
+              "mechanism": "Friction between skin and the grating edges dislodges trapped food particles, which are then rinsed away by running water."
+            }
+          }
+        },
+        {
+          "frame_index": 44,
+          "action_state_change_description": "The metal box grater is free of visible food residue and is being moved toward the dish rack for drying.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub all grating surfaces under running water, rotate to access all sides",
+            "patient": "metal_box_grater",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "free_of_food_residue",
+                "objects": [
+                  "metal_box_grater"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "metal_box_grater"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "metal_box_grater",
+                "affordance_types": [
+                  "sanitized"
+                ],
+                "reasons": "All grating surfaces have been scrubbed and rinsed to remove residue, ensuring the grater is clean."
+              },
+              {
+                "object_name": "kitchen_dish_rack",
+                "affordance_types": [
+                  "available_for_placement"
+                ],
+                "reasons": "The dish rack is positioned nearby and has space to hold the grater for air drying."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "in_dish_rack",
+                "objects": [
+                  "metal_box_grater",
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "no_longer_under_water",
+                "objects": [
+                  "metal_box_grater",
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "metal_box_grater",
+                "affordance_types": [
+                  "food_prep_ready"
+                ],
+                "reasons": "The grater is fully cleaned and placed in the dish rack to dry, ready for future food preparation tasks."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "metal_box_grater"
+            ],
+            "hotspot": {
+              "description": "Metal handle on the top of the metal box grater",
+              "affordance_type": "grasp_point",
+              "mechanism": "A secure grip on the handle allows the clean grater to be safely lifted and moved to the dish rack without contact with the sharp grating surfaces."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Rinse and scrub metal strainer",
+      "rationale": "This step eliminates trapped food particles and residue from the metal strainer's mesh, preventing bacterial growth and ensuring the strainer can effectively separate solids from liquids in future use. It also prepares the strainer for storage or immediate reuse.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub mesh surface under running water, agitate to dislodge trapped residue",
+        "patient": "metal_strainer",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "metal_strainer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "running",
+            "objects": [
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_strainer",
+            "affordance_types": [
+              "scrubbable"
+            ],
+            "reasons": "Rigid metal mesh construction is visible, confirming it can withstand hand scrubbing without damage to the strainer structure."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "mesh_clear",
+            "objects": [
+              "metal_strainer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "metal_strainer",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "metal_strainer",
+            "affordance_types": [
+              "straining_ready"
+            ],
+            "reasons": "Mesh is free of blockages, allowing liquid to pass through effectively while capturing solid particles as intended."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the strainer was not held under running water while scrubbing?",
+      "expected_challenge_outcome": "Dislodged food particles would re-settle in the mesh gaps, leaving the strainer still clogged and unable to function properly.",
+      "failure_reflecting": {
+        "reason": "Fine food particles remain trapped in mesh gaps after initial cleaning.",
+        "recovery_strategy": "Soak the strainer in a solution of vinegar and warm water for 10 minutes, then rinse and scrub with a brush under running water."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 2,
+          "action_state_change_description": "Hands grasp the metal strainer and position it under running water to initiate scrubbing and rinsing.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub mesh surface under running water, agitate to dislodge trapped residue",
+            "patient": "metal_strainer",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "metal_strainer"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "running",
+                "objects": [
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "metal_strainer",
+                "affordance_types": [
+                  "scrubbable"
+                ],
+                "reasons": "Rigid metal mesh construction is visible, confirming it can withstand hand scrubbing without damage to the strainer structure."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "mesh_clear",
+                "objects": [
+                  "metal_strainer"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "in_dish_rack",
+                "objects": [
+                  "metal_strainer",
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "metal_strainer",
+                "affordance_types": [
+                  "straining_ready"
+                ],
+                "reasons": "Mesh is free of blockages, allowing liquid to pass through effectively while capturing solid particles as intended."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "metal_strainer"
+            ],
+            "hotspot": {
+              "description": "Metal mesh surface and wire handle",
+              "affordance_type": "grasp_point_scrub_surface",
+              "mechanism": "Friction from hand contact with mesh dislodges trapped particles, while running water carries debris away from the strainer."
+            }
+          }
+        },
+        {
+          "frame_index": 43,
+          "action_state_change_description": "The clean metal strainer is placed into the dish rack, completing the rinsing and scrubbing process.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub mesh surface under running water, agitate to dislodge trapped residue",
+            "patient": "metal_strainer",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "metal_strainer"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "running",
+                "objects": [
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "metal_strainer",
+                "affordance_types": [
+                  "scrubbable"
+                ],
+                "reasons": "Rigid metal mesh construction is visible, confirming it can withstand hand scrubbing without damage to the strainer structure."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "mesh_clear",
+                "objects": [
+                  "metal_strainer"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "in_dish_rack",
+                "objects": [
+                  "metal_strainer",
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "metal_strainer",
+                "affordance_types": [
+                  "straining_ready"
+                ],
+                "reasons": "Mesh is free of blockages, allowing liquid to pass through effectively while capturing solid particles as intended."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "metal_strainer"
+            ],
+            "hotspot": {
+              "description": "Metal strainer rim and wire handle",
+              "affordance_type": "placement_surface_grasp_point",
+              "mechanism": "Gravity holds the strainer in the dish rack's slots, allowing residual water to drain and the strainer to air-dry completely."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Wash spatula, pot, and frying pan",
+      "rationale": "Removes cooking oil and burned food residue from cookware and utensils, preventing rancidity and maintaining their functional properties like non-stick surfaces, ensuring safe and effective use in future cooking.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub with sponge, rinse under running water, rotate to clean all interior and exterior surfaces",
+        "patient": "assorted_cookware_utensils",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "in_sink",
+            "objects": [
+              "black_frying_pan",
+              "kitchen_sink"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "stainless_steel_pot",
+              "ceramic_plate"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "flowing",
+            "objects": [
+              "kitchen_faucet",
+              "water"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_sponge",
+            "affordance_types": [
+              "abrasive_scrubbing"
+            ],
+            "reasons": "Visible rough scrubbing side on the sponge confirms it can dislodge stuck-on food residue without scratching non-stick cookware surfaces."
+          },
+          {
+            "object_name": "assorted_cookware_utensils",
+            "affordance_types": [
+              "reachable"
+            ],
+            "reasons": "Cookware and utensils are positioned near the sink and running faucet for easy access to water and cleaning tools."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "free_of_food_residue",
+            "objects": [
+              "black_spatula",
+              "stainless_steel_pot",
+              "black_frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "black_spatula",
+              "stainless_steel_pot",
+              "black_frying_pan",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "assorted_cookware_utensils",
+            "affordance_types": [
+              "cooking_ready",
+              "non_stick_maintained"
+            ],
+            "reasons": "All food residue and cooking oil are removed, eliminating contamination risks and preserving the non-stick properties of the frying pan for future use."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if no dish soap was used when scrubbing the cookware and utensils?",
+      "expected_challenge_outcome": "Cooking oil and greasy food residue would not be fully removed, as water alone cannot break down oil-based substances, leaving a sticky film that can attract dirt and cause rancidity over time.",
+      "failure_reflecting": {
+        "reason": "A worn-out sponge fails to dislodge burned food residue from the frying pan's non-stick surface, leaving visible spots after washing.",
+        "recovery_strategy": "Replace the worn sponge with a new abrasive scrub sponge, re-scrub the affected areas of the frying pan under running water to remove remaining residue."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Hands begin scrubbing the black spatula inside the soapy black frying pan under running water, initiating the cleaning process for the cookware and utensils.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub with sponge, rinse under running water, rotate to clean all interior and exterior surfaces",
+            "patient": "assorted_cookware_utensils",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "in_sink",
+                "objects": [
+                  "black_frying_pan",
+                  "kitchen_sink"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "stainless_steel_pot",
+                  "ceramic_plate"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "flowing",
+                "objects": [
+                  "kitchen_faucet",
+                  "water"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "kitchen_sponge",
+                "affordance_types": [
+                  "abrasive_scrubbing"
+                ],
+                "reasons": "Visible rough surface on the sponge allows dislodging stuck food without scratching cookware."
+              },
+              {
+                "object_name": "assorted_cookware_utensils",
+                "affordance_types": [
+                  "reachable"
+                ],
+                "reasons": "Cookware and utensils are positioned near the sink and faucet for easy access to cleaning resources."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "being_scrubbed",
+                "objects": [
+                  "black_spatula",
+                  "kitchen_sponge"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "black_spatula",
+                "affordance_types": [
+                  "residue_being_removed"
+                ],
+                "reasons": "Friction between the sponge and spatula surface dislodges cooking oil and food particles."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "kitchen_sponge"
+            ],
+            "materials": [
+              "assorted_cookware_utensils",
+              "black_spatula",
+              "black_frying_pan",
+              "water"
+            ],
+            "hotspot": {
+              "description": "Black spatula's flat head surface",
+              "affordance_type": "scrub_surface",
+              "mechanism": "Mechanical friction between the sponge's abrasive side and the spatula's surface dislodges stuck-on food residue."
+            }
+          }
+        },
+        {
+          "frame_index": 50,
+          "action_state_change_description": "The black frying pan is placed into the kitchen dish rack, completing the cleaning of the spatula, pot, and frying pan, with all items now free of residue and positioned for drying.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub with sponge, rinse under running water, rotate to clean all interior and exterior surfaces",
+            "patient": "assorted_cookware_utensils",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "free_of_food_residue",
+                "objects": [
+                  "black_spatula",
+                  "stainless_steel_pot",
+                  "black_frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "reachable",
+                "objects": [
+                  "kitchen_dish_rack",
+                  "black_frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "kitchen_dish_rack",
+                "affordance_types": [
+                  "drying_support"
+                ],
+                "reasons": "The dish rack has open slots to hold cookware and allow air circulation for drying."
+              },
+              {
+                "object_name": "assorted_cookware_utensils",
+                "affordance_types": [
+                  "cleaned"
+                ],
+                "reasons": "All visible food residue and oil have been removed from the cookware and utensils."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "in_dish_rack",
+                "objects": [
+                  "black_frying_pan",
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "assorted_cookware_utensils",
+                "affordance_types": [
+                  "drying_ready",
+                  "cooking_ready"
+                ],
+                "reasons": "All cleaned items are positioned in the dish rack for air drying, ready for safe use in future cooking tasks."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "assorted_cookware_utensils",
+              "black_frying_pan"
+            ],
+            "hotspot": {
+              "description": "Black frying pan's handle",
+              "affordance_type": "grasp_point",
+              "mechanism": "Friction between hands and the pan's handle allows secure gripping, lifting, and placement of the pan into the dish rack."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Wash knife, fork, and ceramic dish",
+      "rationale": "This step removes food residue, grease, and contaminants from the knife, fork, and ceramic dish, ensuring they are hygienically safe for future food handling and preventing bacterial growth. Clean utensils and dishes also maintain kitchen cleanliness and avoid cross-contamination with other food items.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub with hands and rinse under running water to remove food residue and grease",
+        "patient": "knife_fork_ceramic_dish",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "in_sink",
+            "objects": [
+              "knife",
+              "fork",
+              "kitchen_sink"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_counter",
+            "objects": [
+              "ceramic_dish",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "running",
+            "objects": [
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "knife",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The knife has a solid handle that allows secure gripping during washing."
+          },
+          {
+            "object_name": "fork",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The fork's handle provides a stable grip for scrubbing."
+          },
+          {
+            "object_name": "ceramic_dish",
+            "affordance_types": [
+              "water_resistant"
+            ],
+            "reasons": "Glazed ceramic surface is visible, confirming it can withstand water exposure without damage."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "free_of_residue",
+            "objects": [
+              "knife",
+              "fork",
+              "ceramic_dish"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "knife",
+              "fork",
+              "ceramic_dish",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "wet",
+            "objects": [
+              "knife",
+              "fork",
+              "ceramic_dish"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "knife_fork_ceramic_dish",
+            "affordance_types": [
+              "sanitized",
+              "ready_for_use"
+            ],
+            "reasons": "All visible residue has been removed via scrubbing and rinsing, making them safe for food handling."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the ceramic dish had dried-on food residue and no dish soap was used during washing?",
+      "expected_challenge_outcome": "The dried-on residue would not be fully removed by water alone, as water lacks surfactant properties to break down hardened food particles, leaving the dish unhygienic and prone to bacterial growth.",
+      "failure_reflecting": {
+        "reason": "Food residue remains trapped in the fork’s tines or the dish’s crevices due to insufficient scrubbing pressure or missed spots during washing.",
+        "recovery_strategy": "Re-scrub the affected areas with a sponge under running water, focusing on the fork’s tines and dish crevices to dislodge remaining residue, then rinse thoroughly."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Hands begin scrubbing the knife under running water, initiating the washing process for the knife, fork, and ceramic dish.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub with hands and rinse under running water to remove food residue and grease",
+            "patient": "knife_fork_ceramic_dish",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "knife"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "running",
+                "objects": [
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "in_sink",
+                "objects": [
+                  "fork",
+                  "kitchen_sink"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_counter",
+                "objects": [
+                  "ceramic_dish",
+                  "kitchen_counter"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "knife",
+                "affordance_types": [
+                  "graspable"
+                ],
+                "reasons": "The knife's handle is visible and provides a secure grip for washing."
+              },
+              {
+                "object_name": "kitchen_faucet",
+                "affordance_types": [
+                  "water_flowing"
+                ],
+                "reasons": "Water is visibly flowing from the faucet, enabling rinsing."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "wet",
+                "objects": [
+                  "knife"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "moving",
+                "objects": [
+                  "knife"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "knife",
+                "affordance_types": [
+                  "being_cleaned"
+                ],
+                "reasons": "Scrubbing and rinsing are actively removing residue from the knife's surface."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "knife_fork_ceramic_dish"
+            ],
+            "hotspot": {
+              "description": "knife handle and blade surface",
+              "affordance_type": "grasp_point_and_clean_surface",
+              "mechanism": "Friction from hand scrubbing dislodges food residue from the blade, while flowing water rinses away loosened particles; the handle provides a stable grip to apply consistent scrubbing force."
+            }
+          }
+        },
+        {
+          "frame_index": 46,
+          "action_state_change_description": "The ceramic dish is placed in the dish rack, completing the washing process for all three items, which are now free of visible residue and positioned to air dry.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub with hands and rinse under running water to remove food residue and grease",
+            "patient": "knife_fork_ceramic_dish",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "wet",
+                "objects": [
+                  "knife",
+                  "fork",
+                  "ceramic_dish"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "held_by_hands",
+                "objects": [
+                  "ceramic_dish",
+                  "hands"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "accessible",
+                "objects": [
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "ceramic_dish",
+                "affordance_types": [
+                  "cleaned"
+                ],
+                "reasons": "All visible food residue has been removed from the dish's surface."
+              },
+              {
+                "object_name": "kitchen_dish_rack",
+                "affordance_types": [
+                  "available_for_placing"
+                ],
+                "reasons": "The dish rack is empty and positioned to hold washed items for drying."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "in_dish_rack",
+                "objects": [
+                  "knife",
+                  "fork",
+                  "ceramic_dish",
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "free_of_residue",
+                "objects": [
+                  "knife",
+                  "fork",
+                  "ceramic_dish"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "knife_fork_ceramic_dish",
+                "affordance_types": [
+                  "sanitized",
+                  "ready_for_drying"
+                ],
+                "reasons": "All items are clean and placed in the rack to air dry, making them safe for future use or storage."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "knife_fork_ceramic_dish"
+            ],
+            "hotspot": {
+              "description": "ceramic dish rim",
+              "affordance_type": "grasp_point",
+              "mechanism": "The dish's rim provides a secure, non-slip grip to lift and position the dish in the rack, ensuring stable handling without damaging the cleaned surface."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Rinse and scrub green cutting board",
+      "rationale": "Removes food particles and bacteria from the cutting board's surface, preventing cross-contamination between different types of food during future preparation, and ensuring the board is sanitized for subsequent use.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub both sides of the cutting board under running water, then place it in the dish rack",
+        "patient": "green_plastic_cutting_board",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "green_plastic_cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "flowing",
+            "objects": [
+              "kitchen_faucet"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "positioned_under",
+            "objects": [
+              "green_plastic_cutting_board",
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "green_plastic_cutting_board",
+            "affordance_types": [
+              "scrubbable",
+              "graspable"
+            ],
+            "reasons": "Rigid plastic construction is visible, confirming it can withstand hand scrubbing without warping, and its flat edges allow secure grasping for manipulation."
+          },
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_providing"
+            ],
+            "reasons": "Water is flowing from the faucet, providing the necessary medium for rinsing and removing loosened residue."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "free_of_food_residue",
+            "objects": [
+              "green_plastic_cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "placed_in",
+            "objects": [
+              "green_plastic_cutting_board",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "stationary",
+            "objects": [
+              "green_plastic_cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "green_plastic_cutting_board",
+            "affordance_types": [
+              "food_prep_ready",
+              "dryable"
+            ],
+            "reasons": "Both sides of the cutting board are clean, eliminating cross-contamination risk, and its position in the dish rack allows air circulation for complete drying."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if only one side of the cutting board was cleaned?",
+      "expected_challenge_outcome": "Food residue and bacteria would remain on the unwashed side, leading to cross-contamination when the board is next used, as the unclean surface would come into contact with other foods during preparation.",
+      "failure_reflecting": {
+        "reason": "Food residue is stuck in the cutting board's surface grooves and not removed by initial scrubbing.",
+        "recovery_strategy": "Apply a small amount of dish soap to a sponge, scrub the residue-stuck areas with firm circular motions, then rinse thoroughly under running water to remove both residue and soap."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Hands grasp the green plastic cutting board and position it under running water to initiate rinsing and scrubbing.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub both sides of the cutting board under running water, then place it in the dish rack",
+            "patient": "green_plastic_cutting_board",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "green_plastic_cutting_board"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "flowing",
+                "objects": [
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "positioned_under",
+                "objects": [
+                  "green_plastic_cutting_board",
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "green_plastic_cutting_board",
+                "affordance_types": [
+                  "scrubbable",
+                  "graspable"
+                ],
+                "reasons": "Rigid plastic construction is visible, confirming it can withstand hand scrubbing without warping, and its flat edges allow secure grasping for manipulation."
+              },
+              {
+                "object_name": "kitchen_faucet",
+                "affordance_types": [
+                  "water_providing"
+                ],
+                "reasons": "Water is flowing from the faucet, providing the necessary medium for rinsing and removing loosened residue."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "being_rinsed",
+                "objects": [
+                  "green_plastic_cutting_board"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "in_motion",
+                "objects": [
+                  "green_plastic_cutting_board"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "green_plastic_cutting_board",
+                "affordance_types": [
+                  "being_cleaned"
+                ],
+                "reasons": "Running water and manual scrubbing are actively removing food particles and residue from the board's surface."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "green_plastic_cutting_board",
+              "tap_water"
+            ],
+            "hotspot": {
+              "description": "flat edge of green plastic cutting board",
+              "affordance_type": "grasp_point",
+              "mechanism": "Friction between hands and the cutting board's flat edge provides a secure grip, allowing controlled manipulation and positioning under running water for rinsing and scrubbing."
+            }
+          }
+        },
+        {
+          "frame_index": 44,
+          "action_state_change_description": "The cleaned green plastic cutting board is moved toward the dish rack to be placed for drying.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "scrub both sides of the cutting board under running water, then place it in the dish rack",
+            "patient": "green_plastic_cutting_board",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "free_of_food_residue",
+                "objects": [
+                  "green_plastic_cutting_board"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "accessible",
+                "objects": [
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "green_plastic_cutting_board"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "green_plastic_cutting_board",
+                "affordance_types": [
+                  "clean"
+                ],
+                "reasons": "The cutting board's surfaces are visibly free of food residue after thorough rinsing and scrubbing."
+              },
+              {
+                "object_name": "kitchen_dish_rack",
+                "affordance_types": [
+                  "storage_capable"
+                ],
+                "reasons": "The dish rack has open slots designed to hold kitchen items and facilitate air circulation for drying."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "placed_in",
+                "objects": [
+                  "green_plastic_cutting_board",
+                  "kitchen_dish_rack"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "stationary",
+                "objects": [
+                  "green_plastic_cutting_board"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "green_plastic_cutting_board",
+                "affordance_types": [
+                  "food_prep_ready",
+                  "dryable"
+                ],
+                "reasons": "Both sides of the cutting board are clean, eliminating cross-contamination risk, and its position in the dish rack allows air circulation for complete drying."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "green_plastic_cutting_board"
+            ],
+            "hotspot": {
+              "description": "slotted section of kitchen dish rack",
+              "affordance_type": "storage_slot",
+              "mechanism": "The dish rack's slotted section provides structural support to hold the cutting board in an upright position, allowing air to circulate around all surfaces for efficient, even drying."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 6,
+      "step_goal": "Clean tools, tidy sink, and dry hands",
+      "rationale": "Ensures cleaning tools are sanitized, the sink area is tidy, and hands are dry to prevent water damage, bacterial transfer, and maintain a clean kitchen workspace.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "wash sponge and cloth, wipe sink and counter surfaces, dry hands with clean cloth",
+        "patient": "cleaning_tools_and_surfaces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "in_sink",
+            "objects": [
+              "kitchen_sponge",
+              "kitchen_sink"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "blue_cleaning_cloth",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "running",
+            "objects": [
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "blue_cleaning_cloth",
+            "affordance_types": [
+              "absorbent"
+            ],
+            "reasons": "Soft, fibrous fabric is visible, confirming it can absorb water effectively to dry hands and wipe surfaces."
+          },
+          {
+            "object_name": "kitchen_sponge",
+            "affordance_types": [
+              "washable"
+            ],
+            "reasons": "Porous, dual-sided (scrubber and sponge) structure is visible, allowing it to be rinsed free of soap and food residue."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "free_of_soap_residue",
+            "objects": [
+              "kitchen_sink",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "dry",
+            "objects": [
+              "hands"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "kitchen_sponge",
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "kitchen_sponge",
+            "affordance_types": [
+              "ready_for_cleaning"
+            ],
+            "reasons": "Sponge is rinsed free of food residue and soap, ready for use in future kitchen cleaning tasks."
+          },
+          {
+            "object_name": "blue_cleaning_cloth",
+            "affordance_types": [
+              "ready_for_tidying"
+            ],
+            "reasons": "Cloth is clean and dry, ready to wipe up spills or dry surfaces as needed in the kitchen."
+          },
+          {
+            "object_name": "hands",
+            "affordance_types": [
+              "dry",
+              "safe_to_handle_objects"
+            ],
+            "reasons": "Hands are dried completely, preventing water damage to objects and bacterial transfer."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the cleaning cloth was not rinsed before drying hands?",
+      "expected_challenge_outcome": "Soap residue on the cloth would transfer to hands, leaving them sticky and increasing the risk of bacterial transfer to other surfaces.",
+      "failure_reflecting": {
+        "reason": "Water spots and soap residue remain on the sink counter after wiping.",
+        "recovery_strategy": "Use a dry portion of the blue cleaning cloth to wipe the sink counter again, ensuring all water spots and soap residue are completely removed."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Hands grasp the kitchen sponge under running faucet water, initiating the cleaning of tools.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "wash sponge and cloth, wipe sink and counter surfaces, dry hands with clean cloth",
+            "patient": "cleaning_tools_and_surfaces",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "kitchen_sponge"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "running",
+                "objects": [
+                  "kitchen_faucet"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "kitchen_sponge",
+                "affordance_types": [
+                  "washable"
+                ],
+                "reasons": "Porous structure is visible, allowing it to be rinsed free of residue."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "wet",
+                "objects": [
+                  "kitchen_sponge"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "kitchen_sponge",
+                "affordance_types": [
+                  "being_cleaned"
+                ],
+                "reasons": "Water is flowing over the sponge, removing soap and food residue."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "kitchen_sponge",
+              "cleaning_tools_and_surfaces"
+            ],
+            "hotspot": {
+              "description": "sponge scrubbing surface",
+              "affordance_type": "scrub_point",
+              "mechanism": "Water flow and manual squeezing dislodge residue from the sponge's porous structure."
+            }
+          }
+        },
+        {
+          "frame_index": 50,
+          "action_state_change_description": "Blue cleaning cloth wipes the kitchen counter edge, completing the tidying of the sink area and drying of hands.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "wash sponge and cloth, wipe sink and counter surfaces, dry hands with clean cloth",
+            "patient": "cleaning_tools_and_surfaces",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "dry",
+                "objects": [
+                  "hands"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "free_of_residue",
+                "objects": [
+                  "kitchen_sink"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "blue_cleaning_cloth",
+                "affordance_types": [
+                  "absorbent"
+                ],
+                "reasons": "Fibrous fabric is visible, allowing it to wipe and dry surfaces."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "free_of_water_spots",
+                "objects": [
+                  "kitchen_counter"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "kitchen_counter",
+                "affordance_types": [
+                  "tidy",
+                  "sanitized"
+                ],
+                "reasons": "All water spots and residue are removed, leaving the counter clean and dry."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "blue_cleaning_cloth",
+              "kitchen_counter",
+              "cleaning_tools_and_surfaces"
+            ],
+            "hotspot": {
+              "description": "counter edge surface",
+              "affordance_type": "wipe_surface",
+              "mechanism": "Friction between the cloth and counter transfers water and residue to the cloth, leaving the surface dry."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

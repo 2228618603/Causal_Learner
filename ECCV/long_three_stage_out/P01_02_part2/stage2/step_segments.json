@@ -1,0 +1,82 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_02_part2.MP4",
+  "video_id": "P01_02_part2",
+  "generated_at_utc": "2026-01-23T14:15:14.925737Z",
+  "num_frames": 50,
+  "cut": {
+    "mode": "reencode",
+    "seek_slop_sec": 1.0,
+    "crf": 18,
+    "preset": "veryfast",
+    "keep_audio": false,
+    "ffmpeg_bin": "ffmpeg"
+  },
+  "segments": [
+    {
+      "step_id": 1,
+      "step_goal": "Scrub and rinse metal box grater",
+      "start_frame_index": 2,
+      "end_frame_index": 7,
+      "start_sec": 3.6703370036703373,
+      "end_sec": 22.038705372038706,
+      "start_image_relpath": "sampled_frames/sample_002_ts_3.67s.jpg",
+      "end_image_relpath": "sampled_frames/sample_007_ts_22.04s.jpg",
+      "clip_relpath": "step_clips/step01_scrub_and_rinse_metal_box_grater.mp4"
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Rinse and scrub metal strainer",
+      "start_frame_index": 7,
+      "end_frame_index": 12,
+      "start_sec": 22.038705372038706,
+      "end_sec": 40.40707374040708,
+      "start_image_relpath": "sampled_frames/sample_007_ts_22.04s.jpg",
+      "end_image_relpath": "sampled_frames/sample_012_ts_40.41s.jpg",
+      "clip_relpath": "step_clips/step02_rinse_and_scrub_metal_strainer.mp4"
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Wash spatula, pot, and frying pan",
+      "start_frame_index": 12,
+      "end_frame_index": 31,
+      "start_sec": 40.40707374040708,
+      "end_sec": 110.19352686019353,
+      "start_image_relpath": "sampled_frames/sample_012_ts_40.41s.jpg",
+      "end_image_relpath": "sampled_frames/sample_031_ts_110.19s.jpg",
+      "clip_relpath": "step_clips/step03_wash_spatula_pot_and_frying_pan.mp4"
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Wash knife, fork, and ceramic dish",
+      "start_frame_index": 31,
+      "end_frame_index": 37,
+      "start_sec": 110.19352686019353,
+      "end_sec": 132.23223223223223,
+      "start_image_relpath": "sampled_frames/sample_031_ts_110.19s.jpg",
+      "end_image_relpath": "sampled_frames/sample_037_ts_132.23s.jpg",
+      "clip_relpath": "step_clips/step04_wash_knife_fork_and_ceramic_dish.mp4"
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Rinse and scrub green cutting board",
+      "start_frame_index": 37,
+      "end_frame_index": 41,
+      "start_sec": 132.23223223223223,
+      "end_sec": 146.93026359693027,
+      "start_image_relpath": "sampled_frames/sample_037_ts_132.23s.jpg",
+      "end_image_relpath": "sampled_frames/sample_041_ts_146.93s.jpg",
+      "clip_relpath": "step_clips/step05_rinse_and_scrub_green_cutting_board.mp4"
+    },
+    {
+      "step_id": 6,
+      "step_goal": "Clean tools, tidy sink, and dry hands",
+      "start_frame_index": 41,
+      "end_frame_index": 51,
+      "start_sec": 146.93026359693027,
+      "end_sec": 183.6503169836503,
+      "start_image_relpath": "sampled_frames/sample_041_ts_146.93s.jpg",
+      "end_image_relpath": "sampled_frames/sample_050_ts_179.98s.jpg",
+      "clip_relpath": "step_clips/step06_clean_tools_tidy_sink_and_dry_hands.mp4"
+    }
+  ]
+}

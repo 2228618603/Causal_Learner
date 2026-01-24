@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Retrieve rice package from kitchen cabinet",
+  "clip_path": "../stage2/step_clips/step04_retrieve_rice_package_from_kitchen_cabinet.mp4",
+  "clip_start_sec": 102.85285285285286,
+  "clip_end_sec": 121.20453787120454,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T13:20:57.938862Z",
+  "manifest_path": "frame_manifest.json"
+}

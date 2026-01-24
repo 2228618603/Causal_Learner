@@ -1,0 +1,216 @@
+{
+  "step_id": 5,
+  "step_goal": "Retrieve storage containers for cooked food",
+  "rationale": "This step provides clean, sealable containers to portion the cooked stir-fry and rice, preventing contamination and preserving freshness for storage or later serving. It enables the transfer of cooked food from cooking vessels to storage, completing the post-cooking preparation necessary for safe food handling.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "pull open drawer and retrieve stack of plastic storage containers",
+    "patient": "plastic_storage_containers",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": [
+          "plastic_storage_containers",
+          "kitchen_drawer"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "under",
+        "objects": [
+          "kitchen_drawer",
+          "kitchen_counter"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "plastic_storage_containers",
+        "affordance_types": [
+          "stackable",
+          "food_safe",
+          "sealable"
+        ],
+        "reasons": "The containers are clean, stacked, and have matching lids, making them suitable for storing cooked food without contamination."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "plastic_storage_containers",
+          "kitchen_counter"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "separated",
+        "objects": [
+          "plastic_storage_containers",
+          "container_lids"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "plastic_storage_containers",
+        "affordance_types": [
+          "ready_for_food_portioning"
+        ],
+        "reasons": "The containers are placed on the counter with lids removed, making them accessible to transfer cooked stir-fry and rice."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the storage containers were stuck together tightly in the drawer?",
+  "expected_challenge_outcome": "The hands would need to apply increased force to separate the containers, potentially risking dropping or damaging them, or requiring a tool to pry them apart before they can be prepared for food storage.",
+  "failure_reflecting": {
+    "reason": "The storage containers are found to be dirty when retrieved from the drawer.",
+    "recovery_strategy": "Wash the containers and lids with warm, soapy water, rinse thoroughly, and dry them with a clean towel before using them to store the cooked food."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 22,
+      "action_state_change_description": "Hand reaches toward the kitchen drawer to initiate retrieval of storage containers.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pull open drawer and retrieve stack of plastic storage containers",
+        "patient": "plastic_storage_containers",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "closed",
+            "objects": [
+              "kitchen_drawer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "plastic_storage_containers",
+              "kitchen_drawer"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_drawer",
+            "affordance_types": [
+              "pullable"
+            ],
+            "reasons": "The drawer has a handle that allows pulling force to be transferred to open it and access the containers inside."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "opening",
+            "objects": [
+              "kitchen_drawer"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "plastic_storage_containers",
+            "affordance_types": [
+              "becoming_accessible"
+            ],
+            "reasons": "Pulling the drawer open exposes the containers, making them retrievable for use."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "plastic_storage_containers"
+        ],
+        "hotspot": {
+          "description": "Kitchen drawer handle",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hand and handle enables transfer of pulling force to open the drawer, accessing the containers inside."
+        }
+      }
+    },
+    {
+      "frame_index": 46,
+      "action_state_change_description": "Plastic storage containers are placed on the kitchen counter with lids separated, ready for food portioning.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pull open drawer and retrieve stack of plastic storage containers",
+        "patient": "plastic_storage_containers",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "held",
+            "objects": [
+              "hands",
+              "plastic_storage_containers"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "above",
+            "objects": [
+              "plastic_storage_containers",
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "plastic_storage_containers",
+            "affordance_types": [
+              "stacked"
+            ],
+            "reasons": "The containers are stacked together, allowing them to be retrieved as a single unit for efficient preparation."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "plastic_storage_containers",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "separated",
+            "objects": [
+              "plastic_storage_containers",
+              "container_lids"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "plastic_storage_containers",
+            "affordance_types": [
+              "ready_for_food_portioning"
+            ],
+            "reasons": "The containers are placed on the counter with lids removed, making them accessible to transfer cooked stir-fry and rice."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "plastic_storage_containers"
+        ],
+        "hotspot": {
+          "description": "Container rim",
+          "affordance_type": "support_surface",
+          "mechanism": "Contact between container rim and countertop provides stable support, allowing the container to be placed securely and accessed easily for food transfer."
+        }
+      }
+    }
+  ]
+}

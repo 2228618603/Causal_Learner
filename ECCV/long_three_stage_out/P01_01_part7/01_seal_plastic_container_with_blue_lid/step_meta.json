@@ -1,0 +1,10 @@
+{
+  "step_id": 1,
+  "step_goal": "Seal plastic container with blue lid",
+  "clip_path": "../stage2/step_clips/step01_seal_plastic_container_with_blue_lid.mp4",
+  "clip_start_sec": 0.0,
+  "clip_end_sec": 7.340674007340675,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T13:39:04.976212Z",
+  "manifest_path": "frame_manifest.json"
+}

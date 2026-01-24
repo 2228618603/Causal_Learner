@@ -1,0 +1,71 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_01_part7.MP4",
+  "video_id": "P01_01_part7",
+  "output_root": "/e2e-data/evad-tech-vla/luzheng1/home/luz/Qwen-PC/ECCV/long_three_stage_out",
+  "schema_fingerprint": "sha256:5f9046d3409153e8666369429aa866e1db98f489691665d0cc53ca71dcee7663",
+  "updated_at_utc": "2026-01-23T14:11:41.150056Z",
+  "stage1": {
+    "status": "completed",
+    "generated_at_utc": "2026-01-23T13:36:03.458606Z",
+    "attempts": 1,
+    "manifest_path": "stage1/frame_manifest.json",
+    "draft_plan_path": "stage1/draft_plan.json",
+    "raw_response_path": "stage1/stage1_raw_response.txt",
+    "system_prompt_path": "stage1/stage1_system_prompt.txt",
+    "user_prompt_path": "stage1/stage1_user_prompt.txt",
+    "warnings": []
+  },
+  "api_config": {
+    "api_base_url": "http://model.mify.ai.srv/v1",
+    "model_provider_id": "volcengine_maas",
+    "model_name": "doubao-seed-1-8-251228",
+    "max_tokens": 32000,
+    "temperature": 0.8,
+    "api_call_retries": 3,
+    "api_call_retry_backoff_sec": 1.0
+  },
+  "sampling_config": {
+    "max_frames": 50,
+    "resize_dimension": null,
+    "jpeg_quality": 95
+  },
+  "stage2": {
+    "status": "completed",
+    "generated_at_utc": "2026-01-23T13:37:43.247882Z",
+    "localization_raw_path": "stage2/localization_raw.json",
+    "segments_path": "stage2/step_segments.json",
+    "clips_dir": "stage2/step_clips",
+    "system_prompt_path": "stage2/stage2_system_prompt.txt",
+    "user_prompt_path": "stage2/stage2_user_prompt.txt",
+    "api_config": {
+      "api_base_url": "http://model.mify.ai.srv/v1",
+      "model_provider_id": "volcengine_maas",
+      "model_name": "doubao-seed-1-8-251228",
+      "max_tokens": 32000,
+      "temperature": 0.8,
+      "api_call_retries": 3,
+      "api_call_retry_backoff_sec": 1.0
+    }
+  },
+  "stage3": {
+    "status": "completed",
+    "generated_at_utc": "2026-01-23T13:43:31.626363Z",
+    "final_plan_path": "causal_plan_with_keyframes.json",
+    "frame_index_note": "In this three-stage pipeline, critical_frames[*].frame_index is 1-based on EACH STEP CLIP's 50-frame pool; see each step folder's frame_manifest.json.",
+    "api_config": {
+      "api_base_url": "http://model.mify.ai.srv/v1",
+      "model_provider_id": "volcengine_maas",
+      "model_name": "doubao-seed-1-8-251228",
+      "max_tokens": 32000,
+      "temperature": 0.8,
+      "api_call_retries": 3,
+      "api_call_retry_backoff_sec": 1.0
+    }
+  },
+  "post_validate": {
+    "status": "completed",
+    "validated_at_utc": "2026-01-23T14:11:41.150060Z",
+    "warnings_count": 0,
+    "warnings_sample": []
+  }
+}

@@ -1,0 +1,1279 @@
+{
+  "high_level_goal": "Cook a mixed vegetable and meat stir-fry and rice, then prepare the cooked food for storage or serving while completing basic kitchen cleanup tasks.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Stir fry mixed ingredients in frying pan",
+      "rationale": "This step ensures all stir-fry ingredients receive consistent heat exposure, preventing localized burning and promoting uniform cooking to develop balanced flavor and tender texture, which is essential for the final dish's quality.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "stir and toss mixed ingredients using a spatula",
+        "patient": "stir_fry_ingredients",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "spatula"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "electric_stove"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive",
+              "non_stick_surface"
+            ],
+            "reasons": "The electric stove under the pan confirms heat transfer capability; the pan's smooth dark interior indicates a non-stick coating to prevent ingredient adhesion during stirring."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "rigid",
+              "scoopable"
+            ],
+            "reasons": "The spatula's flat, firm structure allows effective lifting and tossing of ingredients without deformation."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "evenly_distributed",
+            "objects": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contacting",
+            "objects": [
+              "spatula",
+              "frying_pan"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "stir_fry_ingredients",
+            "affordance_types": [
+              "partially_cooked",
+              "flavor_infused"
+            ],
+            "reasons": "Visible browning and uniform mixing of ingredients confirm partial cooking and flavor integration, advancing the ingredients toward a fully cooked state."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the frying pan was not placed on the electric stove during stirring?",
+      "expected_challenge_outcome": "The ingredients would stop cooking, remaining undercooked with raw textures and unintegrated flavors, as no thermal energy would be transferred to the pan or ingredients to continue the cooking process.",
+      "failure_reflecting": {
+        "reason": "Ingredients stick to the frying pan's surface due to insufficient oil or a worn non-stick coating, leading to uneven stirring and localized burning.",
+        "recovery_strategy": "Add a small amount of cooking oil to the pan, gently scrape stuck ingredients with the spatula while reducing the stove heat, then resume stirring to redistribute oil and ingredients evenly."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 1,
+          "action_state_change_description": "Right hand holds a spatula and begins stirring mixed ingredients inside the frying pan placed on the electric stove.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "stir and toss mixed ingredients using a spatula",
+            "patient": "stir_fry_ingredients",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "right_hand",
+                  "spatula"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "frying_pan",
+                  "electric_stove"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "inside",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "non_stick_surface"
+                ],
+                "reasons": "The electric stove under the pan confirms heat transfer capability; the pan's smooth dark interior indicates a non-stick coating to prevent ingredient adhesion during stirring."
+              },
+              {
+                "object_name": "spatula",
+                "affordance_types": [
+                  "rigid",
+                  "scoopable"
+                ],
+                "reasons": "The spatula's flat, firm structure allows effective lifting and tossing of ingredients without deformation."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "moving_toward",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "even_distribution"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "stir_fry_ingredients",
+                "affordance_types": [
+                  "being_cooked"
+                ],
+                "reasons": "Stirring exposes ingredients to continuous heat from the pan, initiating uniform cooking and flavor development."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "spatula"
+            ],
+            "materials": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Flat, wide surface of the spatula and inner bottom surface of the frying pan",
+              "affordance_type": "stirring_surface",
+              "mechanism": "Friction between the spatula's flat surface and ingredients, combined with torque from the hand, lifts and moves ingredients to ensure even heat exposure and mixing."
+            }
+          }
+        },
+        {
+          "frame_index": 48,
+          "action_state_change_description": "Stirring action is completed; mixed ingredients are evenly distributed and partially cooked inside the frying pan, with the spatula lifted away from the pan.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "stir and toss mixed ingredients using a spatula",
+            "patient": "stir_fry_ingredients",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "frying_pan",
+                  "electric_stove"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "inside",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "non_stick_surface"
+                ],
+                "reasons": "The electric stove under the pan confirmed heat transfer capability throughout the stirring process; the pan's coating prevented excessive ingredient adhesion."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "evenly_distributed",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "contacting",
+                "objects": [
+                  "spatula",
+                  "frying_pan"
+                ],
+                "truth": false
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "stir_fry_ingredients",
+                "affordance_types": [
+                  "partially_cooked",
+                  "flavor_infused"
+                ],
+                "reasons": "Visible browning and uniform mixing confirm partial cooking and flavor integration, advancing the ingredients toward a fully cooked state suitable for serving."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "spatula"
+            ],
+            "materials": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Inner bottom and side surfaces of the frying pan",
+              "affordance_type": "cooking_surface",
+              "mechanism": "Continuous heat transfer from the stove to the pan's surface, combined with prior stirring, ensured even cooking and flavor distribution across all ingredients."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Add rice to boiling water in saucepan",
+      "rationale": "Introduces rice to boiling water to initiate the absorption cooking process, which is necessary to produce fully cooked, fluffy rice to pair with the stir-fry.",
+      "causal_chain": {
+        "agent": "both_hands",
+        "action": "pour rice from packaging into boiling water",
+        "patient": "white_rice",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "water",
+              "saucepan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "boiling",
+            "objects": [
+              "water",
+              "saucepan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "both_hands",
+              "rice_package"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "saucepan",
+            "affordance_types": [
+              "heat_conductive",
+              "liquid_containment"
+            ],
+            "reasons": "The saucepan is on the electric stove, so it can transfer heat to boil water; its enclosed shape holds water without spilling, enabling rice to cook in the liquid."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "white_rice",
+              "saucepan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "submerged",
+            "objects": [
+              "white_rice",
+              "water"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "white_rice",
+            "affordance_types": [
+              "cooking_in_progress"
+            ],
+            "reasons": "The rice is submerged in boiling water, initiating the water absorption process that will transform it from raw to fully cooked rice."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the rice was added to cold water instead of boiling water?",
+      "expected_challenge_outcome": "The rice would take significantly longer to cook, may become mushy or unevenly cooked due to inconsistent heat exposure during the water heating process.",
+      "failure_reflecting": {
+        "reason": "Too much rice is added to the saucepan, causing the water to overflow and the rice to cook unevenly.",
+        "recovery_strategy": "Reduce the stove heat immediately, drain excess water if possible, and stir the rice gently to promote even cooking while adjusting heat as needed."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 5,
+          "action_state_change_description": "Holds the rice package over the saucepan and begins pouring raw rice into the boiling water.",
+          "causal_chain": {
+            "agent": "both_hands",
+            "action": "pour rice from packaging into boiling water",
+            "patient": "white_rice",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "water",
+                  "saucepan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "boiling",
+                "objects": [
+                  "water",
+                  "saucepan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "both_hands",
+                  "rice_package"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "saucepan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "liquid_containment"
+                ],
+                "reasons": "The saucepan is on the electric stove, so it can transfer heat to boil water; its enclosed shape holds water without spilling, enabling rice to cook in the liquid."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "moving_toward",
+                "objects": [
+                  "white_rice",
+                  "saucepan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "white_rice",
+                "affordance_types": [
+                  "in_motion"
+                ],
+                "reasons": "The pouring action propels the rice from the package toward the boiling water in the saucepan."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "both_hands"
+            ],
+            "materials": [
+              "white_rice",
+              "rice_package"
+            ],
+            "hotspot": {
+              "description": "Open top edge of the rice package",
+              "affordance_type": "pour_spout",
+              "mechanism": "Gravity pulls rice through the open package edge into the saucepan, with hand tilting force controlling the flow rate."
+            }
+          }
+        },
+        {
+          "frame_index": 25,
+          "action_state_change_description": "Finishes pouring rice into the saucepan; rice is submerged in boiling water, and the rice package is lifted away.",
+          "causal_chain": {
+            "agent": "both_hands",
+            "action": "pour rice from packaging into boiling water",
+            "patient": "white_rice",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "water",
+                  "saucepan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "boiling",
+                "objects": [
+                  "water",
+                  "saucepan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "both_hands",
+                  "rice_package"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "saucepan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "liquid_containment"
+                ],
+                "reasons": "The saucepan is on the electric stove, so it can transfer heat to boil water; its enclosed shape holds water without spilling, enabling rice to cook in the liquid."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "white_rice",
+                  "saucepan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "submerged",
+                "objects": [
+                  "white_rice",
+                  "water"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "white_rice",
+                "affordance_types": [
+                  "cooking_in_progress"
+                ],
+                "reasons": "The rice is submerged in boiling water, initiating the water absorption process that will transform it from raw to fully cooked rice."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "both_hands"
+            ],
+            "materials": [
+              "white_rice",
+              "rice_package"
+            ],
+            "hotspot": {
+              "description": "Open top edge of the rice package",
+              "affordance_type": "pour_spout",
+              "mechanism": "Gravity has transferred the rice from the package into the saucepan, with the lifted package stopping the flow of rice."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Complete kitchen cleanup tasks",
+      "rationale": "This step maintains an organized and hygienic kitchen environment by putting away clean utensils and ensuring essential items are properly prepared, preventing clutter from interfering with subsequent cooking, serving, or storage steps and keeping tools accessible for future use.",
+      "causal_chain": {
+        "agent": "both_hands",
+        "action": "fill glass bottle with water, return clean utensils to designated drawer compartments, and arrange kitchen items",
+        "patient": "kitchen_items",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "kitchen_sink",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "in",
+            "objects": [
+              "clean_utensils",
+              "drying_rack"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "empty",
+            "objects": [
+              "glass_bottle"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_dispensable"
+            ],
+            "reasons": "The faucet is connected to a functional water supply, allowing it to release water when activated to fill the bottle."
+          },
+          {
+            "object_name": "kitchen_drawer",
+            "affordance_types": [
+              "openable",
+              "storable"
+            ],
+            "reasons": "The drawer has compartments designed for utensil storage and can be opened to access these compartments, enabling organized storage of clean utensils."
+          },
+          {
+            "object_name": "glass_bottle",
+            "affordance_types": [
+              "water_holdable"
+            ],
+            "reasons": "The bottle is made of solid, non-porous glass with a sealed opening, allowing it to contain water without leaking."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "filled_with",
+            "objects": [
+              "glass_bottle",
+              "water"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "clean_utensils",
+              "kitchen_drawer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "clutter_free",
+            "objects": [
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "glass_bottle",
+            "affordance_types": [
+              "ready_for_use"
+            ],
+            "reasons": "The filled bottle is placed in an accessible location, making it available for drinking or other kitchen tasks that require water."
+          },
+          {
+            "object_name": "clean_utensils",
+            "affordance_types": [
+              "organized",
+              "dust_protected"
+            ],
+            "reasons": "Utensils are stored in closed drawer compartments, keeping them organized and protected from dust for easy access in future tasks."
+          },
+          {
+            "object_name": "kitchen_counter",
+            "affordance_types": [
+              "usable_for_preparation"
+            ],
+            "reasons": "The clear counter provides unobstructed space for food preparation, serving, or placing additional kitchen items."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the kitchen faucet was clogged and could only release a slow trickle of water?",
+      "expected_challenge_outcome": "Filling the glass bottle would take significantly longer, and the slow flow might not fully fill the bottle to its capacity, leaving it partially empty and requiring more time to complete this part of the cleanup task.",
+      "failure_reflecting": {
+        "reason": "Clean utensils are haphazardly placed in the drawer without sorting into their designated compartments, leading to disorganization and difficulty locating specific utensils later.",
+        "recovery_strategy": "Open the drawer, remove all utensils, sort them by type (forks, spoons, knives) into their respective compartments, and ensure each utensil is aligned neatly within its compartment before closing the drawer."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 14,
+          "action_state_change_description": "Hands grasp an empty glass bottle at the sink, initiating the cleanup task of filling the bottle with water.",
+          "causal_chain": {
+            "agent": "both_hands",
+            "action": "fill glass bottle with water, return clean utensils to designated drawer compartments, and arrange kitchen items",
+            "patient": "kitchen_items",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "both_hands",
+                  "glass_bottle"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "kitchen_sink",
+                  "kitchen_counter"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "empty",
+                "objects": [
+                  "glass_bottle"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "kitchen_faucet",
+                "affordance_types": [
+                  "water_dispensable"
+                ],
+                "reasons": "The faucet is connected to a functional water supply, allowing it to release water when activated to fill the bottle."
+              },
+              {
+                "object_name": "glass_bottle",
+                "affordance_types": [
+                  "water_holdable"
+                ],
+                "reasons": "The bottle is made of solid, non-porous glass with a sealed opening, allowing it to contain water without leaking."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "filled_with",
+                "objects": [
+                  "glass_bottle",
+                  "water"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "glass_bottle",
+                "affordance_types": [
+                  "ready_for_use"
+                ],
+                "reasons": "The filled bottle will be placed in an accessible location, making it available for drinking or other kitchen tasks that require water."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "both_hands"
+            ],
+            "materials": [
+              "glass_bottle",
+              "kitchen_sink",
+              "kitchen_faucet",
+              "kitchen_items"
+            ],
+            "hotspot": {
+              "description": "Glass bottle opening and faucet spout",
+              "affordance_type": "liquid_transfer_point",
+              "mechanism": "Water flows from the faucet spout into the bottle opening due to gravity and water pressure, filling the bottle as the hands maintain alignment between the spout and opening."
+            }
+          }
+        },
+        {
+          "frame_index": 48,
+          "action_state_change_description": "The kitchen drawer is closed after all clean utensils are sorted into their designated compartments, completing the cleanup tasks of storing utensils and organizing kitchen items.",
+          "causal_chain": {
+            "agent": "both_hands",
+            "action": "fill glass bottle with water, return clean utensils to designated drawer compartments, and arrange kitchen items",
+            "patient": "kitchen_items",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "clean_utensils",
+                  "kitchen_drawer_compartments"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "open",
+                "objects": [
+                  "kitchen_drawer"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "kitchen_drawer",
+                "affordance_types": [
+                  "closeable"
+                ],
+                "reasons": "The drawer is aligned with its frame and has no obstructions, allowing it to be closed to secure the stored utensils."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "closed",
+                "objects": [
+                  "kitchen_drawer"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "clutter_free",
+                "objects": [
+                  "kitchen_counter"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "clean_utensils",
+                "affordance_types": [
+                  "organized",
+                  "dust_protected"
+                ],
+                "reasons": "Utensils are stored in closed drawer compartments, keeping them organized and protected from dust for easy access in future tasks."
+              },
+              {
+                "object_name": "kitchen_counter",
+                "affordance_types": [
+                  "usable_for_preparation"
+                ],
+                "reasons": "The clear counter provides unobstructed space for food preparation, serving, or placing additional kitchen items."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "both_hands"
+            ],
+            "materials": [
+              "clean_utensils",
+              "kitchen_drawer",
+              "kitchen_items"
+            ],
+            "hotspot": {
+              "description": "Kitchen drawer handle and frame",
+              "affordance_type": "closure_mechanism",
+              "mechanism": "Hands apply downward force on the drawer handle, guiding it along the frame tracks to close the drawer, which secures the utensils inside and prevents dust from entering."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Finalize stir-fry cooking by stirring",
+      "rationale": "This step ensures all stir-fry ingredients receive uniform heat exposure, cooking any underdone components thoroughly and blending flavors evenly. This prepares the dish for serving or storage while ensuring consistent texture and taste throughout, which pairs well with the concurrently cooked rice.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "stir and rotate stir-fry ingredients with spatula over heated stove",
+        "patient": "stir_fry_ingredients",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "spatula"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "electric_stove"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive",
+              "stable"
+            ],
+            "reasons": "The frying pan is placed on an active stove element, providing consistent heat to cook ingredients, and remains stable to allow safe stirring."
+          },
+          {
+            "object_name": "stir_fry_ingredients",
+            "affordance_types": [
+              "partially_cooked",
+              "movable"
+            ],
+            "reasons": "Ingredients show partial browning and softening, indicating they are nearly done, and can be moved within the pan to access more heat."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "evenly_distributed",
+            "objects": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "free_of_stuck_residue",
+            "objects": [
+              "frying_pan",
+              "stir_fry_ingredients"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "stir_fry_ingredients",
+            "affordance_types": [
+              "fully_cooked",
+              "ready_to_serve_or_store"
+            ],
+            "reasons": "Uniform stirring ensures all ingredients reach a consistent cooked state, with visible golden browning and tender texture, making the dish ready for serving or storage."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the spatula had a smooth, non-slotted surface instead of a slotted one during this stirring step?",
+      "expected_challenge_outcome": "A smooth spatula would trap more oil and liquid while stirring, causing ingredients to steam instead of sear, resulting in a softer, less crispy texture and uneven flavor distribution compared to using a slotted spatula.",
+      "failure_reflecting": {
+        "reason": "Vigorous stirring causes ingredients to splash out of the frying pan onto the stove, leading to food loss and a burnt mess on the hot element.",
+        "recovery_strategy": "Briefly turn off the stove to avoid burning splattered food, wipe up splatters with a paper towel, then resume stirring with slower, controlled motions to prevent further splashing."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 2,
+          "action_state_change_description": "Right hand grasps spatula and initiates stirring motion to move partially cooked stir-fry ingredients within the frying pan on the active stove.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "stir and rotate stir-fry ingredients with spatula over heated stove",
+            "patient": "stir_fry_ingredients",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "right_hand",
+                  "spatula"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "frying_pan",
+                  "electric_stove"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "inside",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "stable"
+                ],
+                "reasons": "The frying pan is positioned on an active stove element, providing consistent heat, and remains stable for safe stirring."
+              },
+              {
+                "object_name": "stir_fry_ingredients",
+                "affordance_types": [
+                  "partially_cooked",
+                  "movable"
+                ],
+                "reasons": "Ingredients show partial browning and softening, and can be manipulated within the pan to access additional heat."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "moving",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "frying_pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "stir_fry_ingredients",
+                "affordance_types": [
+                  "being_mixed"
+                ],
+                "reasons": "The stirring motion begins to redistribute ingredients, ensuring they receive uniform heat exposure to finish cooking."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "spatula"
+            ],
+            "materials": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Slotted spatula head",
+              "affordance_type": "mixing_tool",
+              "mechanism": "Friction between the slotted spatula head and ingredients transfers force to move them, while the slotted design allows excess oil to drain through, preventing excessive lifting of liquid during stirring."
+            }
+          }
+        },
+        {
+          "frame_index": 47,
+          "action_state_change_description": "Stir-fry ingredients are evenly distributed within the frying pan, showing consistent golden browning and tender texture, confirming full cooking completion.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "stir and rotate stir-fry ingredients with spatula over heated stove",
+            "patient": "stir_fry_ingredients",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "right_hand",
+                  "spatula"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "evenly_distributed",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "frying_pan",
+                  "electric_stove"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "frying_pan",
+                "affordance_types": [
+                  "heat_conductive",
+                  "stable"
+                ],
+                "reasons": "The frying pan has maintained consistent heat delivery throughout stirring, and remains stable to complete the cooking process."
+              },
+              {
+                "object_name": "stir_fry_ingredients",
+                "affordance_types": [
+                  "partially_cooked"
+                ],
+                "reasons": "Ingredients have been stirred and heated to near completion, requiring final uniform heat exposure to finish cooking."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "evenly_distributed",
+                "objects": [
+                  "stir_fry_ingredients",
+                  "frying_pan"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "free_of_stuck_residue",
+                "objects": [
+                  "frying_pan",
+                  "stir_fry_ingredients"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "stir_fry_ingredients",
+                "affordance_types": [
+                  "fully_cooked",
+                  "ready_to_serve_or_store"
+                ],
+                "reasons": "Uniform stirring and heat exposure have resulted in consistent texture and browning across all ingredients, making the dish ready for serving or storage."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "spatula"
+            ],
+            "materials": [
+              "stir_fry_ingredients",
+              "frying_pan"
+            ],
+            "hotspot": {
+              "description": "Frying pan inner cooking surface",
+              "affordance_type": "heat_transfer_surface",
+              "mechanism": "Heat from the stove is transferred through the frying pan surface to the ingredients, and the final stirring motion ensures all ingredient surfaces have contacted the hot pan to reach full doneness."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Retrieve storage containers for cooked food",
+      "rationale": "This step provides clean, sealable containers to portion the cooked stir-fry and rice, preventing contamination and preserving freshness for storage or later serving. It enables the transfer of cooked food from cooking vessels to storage, completing the post-cooking preparation necessary for safe food handling.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pull open drawer and retrieve stack of plastic storage containers",
+        "patient": "plastic_storage_containers",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "plastic_storage_containers",
+              "kitchen_drawer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "under",
+            "objects": [
+              "kitchen_drawer",
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "plastic_storage_containers",
+            "affordance_types": [
+              "stackable",
+              "food_safe",
+              "sealable"
+            ],
+            "reasons": "The containers are clean, stacked, and have matching lids, making them suitable for storing cooked food without contamination."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "plastic_storage_containers",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "separated",
+            "objects": [
+              "plastic_storage_containers",
+              "container_lids"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "plastic_storage_containers",
+            "affordance_types": [
+              "ready_for_food_portioning"
+            ],
+            "reasons": "The containers are placed on the counter with lids removed, making them accessible to transfer cooked stir-fry and rice."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the storage containers were stuck together tightly in the drawer?",
+      "expected_challenge_outcome": "The hands would need to apply increased force to separate the containers, potentially risking dropping or damaging them, or requiring a tool to pry them apart before they can be prepared for food storage.",
+      "failure_reflecting": {
+        "reason": "The storage containers are found to be dirty when retrieved from the drawer.",
+        "recovery_strategy": "Wash the containers and lids with warm, soapy water, rinse thoroughly, and dry them with a clean towel before using them to store the cooked food."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 22,
+          "action_state_change_description": "Hand reaches toward the kitchen drawer to initiate retrieval of storage containers.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "pull open drawer and retrieve stack of plastic storage containers",
+            "patient": "plastic_storage_containers",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "closed",
+                "objects": [
+                  "kitchen_drawer"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "inside",
+                "objects": [
+                  "plastic_storage_containers",
+                  "kitchen_drawer"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "kitchen_drawer",
+                "affordance_types": [
+                  "pullable"
+                ],
+                "reasons": "The drawer has a handle that allows pulling force to be transferred to open it and access the containers inside."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "opening",
+                "objects": [
+                  "kitchen_drawer"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "plastic_storage_containers",
+                "affordance_types": [
+                  "becoming_accessible"
+                ],
+                "reasons": "Pulling the drawer open exposes the containers, making them retrievable for use."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "plastic_storage_containers"
+            ],
+            "hotspot": {
+              "description": "Kitchen drawer handle",
+              "affordance_type": "grasp_point",
+              "mechanism": "Friction between hand and handle enables transfer of pulling force to open the drawer, accessing the containers inside."
+            }
+          }
+        },
+        {
+          "frame_index": 46,
+          "action_state_change_description": "Plastic storage containers are placed on the kitchen counter with lids separated, ready for food portioning.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "pull open drawer and retrieve stack of plastic storage containers",
+            "patient": "plastic_storage_containers",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "held",
+                "objects": [
+                  "hands",
+                  "plastic_storage_containers"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "above",
+                "objects": [
+                  "plastic_storage_containers",
+                  "kitchen_counter"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "plastic_storage_containers",
+                "affordance_types": [
+                  "stacked"
+                ],
+                "reasons": "The containers are stacked together, allowing them to be retrieved as a single unit for efficient preparation."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "plastic_storage_containers",
+                  "kitchen_counter"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "separated",
+                "objects": [
+                  "plastic_storage_containers",
+                  "container_lids"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "plastic_storage_containers",
+                "affordance_types": [
+                  "ready_for_food_portioning"
+                ],
+                "reasons": "The containers are placed on the counter with lids removed, making them accessible to transfer cooked stir-fry and rice."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "plastic_storage_containers"
+            ],
+            "hotspot": {
+              "description": "Container rim",
+              "affordance_type": "support_surface",
+              "mechanism": "Contact between container rim and countertop provides stable support, allowing the container to be placed securely and accessed easily for food transfer."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "step_id": 1,
+  "step_goal": "Stir fry mixed ingredients in frying pan",
+  "clip_path": "../stage2/step_clips/step01_stir_fry_mixed_ingredients_in_frying_pan.mp4",
+  "clip_start_sec": 0.0,
+  "clip_end_sec": 29.37937937937938,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T13:28:06.163633Z",
+  "manifest_path": "frame_manifest.json"
+}

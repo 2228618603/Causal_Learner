@@ -1,0 +1,10 @@
+{
+  "step_id": 5,
+  "step_goal": "Retrieve the knife from the drawer.",
+  "clip_path": "../stage2/step_clips/step05_retrieve_the_knife_from_the_drawer.mp4",
+  "clip_start_sec": 102.85285285285286,
+  "clip_end_sec": 106.52318985652319,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:11:31.480232Z",
+  "manifest_path": "frame_manifest.json"
+}

@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Retrieve sieve and place in kitchen sink",
+  "clip_path": "../stage2/step_clips/step04_retrieve_sieve_and_place_in_kitchen_sink.mp4",
+  "clip_start_sec": 168.96896896896897,
+  "clip_end_sec": 183.6503169836503,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T13:43:31.619090Z",
+  "manifest_path": "frame_manifest.json"
+}

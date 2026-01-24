@@ -1,0 +1,256 @@
+{
+  "step_id": 3,
+  "step_goal": "Wash spatula, pot, and frying pan",
+  "rationale": "Removes cooking oil and burned food residue from cookware and utensils, preventing rancidity and maintaining their functional properties like non-stick surfaces, ensuring safe and effective use in future cooking.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scrub with sponge, rinse under running water, rotate to clean all interior and exterior surfaces",
+    "patient": "assorted_cookware_utensils",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "in_sink",
+        "objects": [
+          "black_frying_pan",
+          "kitchen_sink"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "stainless_steel_pot",
+          "ceramic_plate"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "flowing",
+        "objects": [
+          "kitchen_faucet",
+          "water"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "kitchen_sponge",
+        "affordance_types": [
+          "abrasive_scrubbing"
+        ],
+        "reasons": "Visible rough scrubbing side on the sponge confirms it can dislodge stuck-on food residue without scratching non-stick cookware surfaces."
+      },
+      {
+        "object_name": "assorted_cookware_utensils",
+        "affordance_types": [
+          "reachable"
+        ],
+        "reasons": "Cookware and utensils are positioned near the sink and running faucet for easy access to water and cleaning tools."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "free_of_food_residue",
+        "objects": [
+          "black_spatula",
+          "stainless_steel_pot",
+          "black_frying_pan"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "in_dish_rack",
+        "objects": [
+          "black_spatula",
+          "stainless_steel_pot",
+          "black_frying_pan",
+          "kitchen_dish_rack"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "assorted_cookware_utensils",
+        "affordance_types": [
+          "cooking_ready",
+          "non_stick_maintained"
+        ],
+        "reasons": "All food residue and cooking oil are removed, eliminating contamination risks and preserving the non-stick properties of the frying pan for future use."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if no dish soap was used when scrubbing the cookware and utensils?",
+  "expected_challenge_outcome": "Cooking oil and greasy food residue would not be fully removed, as water alone cannot break down oil-based substances, leaving a sticky film that can attract dirt and cause rancidity over time.",
+  "failure_reflecting": {
+    "reason": "A worn-out sponge fails to dislodge burned food residue from the frying pan's non-stick surface, leaving visible spots after washing.",
+    "recovery_strategy": "Replace the worn sponge with a new abrasive scrub sponge, re-scrub the affected areas of the frying pan under running water to remove remaining residue."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands begin scrubbing the black spatula inside the soapy black frying pan under running water, initiating the cleaning process for the cookware and utensils.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub with sponge, rinse under running water, rotate to clean all interior and exterior surfaces",
+        "patient": "assorted_cookware_utensils",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "in_sink",
+            "objects": [
+              "black_frying_pan",
+              "kitchen_sink"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "stainless_steel_pot",
+              "ceramic_plate"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "flowing",
+            "objects": [
+              "kitchen_faucet",
+              "water"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_sponge",
+            "affordance_types": [
+              "abrasive_scrubbing"
+            ],
+            "reasons": "Visible rough surface on the sponge allows dislodging stuck food without scratching cookware."
+          },
+          {
+            "object_name": "assorted_cookware_utensils",
+            "affordance_types": [
+              "reachable"
+            ],
+            "reasons": "Cookware and utensils are positioned near the sink and faucet for easy access to cleaning resources."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "being_scrubbed",
+            "objects": [
+              "black_spatula",
+              "kitchen_sponge"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "black_spatula",
+            "affordance_types": [
+              "residue_being_removed"
+            ],
+            "reasons": "Friction between the sponge and spatula surface dislodges cooking oil and food particles."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "kitchen_sponge"
+        ],
+        "materials": [
+          "assorted_cookware_utensils",
+          "black_spatula",
+          "black_frying_pan",
+          "water"
+        ],
+        "hotspot": {
+          "description": "Black spatula's flat head surface",
+          "affordance_type": "scrub_surface",
+          "mechanism": "Mechanical friction between the sponge's abrasive side and the spatula's surface dislodges stuck-on food residue."
+        }
+      }
+    },
+    {
+      "frame_index": 50,
+      "action_state_change_description": "The black frying pan is placed into the kitchen dish rack, completing the cleaning of the spatula, pot, and frying pan, with all items now free of residue and positioned for drying.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub with sponge, rinse under running water, rotate to clean all interior and exterior surfaces",
+        "patient": "assorted_cookware_utensils",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "free_of_food_residue",
+            "objects": [
+              "black_spatula",
+              "stainless_steel_pot",
+              "black_frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "reachable",
+            "objects": [
+              "kitchen_dish_rack",
+              "black_frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_dish_rack",
+            "affordance_types": [
+              "drying_support"
+            ],
+            "reasons": "The dish rack has open slots to hold cookware and allow air circulation for drying."
+          },
+          {
+            "object_name": "assorted_cookware_utensils",
+            "affordance_types": [
+              "cleaned"
+            ],
+            "reasons": "All visible food residue and oil have been removed from the cookware and utensils."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "black_frying_pan",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "assorted_cookware_utensils",
+            "affordance_types": [
+              "drying_ready",
+              "cooking_ready"
+            ],
+            "reasons": "All cleaned items are positioned in the dish rack for air drying, ready for safe use in future cooking tasks."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "assorted_cookware_utensils",
+          "black_frying_pan"
+        ],
+        "hotspot": {
+          "description": "Black frying pan's handle",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hands and the pan's handle allows secure gripping, lifting, and placement of the pan into the dish rack."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_01_part6.MP4",
+  "video_id": "P01_01_part6",
+  "generated_at_utc": "2026-01-23T13:26:51.257856Z",
+  "num_frames": 50,
+  "cut": {
+    "mode": "reencode",
+    "seek_slop_sec": 1.0,
+    "crf": 18,
+    "preset": "veryfast",
+    "keep_audio": false,
+    "ffmpeg_bin": "ffmpeg"
+  },
+  "segments": [
+    {
+      "step_id": 1,
+      "step_goal": "Stir fry mixed ingredients in frying pan",
+      "start_frame_index": 1,
+      "end_frame_index": 9,
+      "start_sec": 0.0,
+      "end_sec": 29.37937937937938,
+      "start_image_relpath": "sampled_frames/sample_001_ts_0.00s.jpg",
+      "end_image_relpath": "sampled_frames/sample_009_ts_29.38s.jpg",
+      "clip_relpath": "step_clips/step01_stir_fry_mixed_ingredients_in_frying_pan.mp4"
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Add rice to boiling water in saucepan",
+      "start_frame_index": 9,
+      "end_frame_index": 17,
+      "start_sec": 29.37937937937938,
+      "end_sec": 58.775442108775444,
+      "start_image_relpath": "sampled_frames/sample_009_ts_29.38s.jpg",
+      "end_image_relpath": "sampled_frames/sample_017_ts_58.78s.jpg",
+      "clip_relpath": "step_clips/step02_add_rice_to_boiling_water_in_saucepan.mp4"
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Complete kitchen cleanup tasks",
+      "start_frame_index": 17,
+      "end_frame_index": 31,
+      "start_sec": 58.775442108775444,
+      "end_sec": 110.19352686019353,
+      "start_image_relpath": "sampled_frames/sample_017_ts_58.78s.jpg",
+      "end_image_relpath": "sampled_frames/sample_031_ts_110.19s.jpg",
+      "clip_relpath": "step_clips/step03_complete_kitchen_cleanup_tasks.mp4"
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Finalize stir-fry cooking by stirring",
+      "start_frame_index": 31,
+      "end_frame_index": 47,
+      "start_sec": 110.19352686019353,
+      "end_sec": 168.96896896896897,
+      "start_image_relpath": "sampled_frames/sample_031_ts_110.19s.jpg",
+      "end_image_relpath": "sampled_frames/sample_047_ts_168.97s.jpg",
+      "clip_relpath": "step_clips/step04_finalize_stir_fry_cooking_by_stirring.mp4"
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Retrieve storage containers for cooked food",
+      "start_frame_index": 47,
+      "end_frame_index": 51,
+      "start_sec": 168.96896896896897,
+      "end_sec": 183.6503169836503,
+      "start_image_relpath": "sampled_frames/sample_047_ts_168.97s.jpg",
+      "end_image_relpath": "sampled_frames/sample_050_ts_179.98s.jpg",
+      "clip_relpath": "step_clips/step05_retrieve_storage_containers_for_cooked_food.mp4"
+    }
+  ]
+}

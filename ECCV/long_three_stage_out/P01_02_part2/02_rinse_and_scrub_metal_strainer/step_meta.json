@@ -1,0 +1,10 @@
+{
+  "step_id": 2,
+  "step_goal": "Rinse and scrub metal strainer",
+  "clip_path": "../stage2/step_clips/step02_rinse_and_scrub_metal_strainer.mp4",
+  "clip_start_sec": 22.038705372038706,
+  "clip_end_sec": 40.40707374040708,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:17:52.438347Z",
+  "manifest_path": "frame_manifest.json"
+}

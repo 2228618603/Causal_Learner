@@ -1,0 +1,10 @@
+{
+  "step_id": 1,
+  "step_goal": "Cook and stir vegetable mixture in frying pan",
+  "clip_path": "../stage2/step_clips/step01_cook_and_stir_vegetable_mixture_in_frying_pan.mp4",
+  "clip_start_sec": 18.36836836836837,
+  "clip_end_sec": 40.40707374040708,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T13:48:28.352173Z",
+  "manifest_path": "frame_manifest.json"
+}

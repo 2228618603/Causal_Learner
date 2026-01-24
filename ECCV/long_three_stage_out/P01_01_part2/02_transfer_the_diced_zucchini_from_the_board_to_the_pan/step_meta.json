@@ -1,0 +1,10 @@
+{
+  "step_id": 2,
+  "step_goal": "Transfer the diced zucchini from the board to the pan.",
+  "clip_path": "../stage2/step_clips/step02_transfer_the_diced_zucchini_from_the_board_to_the_pan.mp4",
+  "clip_start_sec": 69.78645311978646,
+  "clip_end_sec": 80.81414748081416,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:18:26.174835Z",
+  "manifest_path": "frame_manifest.json"
+}

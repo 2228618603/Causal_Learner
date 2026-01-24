@@ -1,0 +1,10 @@
+{
+  "step_id": 2,
+  "step_goal": "Stir mixed vegetables in frying pan for even cooking",
+  "clip_path": "../stage2/step_clips/step02_stir_mixed_vegetables_in_frying_pan_for_even_cooking.mp4",
+  "clip_start_sec": 7.340674007340675,
+  "clip_end_sec": 33.04971638304972,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T12:44:52.186659Z",
+  "manifest_path": "frame_manifest.json"
+}

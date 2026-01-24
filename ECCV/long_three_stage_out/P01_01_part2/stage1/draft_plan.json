@@ -1,0 +1,278 @@
+{
+  "high_level_goal": "Prepare a vegetable dish by dicing zucchini and celery and transferring both into a frying pan for cooking.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Dice the zucchini slices into small cubes.",
+      "rationale": "Reducing the vegetable size increases surface area for even cooking and mixing with other ingredients.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "apply downward force to cut",
+        "patient": "zucchini_slices",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "zucchini_slices",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "knife",
+            "affordance_types": [
+              "sharpness",
+              "rigidity"
+            ],
+            "reasons": "The tool must be sharp and rigid to penetrate the zucchini skin and flesh without deforming."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contact",
+            "objects": [
+              "knife",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_slices",
+            "affordance_types": [
+              "diced"
+            ],
+            "reasons": "The cutting action structurally separates the slices into smaller, loose cubic pieces suitable for cooking."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the cutting board were made of a frictionless material, how would the chopping action be affected?",
+      "expected_challenge_outcome": "The zucchini slices would slide away under the lateral pressure of the knife, making precise dicing difficult or dangerous.",
+      "failure_reflecting": {
+        "reason": "The knife might slip on the vegetable skin if the angle is too shallow.",
+        "recovery_strategy": "Reposition the knife to a more vertical angle and apply a sawing motion to break the skin."
+      }
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Transfer the diced zucchini from the board to the pan.",
+      "rationale": "Moving the prepared ingredient into the cooking vessel is necessary to begin the heating process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "tilt and scrape",
+        "patient": "zucchini_pieces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "zucchini_pieces",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "cutting_board",
+            "affordance_types": [
+              "movable",
+              "rigid"
+            ],
+            "reasons": "The board must be lifted and held rigid to act as a transport surface for the vegetables."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "zucchini_pieces",
+              "pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_pieces",
+            "affordance_types": [
+              "containment"
+            ],
+            "reasons": "The pieces move from being supported by a flat surface to being contained within the walls of the pan."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the pan were positioned upside down, would the goal be achieved?",
+      "expected_challenge_outcome": "No, the zucchini pieces would bounce off the bottom surface of the pan and scatter onto the stovetop/floor.",
+      "failure_reflecting": {
+        "reason": "Pieces might stick to the board due to moisture and not fall into the pan.",
+        "recovery_strategy": "Use the knife or a hand to actively scrape the remaining pieces off the tilted board."
+      }
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Wash the celery sticks under running water.",
+      "rationale": "Cleaning the celery removes dirt and potential contaminants before it is processed for food.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "hold under stream",
+        "patient": "celery_sticks",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "under",
+            "objects": [
+              "celery_sticks",
+              "water_stream"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "tap",
+            "affordance_types": [
+              "dispensability"
+            ],
+            "reasons": "The tap must be functional and turned on to provide a flow of water for rinsing."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contact",
+            "objects": [
+              "celery_sticks",
+              "water_stream"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": [
+              "cleanliness"
+            ],
+            "reasons": "The physical force and solvent properties of the flowing water remove surface debris."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the water pressure were extremely high, what would happen to the celery?",
+      "expected_challenge_outcome": "The celery might be knocked out of the agent's hand or water would splash violently, potentially not cleaning all sides effectively.",
+      "failure_reflecting": {
+        "reason": "The water stream might not reach all surfaces of the celery bundles.",
+        "recovery_strategy": "Rotate the celery sticks in hand to expose all sides to the water stream."
+      }
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Chop the washed celery sticks into small pieces.",
+      "rationale": "Cutting the celery into pieces similar in size to the zucchini ensures uniform cooking texture.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "slice",
+        "patient": "celery_sticks",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "celery_sticks",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": [
+              "cuttable"
+            ],
+            "reasons": "The vegetable structure must be fibrous but yielding enough to be severed by the knife blade."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contact",
+            "objects": [
+              "knife",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": [
+              "chopped"
+            ],
+            "reasons": "The mechanical separation converts long sticks into multiple small, discrete pieces."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the celery sticks were frozen solid, how would the chopping change?",
+      "expected_challenge_outcome": "Ideally, much greater force would be required, and the knife might slip or the celery might shatter rather than slice cleanly.",
+      "failure_reflecting": {
+        "reason": "The cylindrical shape of the celery might cause it to roll under the knife.",
+        "recovery_strategy": "Hold the celery firmly with the non-dominant hand using a claw grip to stabilize it."
+      }
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Transfer the chopped celery into the pan.",
+      "rationale": "Combining the celery with the zucchini in the pan completes the preparation phase for this dish.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "tilt and scrape",
+        "patient": "celery_pieces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "celery_pieces",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "pan",
+            "affordance_types": [
+              "containment",
+              "openness"
+            ],
+            "reasons": "The pan must have available volume and an open top to receive the new ingredients."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "celery_pieces",
+              "pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "cutting_board",
+            "affordance_types": [
+              "empty"
+            ],
+            "reasons": "The board is cleared of ingredients, making it available for further tasks or cleaning."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the pan were already full to the brim with zucchini, what would happen?",
+      "expected_challenge_outcome": "Adding the celery would cause overflow, spilling ingredients onto the stovetop.",
+      "failure_reflecting": {
+        "reason": "Scraping too aggressively might cause pieces to overshoot the pan edge.",
+        "recovery_strategy": "Scrape more slowly or use the hand to cup the vegetables as they fall into the pan."
+      }
+    }
+  ]
+}

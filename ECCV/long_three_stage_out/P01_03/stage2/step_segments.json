@@ -1,0 +1,71 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_03.MP4",
+  "video_id": "P01_03",
+  "generated_at_utc": "2026-01-23T14:16:45.077622Z",
+  "num_frames": 50,
+  "cut": {
+    "mode": "reencode",
+    "seek_slop_sec": 1.0,
+    "crf": 18,
+    "preset": "veryfast",
+    "keep_audio": false,
+    "ffmpeg_bin": "ffmpeg"
+  },
+  "segments": [
+    {
+      "step_id": 1,
+      "step_goal": "Activate wall-mounted light switches to illuminate the room",
+      "start_frame_index": 1,
+      "end_frame_index": 5,
+      "start_sec": 0.0,
+      "end_sec": 9.693016666666667,
+      "start_image_relpath": "sampled_frames/sample_001_ts_0.00s.jpg",
+      "end_image_relpath": "sampled_frames/sample_005_ts_9.69s.jpg",
+      "clip_relpath": "step_clips/step01_activate_wall_mounted_light_switches_to_illuminate_the_room.mp4"
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Retrieve blue-lidded container from refrigerator",
+      "start_frame_index": 5,
+      "end_frame_index": 14,
+      "start_sec": 9.693016666666667,
+      "end_sec": 31.5315,
+      "start_image_relpath": "sampled_frames/sample_005_ts_9.69s.jpg",
+      "end_image_relpath": "sampled_frames/sample_014_ts_31.53s.jpg",
+      "clip_relpath": "step_clips/step02_retrieve_blue_lidded_container_from_refrigerator.mp4"
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Pour plant-based milk into a mug on the table",
+      "start_frame_index": 14,
+      "end_frame_index": 30,
+      "start_sec": 31.5315,
+      "end_sec": 70.33693333333333,
+      "start_image_relpath": "sampled_frames/sample_014_ts_31.53s.jpg",
+      "end_image_relpath": "sampled_frames/sample_030_ts_70.34s.jpg",
+      "clip_relpath": "step_clips/step03_pour_plant_based_milk_into_a_mug_on_the_table.mp4"
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Retrieve metal spoon and cereal box from storage",
+      "start_frame_index": 30,
+      "end_frame_index": 40,
+      "start_sec": 70.33693333333333,
+      "end_sec": 94.57781666666666,
+      "start_image_relpath": "sampled_frames/sample_030_ts_70.34s.jpg",
+      "end_image_relpath": "sampled_frames/sample_040_ts_94.58s.jpg",
+      "clip_relpath": "step_clips/step04_retrieve_metal_spoon_and_cereal_box_from_storage.mp4"
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Add cereal to milk and stir to combine",
+      "start_frame_index": 40,
+      "end_frame_index": 51,
+      "start_sec": 94.57781666666666,
+      "end_sec": 118.83538333333334,
+      "start_image_relpath": "sampled_frames/sample_040_ts_94.58s.jpg",
+      "end_image_relpath": "sampled_frames/sample_050_ts_116.42s.jpg",
+      "clip_relpath": "step_clips/step05_add_cereal_to_milk_and_stir_to_combine.mp4"
+    }
+  ]
+}

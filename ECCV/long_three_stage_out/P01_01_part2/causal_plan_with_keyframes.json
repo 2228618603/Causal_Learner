@@ -1,0 +1,994 @@
+{
+  "high_level_goal": "Prepare a vegetable dish by dicing zucchini and celery and transferring both into a frying pan for cooking.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Dice the zucchini slices into small cubes.",
+      "rationale": "Cutting the zucchini slices into small uniform cubes increases the surface area for faster cooking and ensures even distribution when mixed with other ingredients.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "presses and slices downward",
+        "patient": "zucchini_slices",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "zucchini_slices",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "knife"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "zucchini_slices",
+            "affordance_types": [
+              "cuttable",
+              "stabilized"
+            ],
+            "reasons": "The slices must be soft enough to cut and held steady to prevent rolling during the knife thrust."
+          },
+          {
+            "object_name": "knife",
+            "affordance_types": [
+              "sharp"
+            ],
+            "reasons": "The blade must be sharp enough to sever the vegetable fibers cleanly."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "knife",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_slices",
+            "affordance_types": [
+              "diced",
+              "separated"
+            ],
+            "reasons": "The downward slicing action structurally divides the slices into smaller independent cubic units."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the zucchini slices were frozen solid, how would the dicing action change?",
+      "expected_challenge_outcome": "The knife would likely fail to penetrate the rigid frozen tissue using normal force, potentially slipping and causing a safety hazard.",
+      "failure_reflecting": {
+        "reason": "The knife blade might slip off the smooth skin of the zucchini if not positioned vertically or if the slices shift.",
+        "recovery_strategy": "Re-stabilize the stack with a claw grip using the left hand and reset the knife angle to be perpendicular to the cutting board."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 6,
+          "action_state_change_description": "Initiation: The right hand positions the knife blade onto the stack of zucchini slices, beginning the downward cutting stroke.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "presses and slices downward",
+            "patient": "zucchini_slices",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": [
+                  "knife",
+                  "zucchini_slices"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "holding",
+                "objects": [
+                  "left_hand",
+                  "zucchini_slices"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "zucchini_slices",
+                "affordance_types": [
+                  "stabilized"
+                ],
+                "reasons": "The left hand holds the slices together to ensure a clean, straight cut through the stack."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "knife",
+                  "zucchini_slices"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "zucchini_slices",
+                "affordance_types": [
+                  "being_cut"
+                ],
+                "reasons": "The mechanical force from the knife is overcoming the material strength of the vegetable."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "knife",
+              "left_hand"
+            ],
+            "materials": [
+              "zucchini_slices"
+            ],
+            "hotspot": {
+              "description": "knife_handle",
+              "affordance_type": "grasp_point",
+              "mechanism": "The hand grips the handle to transmit downward force and directional control to the blade."
+            }
+          }
+        },
+        {
+          "frame_index": 48,
+          "action_state_change_description": "Completion: The final cutting strokes are complete, leaving a pile of diced zucchini cubes on the board.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "presses and slices downward",
+            "patient": "zucchini_slices",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": [
+                  "knife",
+                  "cutting_board"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "zucchini_slices",
+                "affordance_types": [
+                  "diced"
+                ],
+                "reasons": "The repeated slicing has fully separated the original slices into small cubes."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "separated",
+                "objects": [
+                  "knife",
+                  "zucchini_slices"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "zucchini_slices",
+                "affordance_types": [
+                  "loose_pieces"
+                ],
+                "reasons": "The structural integrity of the slices is broken, resulting in loose independent pieces ready for transfer."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "knife"
+            ],
+            "materials": [
+              "zucchini_slices"
+            ],
+            "hotspot": {
+              "description": "knife_blade",
+              "affordance_type": "cutting_surface",
+              "mechanism": "The blade completes its passage through the material, contacting the board and severing the final connections."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Transfer the diced zucchini from the board to the pan.",
+      "rationale": "Moving the prepared ingredient into the cooking vessel is necessary to begin the heating process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "tilt and scrape",
+        "patient": "zucchini_pieces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "zucchini_pieces",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "zucchini_pieces",
+            "affordance_types": [
+              "movable"
+            ],
+            "reasons": "The pieces must be loose and capable of being slid off the surface."
+          },
+          {
+            "object_name": "cutting_board",
+            "affordance_types": [
+              "rigid",
+              "tiltable"
+            ],
+            "reasons": "The board must be rigid enough to support the food while being tilted to direct the transfer."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "zucchini_pieces",
+              "pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "zucchini_pieces",
+              "cutting_board"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_pieces",
+            "affordance_types": [
+              "contained"
+            ],
+            "reasons": "The pieces are now confined within the pan walls, ready for cooking."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the cutting board were held completely flat rather than tilted, would the transfer be efficient?",
+      "expected_challenge_outcome": "No, without the assistance of gravity from the tilt, the zucchini pieces would require significantly more manual force to move and might scatter.",
+      "failure_reflecting": {
+        "reason": "Zucchini pieces might adhere to the cutting board surface due to moisture and fail to slide off.",
+        "recovery_strategy": "Use the knife to actively scrape the remaining pieces down the board and into the pan."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 6,
+          "action_state_change_description": "Initiation: The cutting board is tilted over the pan, and the knife begins to contact the zucchini pieces to push them.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "tilt and scrape",
+            "patient": "zucchini_pieces",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "zucchini_pieces",
+                  "cutting_board"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "aligned_with",
+                "objects": [
+                  "cutting_board",
+                  "pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "pan",
+                "affordance_types": [
+                  "open",
+                  "containable"
+                ],
+                "reasons": "The pan must be open and positioned to receive the falling ingredients."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "moving_toward",
+                "objects": [
+                  "zucchini_pieces",
+                  "pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "zucchini_pieces",
+                "affordance_types": [
+                  "in_motion"
+                ],
+                "reasons": "The applied force and gravity initiate the sliding motion of the pieces."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "knife"
+            ],
+            "materials": [
+              "zucchini_pieces"
+            ],
+            "hotspot": {
+              "description": "The top surface of the cutting board where the zucchini sits.",
+              "affordance_type": "support_surface",
+              "mechanism": "The board is tilted to utilize gravity while the knife applies a pushing force to overcome friction."
+            }
+          }
+        },
+        {
+          "frame_index": 38,
+          "action_state_change_description": "Completion: The final pieces of zucchini are scraped off the board into the pan.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "tilt and scrape",
+            "patient": "zucchini_pieces",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "inside",
+                "objects": [
+                  "zucchini_pieces",
+                  "pan"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "cutting_board",
+                "affordance_types": [
+                  "clearable"
+                ],
+                "reasons": "The board surface is mostly clear, allowing the final pieces to be removed."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "zucchini_pieces",
+                  "cutting_board"
+                ],
+                "truth": false
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "zucchini_pieces",
+                "affordance_types": [
+                  "contained"
+                ],
+                "reasons": "All pieces have been successfully transferred into the containment of the pan."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands",
+              "knife"
+            ],
+            "materials": [
+              "zucchini_pieces"
+            ],
+            "hotspot": {
+              "description": "The edge of the cutting board positioned over the pan.",
+              "affordance_type": "pour_lip",
+              "mechanism": "The knife sweeps the remaining pieces over the edge of the board, allowing them to fall into the pan."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Wash the celery sticks under running water.",
+      "rationale": "Washing the celery is essential to remove surface dirt, pesticides, and potential contaminants, ensuring the vegetable is sanitary before chopping and cooking.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "rinse under running water",
+        "patient": "celery_sticks",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "celery_sticks"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "flowing",
+            "objects": [
+              "water_stream"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": [
+              "washable"
+            ],
+            "reasons": "The celery sticks have exposed surfaces that can be cleaned by the mechanical and solvent action of water."
+          },
+          {
+            "object_name": "water_tap",
+            "affordance_types": [
+              "dispensability"
+            ],
+            "reasons": "The tap is active and providing a stream of water necessary for the washing process."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "wet",
+            "objects": [
+              "celery_sticks"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "flowing",
+            "objects": [
+              "water_stream"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": [
+              "clean"
+            ],
+            "reasons": "The rinsing action has removed surface debris, changing the state of the celery to clean."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the water tap was broken and no water flowed, how would the step outcome change?",
+      "expected_challenge_outcome": "The physical mechanism of rinsing (fluid flow removing particles) would fail, leaving the celery dirty despite the agent's positioning.",
+      "failure_reflecting": {
+        "reason": "The agent might not rotate the celery sticks sufficiently, leaving some sides unwashed.",
+        "recovery_strategy": "Manipulate the celery sticks in hand to expose all surfaces to the water stream."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 12,
+          "action_state_change_description": "Initiation: The celery sticks are brought into the running water stream to begin the rinsing process.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "rinse under running water",
+            "patient": "celery_sticks",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": [
+                  "celery_sticks",
+                  "water_stream"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "water_stream",
+                "affordance_types": [
+                  "active"
+                ],
+                "reasons": "The water is visibly flowing, providing the medium for cleaning."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "wet",
+                "objects": [
+                  "celery_sticks"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "celery_sticks",
+                "affordance_types": [
+                  "being_cleaned"
+                ],
+                "reasons": "The contact with flowing water initiates the cleaning state."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "celery_sticks",
+              "water_stream"
+            ],
+            "hotspot": {
+              "description": "The surface of the celery sticks intersecting the water stream.",
+              "affordance_type": "washable_surface",
+              "mechanism": "Fluid dynamics and solvent action of the water remove surface particulates."
+            }
+          }
+        },
+        {
+          "frame_index": 26,
+          "action_state_change_description": "Completion: The agent turns off the tap lever, terminating the water flow as washing concludes.",
+          "causal_chain": {
+            "agent": "hands",
+            "action": "rinse under running water",
+            "patient": "celery_sticks",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "hands",
+                  "celery_sticks"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "tap_lever",
+                "affordance_types": [
+                  "manipulable"
+                ],
+                "reasons": "The lever is positioned to be pushed down to stop the flow."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "flowing",
+                "objects": [
+                  "water_stream"
+                ],
+                "truth": false
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "celery_sticks",
+                "affordance_types": [
+                  "clean"
+                ],
+                "reasons": "The washing process is finished, and the object is now in a clean state."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "hands"
+            ],
+            "materials": [
+              "celery_sticks",
+              "tap_lever"
+            ],
+            "hotspot": {
+              "description": "The handle/lever of the kitchen tap.",
+              "affordance_type": "flow_control",
+              "mechanism": "Pushing the lever downward mechanically closes the valve to stop water flow."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Chop the washed celery sticks into small pieces.",
+      "rationale": "Cutting the celery into small, uniform pieces ensures it cooks at the same rate as the zucchini and provides a consistent texture in the final dish.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "chop",
+        "patient": "celery_sticks",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "celery_sticks",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "knife"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": [
+              "cuttable"
+            ],
+            "reasons": "The celery has a fibrous but firm structure that allows a blade to slice through it without shattering."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "separated_into_parts",
+            "objects": [
+              "celery_sticks"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": [
+              "chopped"
+            ],
+            "reasons": "The mechanical slicing action has divided the continuous sticks into multiple discrete, small pieces."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the knife blade were extremely dull, how would the chopping process be affected?",
+      "expected_challenge_outcome": "The celery sticks would be crushed or bruised rather than sliced cleanly, requiring significantly more downward force to sever the fibers.",
+      "failure_reflecting": {
+        "reason": "The cylindrical shape of the celery sticks might cause them to roll under the knife pressure, leading to uneven cuts or injury.",
+        "recovery_strategy": "Secure the celery firmly with the non-dominant hand using a claw grip to prevent rolling while cutting."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 7,
+          "action_state_change_description": "Initiation: The knife blade makes first contact with the celery sticks to begin the slicing motion.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "chop",
+            "patient": "celery_sticks",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": [
+                  "knife",
+                  "celery_sticks"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "celery_sticks",
+                "affordance_types": [
+                  "cuttable"
+                ],
+                "reasons": "The celery is positioned flat on the board, exposing its length to the blade."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "penetrating",
+                "objects": [
+                  "knife",
+                  "celery_sticks"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "celery_sticks",
+                "affordance_types": [
+                  "being_cut"
+                ],
+                "reasons": "The force applied to the knife edge initiates the fracture of the vegetable fibers."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "knife"
+            ],
+            "materials": [
+              "celery_sticks"
+            ],
+            "hotspot": {
+              "description": "The sharp edge of the knife blade contacting the celery surface.",
+              "affordance_type": "cutting_edge",
+              "mechanism": "The knife edge concentrates downward force to shear through the fibrous material."
+            }
+          }
+        },
+        {
+          "frame_index": 39,
+          "action_state_change_description": "Completion: The final cut is made, resulting in a pile of small celery pieces on the cutting board.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "chop",
+            "patient": "celery_sticks",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": [
+                  "knife",
+                  "cutting_board"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "celery_sticks",
+                "affordance_types": [
+                  "partially_chopped"
+                ],
+                "reasons": "Most of the celery has already been processed into pieces."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "separated_into_parts",
+                "objects": [
+                  "celery_sticks"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "celery_sticks",
+                "affordance_types": [
+                  "chopped"
+                ],
+                "reasons": "The structural integrity of the long sticks is completely severed into discrete units."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand",
+              "knife"
+            ],
+            "materials": [
+              "celery_sticks"
+            ],
+            "hotspot": {
+              "description": "The interface between the knife blade, the celery pieces, and the board.",
+              "affordance_type": "cutting_interface",
+              "mechanism": "Complete severance of fibers is achieved by pressing the blade through the material against the rigid board."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Transfer the chopped celery into the pan.",
+      "rationale": "Before the chopped celery can be transferred, the user clears the workspace by removing the empty celery packaging and disposing of it in the compost bin.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "pick up and carry",
+        "patient": "celery_packaging",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "celery_packaging",
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "celery_packaging",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The packaging is loose on the counter and light enough to be lifted by one hand."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "aligned_with",
+            "objects": [
+              "celery_packaging",
+              "compost_bin"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "celery_packaging",
+              "kitchen_counter"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "celery_packaging",
+            "affordance_types": [
+              "transported",
+              "ready_for_disposal"
+            ],
+            "reasons": "The packaging has been moved from the food preparation area to the waste disposal area."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the compost bin lid were jammed shut, what would happen?",
+      "expected_challenge_outcome": "The user would be physically unable to deposit the packaging inside and would likely have to leave it on the lid or counter.",
+      "failure_reflecting": {
+        "reason": "The lightweight plastic packaging could slip from the hand due to a weak grip or air resistance while walking.",
+        "recovery_strategy": "Stop, locate the dropped packaging, pick it up again, and continue to the bin."
+      },
+      "critical_frames": [
+        {
+          "frame_index": 25,
+          "action_state_change_description": "Initiation: The right hand grasps the celery packaging to lift it from the counter.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "pick up and carry",
+            "patient": "celery_packaging",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "contacting",
+                "objects": [
+                  "right_hand",
+                  "celery_packaging"
+                ],
+                "truth": true
+              },
+              {
+                "relation": "on_top_of",
+                "objects": [
+                  "celery_packaging",
+                  "kitchen_counter"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "celery_packaging",
+                "affordance_types": [
+                  "graspable"
+                ],
+                "reasons": "The wrapper is accessible and not obstructed by other objects."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "right_hand",
+                  "celery_packaging"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "celery_packaging",
+                "affordance_types": [
+                  "lifted"
+                ],
+                "reasons": "The force applied by the hand overcomes gravity, raising the object."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand"
+            ],
+            "materials": [
+              "celery_packaging"
+            ],
+            "hotspot": {
+              "description": "The exterior plastic surface of the celery wrapper.",
+              "affordance_type": "grasp_surface",
+              "mechanism": "Friction grasp is applied by the fingers to secure the lightweight plastic."
+            }
+          }
+        },
+        {
+          "frame_index": 46,
+          "action_state_change_description": "Completion: The user has transported the packaging to the compost bin and holds it over the open bin.",
+          "causal_chain": {
+            "agent": "right_hand",
+            "action": "pick up and carry",
+            "patient": "celery_packaging",
+            "causal_precondition_on_spatial": [
+              {
+                "relation": "holding",
+                "objects": [
+                  "right_hand",
+                  "celery_packaging"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_precondition_on_affordance": [
+              {
+                "object_name": "compost_bin",
+                "affordance_types": [
+                  "open",
+                  "containment"
+                ],
+                "reasons": "The bin lid has been opened (by the left hand), exposing the internal volume."
+              }
+            ],
+            "causal_effect_on_spatial": [
+              {
+                "relation": "aligned_with",
+                "objects": [
+                  "celery_packaging",
+                  "compost_bin"
+                ],
+                "truth": true
+              }
+            ],
+            "causal_effect_on_affordance": [
+              {
+                "object_name": "celery_packaging",
+                "affordance_types": [
+                  "positioned_for_drop"
+                ],
+                "reasons": "The object is suspended over the target container, ready to be released."
+              }
+            ]
+          },
+          "interaction": {
+            "tools": [
+              "right_hand"
+            ],
+            "materials": [
+              "celery_packaging"
+            ],
+            "hotspot": {
+              "description": "The plastic surface of the wrapper, still held by the hand.",
+              "affordance_type": "grasp_surface",
+              "mechanism": "The hand maintains the friction grasp to prevent premature dropping before alignment."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

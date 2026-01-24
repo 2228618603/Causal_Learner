@@ -1,0 +1,10 @@
+{
+  "step_id": 1,
+  "step_goal": "Add chopped red onion to sautéed vegetables in frying pan",
+  "clip_path": "../stage2/step_clips/step01_add_chopped_red_onion_to_sautéed_vegetables_in_frying_pan.mp4",
+  "clip_start_sec": 0.0,
+  "clip_end_sec": 7.340674007340675,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T12:43:25.311429Z",
+  "manifest_path": "frame_manifest.json"
+}

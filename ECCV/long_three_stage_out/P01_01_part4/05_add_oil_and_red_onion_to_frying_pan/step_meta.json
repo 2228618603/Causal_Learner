@@ -1,0 +1,10 @@
+{
+  "step_id": 5,
+  "step_goal": "Add oil and red onion to frying pan",
+  "clip_path": "../stage2/step_clips/step05_add_oil_and_red_onion_to_frying_pan.mp4",
+  "clip_start_sec": 161.6116116116116,
+  "clip_end_sec": 183.6503169836503,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T12:38:48.345542Z",
+  "manifest_path": "frame_manifest.json"
+}

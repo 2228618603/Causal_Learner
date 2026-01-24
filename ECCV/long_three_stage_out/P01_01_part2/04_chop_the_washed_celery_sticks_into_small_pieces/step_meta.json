@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Chop the washed celery sticks into small pieces.",
+  "clip_path": "../stage2/step_clips/step04_chop_the_washed_celery_sticks_into_small_pieces.mp4",
+  "clip_start_sec": 139.57290623957292,
+  "clip_end_sec": 168.96896896896897,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:21:31.108016Z",
+  "manifest_path": "frame_manifest.json"
+}

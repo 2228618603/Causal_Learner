@@ -1,0 +1,105 @@
+{
+  "step_id": 4,
+  "step_goal": "Wash knife, fork, and ceramic dish",
+  "rationale": "This step removes food residue, grease, and contaminants from the knife, fork, and ceramic dish, ensuring they are hygienically safe for future food handling and preventing bacterial growth. Clean utensils and dishes also maintain kitchen cleanliness and avoid cross-contamination with other food items.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scrub with hands and rinse under running water to remove food residue and grease",
+    "patient": "knife_fork_ceramic_dish",
+    "causal_precondition_on_spatial": [
+      {"relation": "in_sink", "objects": ["knife", "fork", "kitchen_sink"], "truth": true},
+      {"relation": "on_counter", "objects": ["ceramic_dish", "kitchen_counter"], "truth": true},
+      {"relation": "running", "objects": ["kitchen_faucet"], "truth": true}
+    ],
+    "causal_precondition_on_affordance": [
+      {"object_name": "knife", "affordance_types": ["graspable"], "reasons": "The knife has a solid handle that allows secure gripping during washing."},
+      {"object_name": "fork", "affordance_types": ["graspable"], "reasons": "The fork's handle provides a stable grip for scrubbing."},
+      {"object_name": "ceramic_dish", "affordance_types": ["water_resistant"], "reasons": "Glazed ceramic surface is visible, confirming it can withstand water exposure without damage."}
+    ],
+    "causal_effect_on_spatial": [
+      {"relation": "free_of_residue", "objects": ["knife", "fork", "ceramic_dish"], "truth": true},
+      {"relation": "in_dish_rack", "objects": ["knife", "fork", "ceramic_dish", "kitchen_dish_rack"], "truth": true},
+      {"relation": "wet", "objects": ["knife", "fork", "ceramic_dish"], "truth": true}
+    ],
+    "causal_effect_on_affordance": [
+      {"object_name": "knife_fork_ceramic_dish", "affordance_types": ["sanitized", "ready_for_use"], "reasons": "All visible residue has been removed via scrubbing and rinsing, making them safe for food handling."}
+    ]
+  },
+  "counterfactual_challenge_question": "What if the ceramic dish had dried-on food residue and no dish soap was used during washing?",
+  "expected_challenge_outcome": "The dried-on residue would not be fully removed by water alone, as water lacks surfactant properties to break down hardened food particles, leaving the dish unhygienic and prone to bacterial growth.",
+  "failure_reflecting": {
+    "reason": "Food residue remains trapped in the fork’s tines or the dish’s crevices due to insufficient scrubbing pressure or missed spots during washing.",
+    "recovery_strategy": "Re-scrub the affected areas with a sponge under running water, focusing on the fork’s tines and dish crevices to dislodge remaining residue, then rinse thoroughly."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands begin scrubbing the knife under running water, initiating the washing process for the knife, fork, and ceramic dish.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub with hands and rinse under running water to remove food residue and grease",
+        "patient": "knife_fork_ceramic_dish",
+        "causal_precondition_on_spatial": [
+          {"relation": "holding", "objects": ["hands", "knife"], "truth": true},
+          {"relation": "running", "objects": ["kitchen_faucet"], "truth": true},
+          {"relation": "in_sink", "objects": ["fork", "kitchen_sink"], "truth": true},
+          {"relation": "on_counter", "objects": ["ceramic_dish", "kitchen_counter"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {"object_name": "knife", "affordance_types": ["graspable"], "reasons": "The knife's handle is visible and provides a secure grip for washing."},
+          {"object_name": "kitchen_faucet", "affordance_types": ["water_flowing"], "reasons": "Water is visibly flowing from the faucet, enabling rinsing."}
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "wet", "objects": ["knife"], "truth": true},
+          {"relation": "moving", "objects": ["knife"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {"object_name": "knife", "affordance_types": ["being_cleaned"], "reasons": "Scrubbing and rinsing are actively removing residue from the knife's surface."}
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["knife_fork_ceramic_dish"],
+        "hotspot": {
+          "description": "knife handle and blade surface",
+          "affordance_type": "grasp_point_and_clean_surface",
+          "mechanism": "Friction from hand scrubbing dislodges food residue from the blade, while flowing water rinses away loosened particles; the handle provides a stable grip to apply consistent scrubbing force."
+        }
+      }
+    },
+    {
+      "frame_index": 46,
+      "action_state_change_description": "The ceramic dish is placed in the dish rack, completing the washing process for all three items, which are now free of visible residue and positioned to air dry.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub with hands and rinse under running water to remove food residue and grease",
+        "patient": "knife_fork_ceramic_dish",
+        "causal_precondition_on_spatial": [
+          {"relation": "wet", "objects": ["knife", "fork", "ceramic_dish"], "truth": true},
+          {"relation": "held_by_hands", "objects": ["ceramic_dish", "hands"], "truth": true},
+          {"relation": "accessible", "objects": ["kitchen_dish_rack"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {"object_name": "ceramic_dish", "affordance_types": ["cleaned"], "reasons": "All visible food residue has been removed from the dish's surface."},
+          {"object_name": "kitchen_dish_rack", "affordance_types": ["available_for_placing"], "reasons": "The dish rack is empty and positioned to hold washed items for drying."}
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "in_dish_rack", "objects": ["knife", "fork", "ceramic_dish", "kitchen_dish_rack"], "truth": true},
+          {"relation": "free_of_residue", "objects": ["knife", "fork", "ceramic_dish"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {"object_name": "knife_fork_ceramic_dish", "affordance_types": ["sanitized", "ready_for_drying"], "reasons": "All items are clean and placed in the rack to air dry, making them safe for future use or storage."}
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["knife_fork_ceramic_dish"],
+        "hotspot": {
+          "description": "ceramic dish rim",
+          "affordance_type": "grasp_point",
+          "mechanism": "The dish's rim provides a secure, non-slip grip to lift and position the dish in the rack, ensuring stable handling without damaging the cleaned surface."
+        }
+      }
+    }
+  ]
+}

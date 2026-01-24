@@ -1,0 +1,10 @@
+{
+  "step_id": 3,
+  "step_goal": "Pour plant-based milk into a mug on the table",
+  "clip_path": "../stage2/step_clips/step03_pour_plant_based_milk_into_a_mug_on_the_table.mp4",
+  "clip_start_sec": 31.5315,
+  "clip_end_sec": 70.33693333333333,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:20:42.434932Z",
+  "manifest_path": "frame_manifest.json"
+}

@@ -1,0 +1,10 @@
+{
+  "step_id": 2,
+  "step_goal": "Apply dish soap to cleaning sponge",
+  "clip_path": "../stage2/step_clips/step02_apply_dish_soap_to_cleaning_sponge.mp4",
+  "clip_start_sec": 22.038705372038706,
+  "clip_end_sec": 36.73673673673674,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:18:54.892683Z",
+  "manifest_path": "frame_manifest.json"
+}

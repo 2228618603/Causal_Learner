@@ -1,0 +1,71 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_01_part4.MP4",
+  "video_id": "P01_01_part4",
+  "generated_at_utc": "2026-01-23T12:30:29.267396Z",
+  "num_frames": 50,
+  "cut": {
+    "mode": "reencode",
+    "seek_slop_sec": 1.0,
+    "crf": 18,
+    "preset": "veryfast",
+    "keep_audio": false,
+    "ffmpeg_bin": "ffmpeg"
+  },
+  "segments": [
+    {
+      "step_id": 1,
+      "step_goal": "Sauté diced green vegetables in frying pan",
+      "start_frame_index": 1,
+      "end_frame_index": 10,
+      "start_sec": 0.0,
+      "end_sec": 33.04971638304972,
+      "start_image_relpath": "sampled_frames/sample_001_ts_0.00s.jpg",
+      "end_image_relpath": "sampled_frames/sample_010_ts_33.05s.jpg",
+      "clip_relpath": "step_clips/step01_sauté_diced_green_vegetables_in_frying_pan.mp4"
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Grate carrot into frying pan",
+      "start_frame_index": 10,
+      "end_frame_index": 30,
+      "start_sec": 33.04971638304972,
+      "end_sec": 106.52318985652319,
+      "start_image_relpath": "sampled_frames/sample_010_ts_33.05s.jpg",
+      "end_image_relpath": "sampled_frames/sample_030_ts_106.52s.jpg",
+      "clip_relpath": "step_clips/step02_grate_carrot_into_frying_pan.mp4"
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Stir mixed vegetables in frying pan",
+      "start_frame_index": 30,
+      "end_frame_index": 34,
+      "start_sec": 106.52318985652319,
+      "end_sec": 121.20453787120454,
+      "start_image_relpath": "sampled_frames/sample_030_ts_106.52s.jpg",
+      "end_image_relpath": "sampled_frames/sample_034_ts_121.20s.jpg",
+      "clip_relpath": "step_clips/step03_stir_mixed_vegetables_in_frying_pan.mp4"
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Prepare boiling water in saucepan",
+      "start_frame_index": 34,
+      "end_frame_index": 45,
+      "start_sec": 121.20453787120454,
+      "end_sec": 161.6116116116116,
+      "start_image_relpath": "sampled_frames/sample_034_ts_121.20s.jpg",
+      "end_image_relpath": "sampled_frames/sample_045_ts_161.61s.jpg",
+      "clip_relpath": "step_clips/step04_prepare_boiling_water_in_saucepan.mp4"
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Add oil and red onion to frying pan",
+      "start_frame_index": 45,
+      "end_frame_index": 51,
+      "start_sec": 161.6116116116116,
+      "end_sec": 183.6503169836503,
+      "start_image_relpath": "sampled_frames/sample_045_ts_161.61s.jpg",
+      "end_image_relpath": "sampled_frames/sample_050_ts_179.98s.jpg",
+      "clip_relpath": "step_clips/step05_add_oil_and_red_onion_to_frying_pan.mp4"
+    }
+  ]
+}

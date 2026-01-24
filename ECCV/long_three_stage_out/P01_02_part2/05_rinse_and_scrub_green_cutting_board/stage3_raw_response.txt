@@ -1,0 +1,203 @@
+{
+  "step_id": 5,
+  "step_goal": "Rinse and scrub green cutting board",
+  "rationale": "Removes food particles and bacteria from the cutting board's surface, preventing cross-contamination between different types of food during future preparation, and ensuring the board is sanitized for subsequent use.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scrub both sides of the cutting board under running water, then place it in the dish rack",
+    "patient": "green_plastic_cutting_board",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": ["hands", "green_plastic_cutting_board"],
+        "truth": true
+      },
+      {
+        "relation": "flowing",
+        "objects": ["kitchen_faucet"],
+        "truth": true
+      },
+      {
+        "relation": "positioned_under",
+        "objects": ["green_plastic_cutting_board", "kitchen_faucet"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "green_plastic_cutting_board",
+        "affordance_types": ["scrubbable", "graspable"],
+        "reasons": "Rigid plastic construction is visible, confirming it can withstand hand scrubbing without warping, and its flat edges allow secure grasping for manipulation."
+      },
+      {
+        "object_name": "kitchen_faucet",
+        "affordance_types": ["water_providing"],
+        "reasons": "Water is flowing from the faucet, providing the necessary medium for rinsing and removing loosened residue."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "free_of_food_residue",
+        "objects": ["green_plastic_cutting_board"],
+        "truth": true
+      },
+      {
+        "relation": "placed_in",
+        "objects": ["green_plastic_cutting_board", "kitchen_dish_rack"],
+        "truth": true
+      },
+      {
+        "relation": "stationary",
+        "objects": ["green_plastic_cutting_board"],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "green_plastic_cutting_board",
+        "affordance_types": ["food_prep_ready", "dryable"],
+        "reasons": "Both sides of the cutting board are clean, eliminating cross-contamination risk, and its position in the dish rack allows air circulation for complete drying."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if only one side of the cutting board was cleaned?",
+  "expected_challenge_outcome": "Food residue and bacteria would remain on the unwashed side, leading to cross-contamination when the board is next used, as the unclean surface would come into contact with other foods during preparation.",
+  "failure_reflecting": {
+    "reason": "Food residue is stuck in the cutting board's surface grooves and not removed by initial scrubbing.",
+    "recovery_strategy": "Apply a small amount of dish soap to a sponge, scrub the residue-stuck areas with firm circular motions, then rinse thoroughly under running water to remove both residue and soap."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands grasp the green plastic cutting board and position it under running water to initiate rinsing and scrubbing.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub both sides of the cutting board under running water, then place it in the dish rack",
+        "patient": "green_plastic_cutting_board",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": ["hands", "green_plastic_cutting_board"],
+            "truth": true
+          },
+          {
+            "relation": "flowing",
+            "objects": ["kitchen_faucet"],
+            "truth": true
+          },
+          {
+            "relation": "positioned_under",
+            "objects": ["green_plastic_cutting_board", "kitchen_faucet"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "green_plastic_cutting_board",
+            "affordance_types": ["scrubbable", "graspable"],
+            "reasons": "Rigid plastic construction is visible, confirming it can withstand hand scrubbing without warping, and its flat edges allow secure grasping for manipulation."
+          },
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": ["water_providing"],
+            "reasons": "Water is flowing from the faucet, providing the necessary medium for rinsing and removing loosened residue."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "being_rinsed",
+            "objects": ["green_plastic_cutting_board"],
+            "truth": true
+          },
+          {
+            "relation": "in_motion",
+            "objects": ["green_plastic_cutting_board"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "green_plastic_cutting_board",
+            "affordance_types": ["being_cleaned"],
+            "reasons": "Running water and manual scrubbing are actively removing food particles and residue from the board's surface."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["green_plastic_cutting_board", "tap_water"],
+        "hotspot": {
+          "description": "flat edge of green plastic cutting board",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hands and the cutting board's flat edge provides a secure grip, allowing controlled manipulation and positioning under running water for rinsing and scrubbing."
+        }
+      }
+    },
+    {
+      "frame_index": 44,
+      "action_state_change_description": "The cleaned green plastic cutting board is moved toward the dish rack to be placed for drying.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub both sides of the cutting board under running water, then place it in the dish rack",
+        "patient": "green_plastic_cutting_board",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "free_of_food_residue",
+            "objects": ["green_plastic_cutting_board"],
+            "truth": true
+          },
+          {
+            "relation": "accessible",
+            "objects": ["kitchen_dish_rack"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["hands", "green_plastic_cutting_board"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "green_plastic_cutting_board",
+            "affordance_types": ["clean"],
+            "reasons": "The cutting board's surfaces are visibly free of food residue after thorough rinsing and scrubbing."
+          },
+          {
+            "object_name": "kitchen_dish_rack",
+            "affordance_types": ["storage_capable"],
+            "reasons": "The dish rack has open slots designed to hold kitchen items and facilitate air circulation for drying."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "placed_in",
+            "objects": ["green_plastic_cutting_board", "kitchen_dish_rack"],
+            "truth": true
+          },
+          {
+            "relation": "stationary",
+            "objects": ["green_plastic_cutting_board"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "green_plastic_cutting_board",
+            "affordance_types": ["food_prep_ready", "dryable"],
+            "reasons": "Both sides of the cutting board are clean, eliminating cross-contamination risk, and its position in the dish rack allows air circulation for complete drying."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["green_plastic_cutting_board"],
+        "hotspot": {
+          "description": "slotted section of kitchen dish rack",
+          "affordance_type": "storage_slot",
+          "mechanism": "The dish rack's slotted section provides structural support to hold the cutting board in an upright position, allowing air to circulate around all surfaces for efficient, even drying."
+        }
+      }
+    }
+  ]
+}

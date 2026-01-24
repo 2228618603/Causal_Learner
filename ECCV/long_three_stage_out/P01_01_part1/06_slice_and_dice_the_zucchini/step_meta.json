@@ -1,0 +1,10 @@
+{
+  "step_id": 6,
+  "step_goal": "Slice and dice the zucchini.",
+  "clip_path": "../stage2/step_clips/step06_slice_and_dice_the_zucchini.mp4",
+  "clip_start_sec": 106.52318985652319,
+  "clip_end_sec": 183.6503169836503,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:12:57.413670Z",
+  "manifest_path": "frame_manifest.json"
+}

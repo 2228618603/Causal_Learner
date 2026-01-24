@@ -1,0 +1,168 @@
+{
+  "step_id": 2,
+  "step_goal": "Stir stir-fry mixture in frying pan",
+  "rationale": "To ensure even heat distribution, prevent ingredients from burning on the pan bottom, and distribute seasonings uniformly for consistent texture and flavor across all components.",
+  "causal_chain": {
+    "agent": "right_hand",
+    "action": "agitate mixture with slotted spatula",
+    "patient": "stir_fry_mixture",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": ["stir_fry_mixture", "frying_pan"],
+        "truth": true
+      },
+      {
+        "relation": "grasped",
+        "objects": ["right_hand", "slotted_spatula"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "slotted_spatula",
+        "affordance_types": ["stirring"],
+        "reasons": "The spatula has a wide, flat surface with slots to lift and move solid ingredients without trapping excess oil, visible from its design, enabling effective stirring of the mixture."
+      },
+      {
+        "object_name": "frying_pan",
+        "affordance_types": ["heat_conducting"],
+        "reasons": "The pan emits steam and sits on an active stovetop, confirming it transfers heat to cook the ingredients evenly."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "evenly_distributed",
+        "objects": ["stir_fry_mixture", "frying_pan"],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "stir_fry_mixture",
+        "affordance_types": ["uniformly_cooked"],
+        "reasons": "Stirring ensures all ingredients are exposed to heat, reducing raw spots and burnt areas, resulting in a consistent texture and browned color across the mixture."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the mixture was not stirred during cooking?",
+  "expected_challenge_outcome": "Ingredients in contact with the hot pan bottom would burn, while upper ingredients would remain undercooked, leading to uneven texture, burnt flavor spots, and inconsistent seasoning distribution.",
+  "failure_reflecting": {
+    "reason": "Mixture was left unstirred, causing burnt, charred spots on the bottom of the frying pan.",
+    "recovery_strategy": "Scrape off loose burnt bits from the pan, stir the mixture thoroughly to redistribute charred pieces, reduce the stovetop heat, and continue stirring at regular intervals to prevent further burning."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Right hand starts agitating the stir-fry mixture with a slotted spatula.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "agitate mixture with slotted spatula",
+        "patient": "stir_fry_mixture",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["stir_fry_mixture", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "grasped",
+            "objects": ["right_hand", "slotted_spatula"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "slotted_spatula",
+            "affordance_types": ["stirring"],
+            "reasons": "The spatula has a wide, flat surface with slots to lift and move solid ingredients without trapping excess oil, visible from its design, enabling effective stirring of the mixture."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": ["heat_conducting"],
+            "reasons": "The pan emits steam and sits on an active stovetop, confirming it transfers heat to cook the ingredients evenly."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving",
+            "objects": ["stir_fry_mixture", "frying_pan"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "stir_fry_mixture",
+            "affordance_types": ["in_motion"],
+            "reasons": "The spatula applies force to the mixture, causing it to shift position within the pan, initiating even heat exposure."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand", "slotted_spatula"],
+        "materials": ["stir_fry_mixture"],
+        "hotspot": {
+          "description": "Wide, flat slotted surface of the spatula",
+          "affordance_type": "stirring_surface",
+          "mechanism": "Friction between the spatula surface and mixture ingredients transfers force to lift and move the mixture, preventing sticking and ensuring even heat contact."
+        }
+      }
+    },
+    {
+      "frame_index": 25,
+      "action_state_change_description": "Stir-fry mixture is evenly distributed within the frying pan, with consistent color and texture across all ingredients.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "agitate mixture with slotted spatula",
+        "patient": "stir_fry_mixture",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["stir_fry_mixture", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "grasped",
+            "objects": ["right_hand", "slotted_spatula"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "slotted_spatula",
+            "affordance_types": ["stirring"],
+            "reasons": "The spatula has a wide, flat surface with slots to lift and move solid ingredients without trapping excess oil, visible from its design, enabling effective stirring of the mixture."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": ["heat_conducting"],
+            "reasons": "The pan emits steam and sits on an active stovetop, confirming it transfers heat to cook the ingredients evenly."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "evenly_distributed",
+            "objects": ["stir_fry_mixture", "frying_pan"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "stir_fry_mixture",
+            "affordance_types": ["uniformly_cooked"],
+            "reasons": "Stirring ensures all ingredients are exposed to heat, reducing raw spots and burnt areas, resulting in a consistent texture and browned color across the mixture."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand", "slotted_spatula"],
+        "materials": ["stir_fry_mixture"],
+        "hotspot": {
+          "description": "Wide, flat slotted surface of the spatula",
+          "affordance_type": "stirring_surface",
+          "mechanism": "Friction between the spatula surface and mixture ingredients transfers force to lift and move the mixture, ensuring even distribution and heat exposure across all components."
+        }
+      }
+    }
+  ]
+}

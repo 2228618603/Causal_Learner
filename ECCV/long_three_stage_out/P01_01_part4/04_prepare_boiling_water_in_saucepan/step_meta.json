@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Prepare boiling water in saucepan",
+  "clip_path": "../stage2/step_clips/step04_prepare_boiling_water_in_saucepan.mp4",
+  "clip_start_sec": 121.20453787120454,
+  "clip_end_sec": 161.6116116116116,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T12:36:02.298815Z",
+  "manifest_path": "frame_manifest.json"
+}

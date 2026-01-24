@@ -1,0 +1,10 @@
+{
+  "step_id": 5,
+  "step_goal": "Complete cooking and stirring diced celery",
+  "clip_path": "../stage2/step_clips/step05_complete_cooking_and_stirring_diced_celery.mp4",
+  "clip_start_sec": 161.6116116116116,
+  "clip_end_sec": 183.6503169836503,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:51:19.312628Z",
+  "manifest_path": "frame_manifest.json"
+}

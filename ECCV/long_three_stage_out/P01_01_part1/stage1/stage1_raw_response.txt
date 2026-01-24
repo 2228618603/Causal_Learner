@@ -1,0 +1,405 @@
+{
+  "high_level_goal": "The user intends to prepare ingredients by retrieving vegetables, washing them, and chopping a zucchini into diced pieces.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Illuminate the environment to enable visual navigation.",
+      "rationale": "The room is initially dark, making it impossible to safely locate objects or navigate to the kitchen area.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "press_switch",
+        "patient": "light_switch",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "right_hand",
+              "light_switch"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "light_switch",
+            "affordance_types": [
+              "toggleable"
+            ],
+            "reasons": "The switch must be mechanically operable to close the electrical circuit."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "right_hand",
+              "light_switch"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "room",
+            "affordance_types": [
+              "illuminated",
+              "visible"
+            ],
+            "reasons": "Activating the switch powers the lights, changing the room state from dark to visible."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the light switch was broken or there was a power outage, what would happen?",
+      "expected_challenge_outcome": "The room would remain dark, and the agent would likely fail to locate the fridge or ingredients safely.",
+      "failure_reflecting": {
+        "reason": "The agent might miss the switch in the dark or the bulb might be burnt out.",
+        "recovery_strategy": "Use a flashlight or phone light to locate the switch or ingredients."
+      }
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Retrieve vegetables from the refrigerator.",
+      "rationale": "The agent needs to acquire the raw ingredients (zucchini and carrot) stored in the fridge to begin preparation.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "retrieve_from_storage",
+        "patient": "vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "vegetables",
+              "fridge"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "open",
+            "objects": [
+              "fridge",
+              "fridge_door"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "vegetables",
+            "affordance_types": [
+              "graspable",
+              "moveable"
+            ],
+            "reasons": "The vegetables must be free to be picked up from the shelf."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "vegetables",
+              "fridge"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "vegetables",
+            "affordance_types": [
+              "retrieved"
+            ],
+            "reasons": "The vegetables are now in the agent's possession and ready for transport."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the fridge door was locked or jammed, could the agent retrieve the vegetables?",
+      "expected_challenge_outcome": "No, the physical barrier of the closed door would prevent the agent's hands from reaching the vegetables.",
+      "failure_reflecting": {
+        "reason": "The vegetables might be buried behind other items, making them hard to grasp.",
+        "recovery_strategy": "Move obstructing items aside to clear a path for grasping the vegetables."
+      }
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Wash the vegetables at the sink.",
+      "rationale": "Cleaning the vegetables is a necessary hygiene step before cutting and cooking them.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "rinse_under_water",
+        "patient": "vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "under",
+            "objects": [
+              "vegetables",
+              "water_stream"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "sink",
+            "affordance_types": [
+              "dispensing_water"
+            ],
+            "reasons": "Water must be flowing from the tap to enable washing."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "vegetables",
+              "water_stream"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "vegetables",
+            "affordance_types": [
+              "clean",
+              "wet"
+            ],
+            "reasons": "The interaction with running water removes surface dirt."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the water supply was cut off, would this step be effective?",
+      "expected_challenge_outcome": "No, the vegetables would remain dry and potentially dirty, failing the hygiene requirement.",
+      "failure_reflecting": {
+        "reason": "The water might be too hot or too cold, or spray off the vegetable.",
+        "recovery_strategy": "Adjust the tap flow or angle of the vegetable to ensure proper rinsing without splashing."
+      }
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Place vegetables on the cutting board.",
+      "rationale": "The agent must free their hands to retrieve the knife, and the vegetables need a stable surface for cutting.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "place_on_surface",
+        "patient": "vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contacting",
+            "objects": [
+              "hands",
+              "knife"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "cutting_board",
+            "affordance_types": [
+              "supportable"
+            ],
+            "reasons": "The board must provide a flat, stable surface to hold the vegetables."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "vegetables",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "vegetables"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "hands",
+            "affordance_types": [
+              "free"
+            ],
+            "reasons": "Releasing the vegetables allows the hands to be used for the next task (getting the knife)."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the cutting board was missing, what would happen?",
+      "expected_challenge_outcome": "The agent would have to place vegetables on the bare counter, which is less sanitary and less stable for cutting.",
+      "failure_reflecting": {
+        "reason": "The vegetables might roll off the board if placed on an uneven section.",
+        "recovery_strategy": "Reposition the vegetables to a flatter, more central part of the board."
+      }
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Retrieve the knife from the drawer.",
+      "rationale": "A sharp tool is mechanically required to sever the fibers of the vegetables during the chopping process.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "retrieve_tool",
+        "patient": "knife",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "knife",
+              "drawer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "open",
+            "objects": [
+              "drawer",
+              "drawer"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "knife",
+            "affordance_types": [
+              "graspable",
+              "sharp"
+            ],
+            "reasons": "The knife must be accessible and functional for the subsequent cutting task."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "knife"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "knife",
+              "drawer"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "agent",
+            "affordance_types": [
+              "armed_with_tool"
+            ],
+            "reasons": "The agent now possesses the capability to modify the physical state of the vegetables."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the drawer was stuck closed, could the agent proceed?",
+      "expected_challenge_outcome": "No, the agent could not access the knife, making the cutting step impossible.",
+      "failure_reflecting": {
+        "reason": "The knife might be buried under other utensils, preventing a safe grasp.",
+        "recovery_strategy": "Carefully move other utensils aside to expose the knife handle."
+      }
+    },
+    {
+      "step_id": 6,
+      "step_goal": "Slice and dice the zucchini.",
+      "rationale": "This is the final transformation step to convert the whole vegetable into the desired chopped state.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "chop_and_dice",
+        "patient": "zucchini",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "knife"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "zucchini",
+              "cutting_board"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "zucchini",
+            "affordance_types": [
+              "cuttable"
+            ],
+            "reasons": "The zucchini material must be soft enough to be severed by the knife blade."
+          },
+          {
+            "object_name": "knife",
+            "affordance_types": [
+              "sharp"
+            ],
+            "reasons": "The tool must be capable of applying sufficient pressure to slice through the object."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "knife",
+              "zucchini"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini",
+            "affordance_types": [
+              "sliced",
+              "diced"
+            ],
+            "reasons": "The mechanical action of the knife separates the zucchini into multiple smaller pieces."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "If the knife was extremely dull, what would happen to the zucchini?",
+      "expected_challenge_outcome": "The zucchini would likely be crushed or mashed rather than cleanly sliced due to the force required.",
+      "failure_reflecting": {
+        "reason": "The slices might be uneven or the zucchini might roll during cutting.",
+        "recovery_strategy": "Stabilize the zucchini firmly with the non-dominant hand and use a sawing motion."
+      }
+    }
+  ]
+}

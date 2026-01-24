@@ -1,0 +1,10 @@
+{
+  "step_id": 5,
+  "step_goal": "Wash cutting board and grater",
+  "clip_path": "../stage2/step_clips/step05_wash_cutting_board_and_grater.mp4",
+  "clip_start_sec": 139.57290623957292,
+  "clip_end_sec": 168.96896896896897,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:24:32.947591Z",
+  "manifest_path": "frame_manifest.json"
+}

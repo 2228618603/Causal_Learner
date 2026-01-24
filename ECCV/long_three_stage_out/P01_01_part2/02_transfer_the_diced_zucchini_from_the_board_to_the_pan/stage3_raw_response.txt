@@ -1,0 +1,160 @@
+```json
+{
+  "step_id": 2,
+  "step_goal": "Transfer the diced zucchini from the board to the pan.",
+  "rationale": "Moving the prepared ingredient into the cooking vessel is necessary to begin the heating process.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "tilt and scrape",
+    "patient": "zucchini_pieces",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": ["zucchini_pieces", "cutting_board"],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": ["hands", "cutting_board"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "zucchini_pieces",
+        "affordance_types": ["movable"],
+        "reasons": "The pieces must be loose and capable of being slid off the surface."
+      },
+      {
+        "object_name": "cutting_board",
+        "affordance_types": ["rigid", "tiltable"],
+        "reasons": "The board must be rigid enough to support the food while being tilted to direct the transfer."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": ["zucchini_pieces", "pan"],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": ["zucchini_pieces", "cutting_board"],
+        "truth": false
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "zucchini_pieces",
+        "affordance_types": ["contained"],
+        "reasons": "The pieces are now confined within the pan walls, ready for cooking."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "If the cutting board were held completely flat rather than tilted, would the transfer be efficient?",
+  "expected_challenge_outcome": "No, without the assistance of gravity from the tilt, the zucchini pieces would require significantly more manual force to move and might scatter.",
+  "failure_reflecting": {
+    "reason": "Zucchini pieces might adhere to the cutting board surface due to moisture and fail to slide off.",
+    "recovery_strategy": "Use the knife to actively scrape the remaining pieces down the board and into the pan."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 6,
+      "action_state_change_description": "Initiation: The cutting board is tilted over the pan, and the knife begins to contact the zucchini pieces to push them.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "tilt and scrape",
+        "patient": "zucchini_pieces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": ["zucchini_pieces", "cutting_board"],
+            "truth": true
+          },
+          {
+            "relation": "aligned_with",
+            "objects": ["cutting_board", "pan"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "pan",
+            "affordance_types": ["open", "containable"],
+            "reasons": "The pan must be open and positioned to receive the falling ingredients."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving_toward",
+            "objects": ["zucchini_pieces", "pan"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_pieces",
+            "affordance_types": ["in_motion"],
+            "reasons": "The applied force and gravity initiate the sliding motion of the pieces."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands", "knife"],
+        "materials": ["zucchini_pieces"],
+        "hotspot": {
+          "description": "The top surface of the cutting board where the zucchini sits.",
+          "affordance_type": "support_surface",
+          "mechanism": "The board is tilted to utilize gravity while the knife applies a pushing force to overcome friction."
+        }
+      }
+    },
+    {
+      "frame_index": 38,
+      "action_state_change_description": "Completion: The final pieces of zucchini are scraped off the board into the pan.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "tilt and scrape",
+        "patient": "zucchini_pieces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["zucchini_pieces", "pan"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "cutting_board",
+            "affordance_types": ["clearable"],
+            "reasons": "The board surface is mostly clear, allowing the final pieces to be removed."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": ["zucchini_pieces", "cutting_board"],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "zucchini_pieces",
+            "affordance_types": ["contained"],
+            "reasons": "All pieces have been successfully transferred into the containment of the pan."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands", "knife"],
+        "materials": ["zucchini_pieces"],
+        "hotspot": {
+          "description": "The edge of the cutting board positioned over the pan.",
+          "affordance_type": "pour_lip",
+          "mechanism": "The knife sweeps the remaining pieces over the edge of the board, allowing them to fall into the pan."
+        }
+      }
+    }
+  ]
+}
+```

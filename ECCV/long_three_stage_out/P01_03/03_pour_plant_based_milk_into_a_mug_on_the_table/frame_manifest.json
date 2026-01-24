@@ -1,0 +1,306 @@
+{
+  "num_frames": 50,
+  "note": "frame_index_1based is the 1-based index used in prompts and model outputs for this frame pool.",
+  "frames": [
+    {
+      "frame_index_1based": 1,
+      "timestamp_sec": 31.5315,
+      "original_frame_index": 0,
+      "image_relpath": "sampled_frames/sample_001_ts_31.53s.jpg"
+    },
+    {
+      "frame_index_1based": 2,
+      "timestamp_sec": 32.31561666666667,
+      "original_frame_index": 47,
+      "image_relpath": "sampled_frames/sample_002_ts_32.32s.jpg"
+    },
+    {
+      "frame_index_1based": 3,
+      "timestamp_sec": 33.116416666666666,
+      "original_frame_index": 95,
+      "image_relpath": "sampled_frames/sample_003_ts_33.12s.jpg"
+    },
+    {
+      "frame_index_1based": 4,
+      "timestamp_sec": 33.900533333333335,
+      "original_frame_index": 142,
+      "image_relpath": "sampled_frames/sample_004_ts_33.90s.jpg"
+    },
+    {
+      "frame_index_1based": 5,
+      "timestamp_sec": 34.70133333333334,
+      "original_frame_index": 190,
+      "image_relpath": "sampled_frames/sample_005_ts_34.70s.jpg"
+    },
+    {
+      "frame_index_1based": 6,
+      "timestamp_sec": 35.48545,
+      "original_frame_index": 237,
+      "image_relpath": "sampled_frames/sample_006_ts_35.49s.jpg"
+    },
+    {
+      "frame_index_1based": 7,
+      "timestamp_sec": 36.28625,
+      "original_frame_index": 285,
+      "image_relpath": "sampled_frames/sample_007_ts_36.29s.jpg"
+    },
+    {
+      "frame_index_1based": 8,
+      "timestamp_sec": 37.070366666666665,
+      "original_frame_index": 332,
+      "image_relpath": "sampled_frames/sample_008_ts_37.07s.jpg"
+    },
+    {
+      "frame_index_1based": 9,
+      "timestamp_sec": 37.87116666666667,
+      "original_frame_index": 380,
+      "image_relpath": "sampled_frames/sample_009_ts_37.87s.jpg"
+    },
+    {
+      "frame_index_1based": 10,
+      "timestamp_sec": 38.65528333333334,
+      "original_frame_index": 427,
+      "image_relpath": "sampled_frames/sample_010_ts_38.66s.jpg"
+    },
+    {
+      "frame_index_1based": 11,
+      "timestamp_sec": 39.4394,
+      "original_frame_index": 474,
+      "image_relpath": "sampled_frames/sample_011_ts_39.44s.jpg"
+    },
+    {
+      "frame_index_1based": 12,
+      "timestamp_sec": 40.2402,
+      "original_frame_index": 522,
+      "image_relpath": "sampled_frames/sample_012_ts_40.24s.jpg"
+    },
+    {
+      "frame_index_1based": 13,
+      "timestamp_sec": 41.024316666666664,
+      "original_frame_index": 569,
+      "image_relpath": "sampled_frames/sample_013_ts_41.02s.jpg"
+    },
+    {
+      "frame_index_1based": 14,
+      "timestamp_sec": 41.825116666666666,
+      "original_frame_index": 617,
+      "image_relpath": "sampled_frames/sample_014_ts_41.83s.jpg"
+    },
+    {
+      "frame_index_1based": 15,
+      "timestamp_sec": 42.609233333333336,
+      "original_frame_index": 664,
+      "image_relpath": "sampled_frames/sample_015_ts_42.61s.jpg"
+    },
+    {
+      "frame_index_1based": 16,
+      "timestamp_sec": 43.41003333333333,
+      "original_frame_index": 712,
+      "image_relpath": "sampled_frames/sample_016_ts_43.41s.jpg"
+    },
+    {
+      "frame_index_1based": 17,
+      "timestamp_sec": 44.19415,
+      "original_frame_index": 759,
+      "image_relpath": "sampled_frames/sample_017_ts_44.19s.jpg"
+    },
+    {
+      "frame_index_1based": 18,
+      "timestamp_sec": 44.99495,
+      "original_frame_index": 807,
+      "image_relpath": "sampled_frames/sample_018_ts_44.99s.jpg"
+    },
+    {
+      "frame_index_1based": 19,
+      "timestamp_sec": 45.779066666666665,
+      "original_frame_index": 854,
+      "image_relpath": "sampled_frames/sample_019_ts_45.78s.jpg"
+    },
+    {
+      "frame_index_1based": 20,
+      "timestamp_sec": 46.57986666666667,
+      "original_frame_index": 902,
+      "image_relpath": "sampled_frames/sample_020_ts_46.58s.jpg"
+    },
+    {
+      "frame_index_1based": 21,
+      "timestamp_sec": 47.36398333333334,
+      "original_frame_index": 949,
+      "image_relpath": "sampled_frames/sample_021_ts_47.36s.jpg"
+    },
+    {
+      "frame_index_1based": 22,
+      "timestamp_sec": 48.1481,
+      "original_frame_index": 996,
+      "image_relpath": "sampled_frames/sample_022_ts_48.15s.jpg"
+    },
+    {
+      "frame_index_1based": 23,
+      "timestamp_sec": 48.9489,
+      "original_frame_index": 1044,
+      "image_relpath": "sampled_frames/sample_023_ts_48.95s.jpg"
+    },
+    {
+      "frame_index_1based": 24,
+      "timestamp_sec": 49.73301666666667,
+      "original_frame_index": 1091,
+      "image_relpath": "sampled_frames/sample_024_ts_49.73s.jpg"
+    },
+    {
+      "frame_index_1based": 25,
+      "timestamp_sec": 50.53381666666667,
+      "original_frame_index": 1139,
+      "image_relpath": "sampled_frames/sample_025_ts_50.53s.jpg"
+    },
+    {
+      "frame_index_1based": 26,
+      "timestamp_sec": 51.317933333333336,
+      "original_frame_index": 1186,
+      "image_relpath": "sampled_frames/sample_026_ts_51.32s.jpg"
+    },
+    {
+      "frame_index_1based": 27,
+      "timestamp_sec": 52.11873333333334,
+      "original_frame_index": 1234,
+      "image_relpath": "sampled_frames/sample_027_ts_52.12s.jpg"
+    },
+    {
+      "frame_index_1based": 28,
+      "timestamp_sec": 52.90285,
+      "original_frame_index": 1281,
+      "image_relpath": "sampled_frames/sample_028_ts_52.90s.jpg"
+    },
+    {
+      "frame_index_1based": 29,
+      "timestamp_sec": 53.70365,
+      "original_frame_index": 1329,
+      "image_relpath": "sampled_frames/sample_029_ts_53.70s.jpg"
+    },
+    {
+      "frame_index_1based": 30,
+      "timestamp_sec": 54.48776666666667,
+      "original_frame_index": 1376,
+      "image_relpath": "sampled_frames/sample_030_ts_54.49s.jpg"
+    },
+    {
+      "frame_index_1based": 31,
+      "timestamp_sec": 55.271883333333335,
+      "original_frame_index": 1423,
+      "image_relpath": "sampled_frames/sample_031_ts_55.27s.jpg"
+    },
+    {
+      "frame_index_1based": 32,
+      "timestamp_sec": 56.07268333333333,
+      "original_frame_index": 1471,
+      "image_relpath": "sampled_frames/sample_032_ts_56.07s.jpg"
+    },
+    {
+      "frame_index_1based": 33,
+      "timestamp_sec": 56.85680000000001,
+      "original_frame_index": 1518,
+      "image_relpath": "sampled_frames/sample_033_ts_56.86s.jpg"
+    },
+    {
+      "frame_index_1based": 34,
+      "timestamp_sec": 57.6576,
+      "original_frame_index": 1566,
+      "image_relpath": "sampled_frames/sample_034_ts_57.66s.jpg"
+    },
+    {
+      "frame_index_1based": 35,
+      "timestamp_sec": 58.441716666666665,
+      "original_frame_index": 1613,
+      "image_relpath": "sampled_frames/sample_035_ts_58.44s.jpg"
+    },
+    {
+      "frame_index_1based": 36,
+      "timestamp_sec": 59.24251666666667,
+      "original_frame_index": 1661,
+      "image_relpath": "sampled_frames/sample_036_ts_59.24s.jpg"
+    },
+    {
+      "frame_index_1based": 37,
+      "timestamp_sec": 60.026633333333336,
+      "original_frame_index": 1708,
+      "image_relpath": "sampled_frames/sample_037_ts_60.03s.jpg"
+    },
+    {
+      "frame_index_1based": 38,
+      "timestamp_sec": 60.82743333333333,
+      "original_frame_index": 1756,
+      "image_relpath": "sampled_frames/sample_038_ts_60.83s.jpg"
+    },
+    {
+      "frame_index_1based": 39,
+      "timestamp_sec": 61.61155,
+      "original_frame_index": 1803,
+      "image_relpath": "sampled_frames/sample_039_ts_61.61s.jpg"
+    },
+    {
+      "frame_index_1based": 40,
+      "timestamp_sec": 62.41235,
+      "original_frame_index": 1851,
+      "image_relpath": "sampled_frames/sample_040_ts_62.41s.jpg"
+    },
+    {
+      "frame_index_1based": 41,
+      "timestamp_sec": 63.196466666666666,
+      "original_frame_index": 1898,
+      "image_relpath": "sampled_frames/sample_041_ts_63.20s.jpg"
+    },
+    {
+      "frame_index_1based": 42,
+      "timestamp_sec": 63.980583333333335,
+      "original_frame_index": 1945,
+      "image_relpath": "sampled_frames/sample_042_ts_63.98s.jpg"
+    },
+    {
+      "frame_index_1based": 43,
+      "timestamp_sec": 64.78138333333334,
+      "original_frame_index": 1993,
+      "image_relpath": "sampled_frames/sample_043_ts_64.78s.jpg"
+    },
+    {
+      "frame_index_1based": 44,
+      "timestamp_sec": 65.5655,
+      "original_frame_index": 2040,
+      "image_relpath": "sampled_frames/sample_044_ts_65.57s.jpg"
+    },
+    {
+      "frame_index_1based": 45,
+      "timestamp_sec": 66.3663,
+      "original_frame_index": 2088,
+      "image_relpath": "sampled_frames/sample_045_ts_66.37s.jpg"
+    },
+    {
+      "frame_index_1based": 46,
+      "timestamp_sec": 67.15041666666667,
+      "original_frame_index": 2135,
+      "image_relpath": "sampled_frames/sample_046_ts_67.15s.jpg"
+    },
+    {
+      "frame_index_1based": 47,
+      "timestamp_sec": 67.95121666666667,
+      "original_frame_index": 2183,
+      "image_relpath": "sampled_frames/sample_047_ts_67.95s.jpg"
+    },
+    {
+      "frame_index_1based": 48,
+      "timestamp_sec": 68.73533333333333,
+      "original_frame_index": 2230,
+      "image_relpath": "sampled_frames/sample_048_ts_68.74s.jpg"
+    },
+    {
+      "frame_index_1based": 49,
+      "timestamp_sec": 69.53613333333334,
+      "original_frame_index": 2278,
+      "image_relpath": "sampled_frames/sample_049_ts_69.54s.jpg"
+    },
+    {
+      "frame_index_1based": 50,
+      "timestamp_sec": 70.32025,
+      "original_frame_index": 2325,
+      "image_relpath": "sampled_frames/sample_050_ts_70.32s.jpg"
+    }
+  ]
+}

@@ -1,0 +1,265 @@
+{
+  "high_level_goal": "To have a fully cooked stir-fried vegetable-and-meat mixture and boiled rice ready for serving, with unused ingredients securely stored and kitchen tools prepared for post-meal tasks.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Seal plastic container with blue lid",
+      "rationale": "To securely contain stored ingredients, preventing spillage and maintaining freshness for later use.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "press and twist lid to seal",
+        "patient": "plastic_container",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "blue_lid",
+              "plastic_container"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "blue_lid",
+            "affordance_types": [
+              "sealable"
+            ],
+            "reasons": "The lid has a matching circular shape and raised lip that aligns with the container's rim, visible from its form, enabling a tight seal."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "sealed",
+            "objects": [
+              "blue_lid",
+              "plastic_container"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "plastic_container",
+            "affordance_types": [
+              "spill_proof"
+            ],
+            "reasons": "The sealed lid creates a physical barrier that prevents contents from leaking, enabling safe movement or storage of the container without mess."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the lid was not aligned properly with the container's rim?",
+      "expected_challenge_outcome": "The lid would not form a tight, uniform seal, so the container would not be spill-proof, and stored ingredients could leak or become contaminated by external elements.",
+      "failure_reflecting": {
+        "reason": "Lid was pressed without aligning to the container's rim, leading to a loose, incomplete seal.",
+        "recovery_strategy": "Lift the lid, align its edge with the container's rim, and press firmly while twisting in a circular motion to ensure a tight, even seal across the entire edge."
+      }
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Stir stir-fry mixture in frying pan",
+      "rationale": "To ensure even heat distribution, prevent ingredients from burning on the pan bottom, and distribute seasonings uniformly for consistent texture and flavor across all components.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "agitate mixture with slotted spatula",
+        "patient": "stir_fry_mixture",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "stir_fry_mixture",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "grasped",
+            "objects": [
+              "right_hand",
+              "slotted_spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "slotted_spatula",
+            "affordance_types": [
+              "stirring"
+            ],
+            "reasons": "The spatula has a wide, flat surface with slots to lift and move solid ingredients without trapping excess oil, visible from its design, enabling effective stirring of the mixture."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conducting"
+            ],
+            "reasons": "The pan emits steam and sits on an active stovetop, confirming it transfers heat to cook the ingredients evenly."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "evenly_distributed",
+            "objects": [
+              "stir_fry_mixture",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "stir_fry_mixture",
+            "affordance_types": [
+              "uniformly_cooked"
+            ],
+            "reasons": "Stirring ensures all ingredients are exposed to heat, reducing raw spots and burnt areas, resulting in a consistent texture and browned color across the mixture."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the mixture was not stirred during cooking?",
+      "expected_challenge_outcome": "Ingredients in contact with the hot pan bottom would burn, while upper ingredients would remain undercooked, leading to uneven texture, burnt flavor spots, and inconsistent seasoning distribution.",
+      "failure_reflecting": {
+        "reason": "Mixture was left unstirred, causing burnt, charred spots on the bottom of the frying pan.",
+        "recovery_strategy": "Scrape off loose burnt bits from the pan, stir the mixture thoroughly to redistribute charred pieces, reduce the stovetop heat, and continue stirring at regular intervals to prevent further burning."
+      }
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Check boiled rice doneness in pot",
+      "rationale": "To verify if the rice has reached the desired soft, fully cooked texture, ensuring it is ready to be served alongside the stir-fried mixture.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "scoop and taste rice sample with metal spoon",
+        "patient": "boiled_rice",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "boiled_rice",
+              "rice_pot"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "grasped",
+            "objects": [
+              "right_hand",
+              "metal_spoon"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_spoon",
+            "affordance_types": [
+              "scooping"
+            ],
+            "reasons": "The spoon has a deep, curved bowl that can lift rice from the pot, visible from its shape, enabling sampling of the rice texture."
+          },
+          {
+            "object_name": "rice_pot",
+            "affordance_types": [
+              "heat_retaining"
+            ],
+            "reasons": "The pot emits steam, confirming it holds heat to keep the rice warm and continue cooking during the check."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "partially_removed",
+            "objects": [
+              "boiled_rice",
+              "rice_pot"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "boiled_rice",
+            "affordance_types": [
+              "ready_to_serve"
+            ],
+            "reasons": "Tasting the rice confirms it has a soft, tender texture with no hard, uncooked grains, indicating it is suitable for serving with the stir-fried mixture."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the rice was checked before sufficient cooking time had passed?",
+      "expected_challenge_outcome": "The rice would be undercooked, with hard, crunchy grains, requiring additional boiling time to reach the desired soft texture.",
+      "failure_reflecting": {
+        "reason": "Rice was checked too early, revealing it was undercooked and hard.",
+        "recovery_strategy": "Return the rice pot to the stovetop, add a small amount of water if the pot is dry, and continue boiling for 2-3 more minutes before rechecking the doneness with another sample."
+      }
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Retrieve sieve and place in kitchen sink",
+      "rationale": "To prepare a straining tool for potential tasks like draining excess liquid from the rice or cleaning ingredients, ensuring it is accessible for immediate use when needed.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "retrieve from cabinet and position in sink",
+        "patient": "sieve",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "sieve",
+              "kitchen_cabinet"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "empty",
+            "objects": [
+              "kitchen_sink"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_cabinet",
+            "affordance_types": [
+              "accessible"
+            ],
+            "reasons": "The cabinet door is open, providing clear access to stored tools like the sieve for retrieval."
+          },
+          {
+            "object_name": "sieve",
+            "affordance_types": [
+              "straining"
+            ],
+            "reasons": "The sieve has a mesh bottom that allows liquid to pass through while retaining solid ingredients, visible from its design, making it suitable for draining tasks."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "sieve",
+              "kitchen_sink"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "sieve",
+            "affordance_types": [
+              "ready_for_use"
+            ],
+            "reasons": "Placing the sieve in the sink makes it easily accessible for immediate straining or draining tasks related to meal finalization or cleanup."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the kitchen sink was filled with dirty dishes?",
+      "expected_challenge_outcome": "The sieve could not be placed directly in the sink, requiring prior cleanup of the sink to access the necessary space for the tool.",
+      "failure_reflecting": {
+        "reason": "Sink was cluttered with dirty dishes, preventing placement of the sieve in a usable position.",
+        "recovery_strategy": "Move dirty dishes to a dish rack or counter space, clear debris from the sink, and then place the sieve in the empty sink for easy access."
+      }
+    }
+  ]
+}

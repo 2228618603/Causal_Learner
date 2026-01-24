@@ -1,0 +1,320 @@
+{
+  "step_id": 3,
+  "step_goal": "Wash plate and small utensils (fork, knife, spatula)",
+  "rationale": "This step removes remaining food residue and grease from the plate and utensils using soapy water, preparing them for rinsing to eliminate soap residue and make them safe for future use.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scrub surfaces with soapy cleaning sponge",
+    "patient": "food_contaminated_plate_fork_kitchen_knife_spatula",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "soapy_cleaning_sponge"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "food_contaminated_plate",
+          "kitchen_counter"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "fork",
+          "food_contaminated_plate"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "soapy_cleaning_sponge",
+        "affordance_types": [
+          "abrasive",
+          "grease_dissolving"
+        ],
+        "reasons": "The sponge's textured surface and soapy composition allow it to scrub off stuck food and dissolve grease from hard surfaces."
+      },
+      {
+        "object_name": "food_contaminated_plate",
+        "affordance_types": [
+          "washable"
+        ],
+        "reasons": "The plate has no large food scraps remaining, making it suitable for scrubbing with a soapy sponge."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "covered_in",
+        "objects": [
+          "food_contaminated_plate",
+          "dish_soap_lather"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "covered_in",
+        "objects": [
+          "fork",
+          "dish_soap_lather"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "contains",
+        "objects": [
+          "spatula",
+          "food_residue"
+        ],
+        "truth": false
+      },
+      {
+        "relation": "covered_in",
+        "objects": [
+          "kitchen_knife",
+          "dish_soap_lather"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "food_contaminated_plate",
+        "affordance_types": [
+          "rinse_ready"
+        ],
+        "reasons": "The plate's surface is covered in soapy lather that has loosened all remaining food residue, making it ready for rinsing to remove soap."
+      },
+      {
+        "object_name": "kitchen_knife",
+        "affordance_types": [
+          "grease_free"
+        ],
+        "reasons": "Scrubbing with soapy sponge has dissolved and removed all grease from the knife's blade and handle."
+      },
+      {
+        "object_name": "spatula",
+        "affordance_types": [
+          "food_residue_free"
+        ],
+        "reasons": "Soapy scrubbing has dislodged all visible food residue from the spatula's surface."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the sponge had no dish soap applied?",
+  "expected_challenge_outcome": "The dry or water-only sponge would not dissolve grease, leaving stuck food residue on the plate and utensils even after scrubbing.",
+  "failure_reflecting": {
+    "reason": "Some food residue remains stuck to the plate despite scrubbing, due to insufficient soap or scrubbing pressure.",
+    "recovery_strategy": "Apply more dish soap to the sponge, or soak the plate in warm soapy water for a few minutes before scrubbing again to loosen the stuck residue."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands begin scrubbing the fork with a soapy cleaning sponge, initiating the washing process for small utensils and the plate.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub surfaces with soapy cleaning sponge",
+        "patient": "food_contaminated_plate_fork_kitchen_knife_spatula",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "soapy_cleaning_sponge"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "food_contaminated_plate",
+              "kitchen_counter"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "fork",
+              "food_contaminated_plate"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "soapy_cleaning_sponge",
+            "affordance_types": [
+              "abrasive",
+              "grease_dissolving"
+            ],
+            "reasons": "The sponge's textured surface and soapy composition allow it to scrub off stuck food and dissolve grease from hard surfaces."
+          },
+          {
+            "object_name": "food_contaminated_plate",
+            "affordance_types": [
+              "washable"
+            ],
+            "reasons": "The plate has no large food scraps remaining, making it suitable for scrubbing with a soapy sponge."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "covered_in",
+            "objects": [
+              "fork",
+              "dish_soap_lather"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "moving_toward",
+            "objects": [
+              "soapy_cleaning_sponge",
+              "kitchen_knife"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "fork",
+            "affordance_types": [
+              "in_cleaning"
+            ],
+            "reasons": "The sponge's scrubbing action has started dislodging food residue from the fork's tines."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "soapy_cleaning_sponge"
+        ],
+        "materials": [
+          "food_contaminated_plate_fork_kitchen_knife_spatula"
+        ],
+        "hotspot": {
+          "description": "Fork's tines and handle",
+          "affordance_type": "scrub_point",
+          "mechanism": "Friction from the sponge's textured surface dislodges food residue from the fork's crevices."
+        }
+      }
+    },
+    {
+      "frame_index": 47,
+      "action_state_change_description": "All targeted items (plate, fork, knife, spatula) are fully covered in soapy lather, with all visible food residue removed, completing the washing process and preparing them for rinsing.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub surfaces with soapy cleaning sponge",
+        "patient": "food_contaminated_plate_fork_kitchen_knife_spatula",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "soapy_cleaning_sponge"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "food_contaminated_plate",
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "soapy_cleaning_sponge",
+            "affordance_types": [
+              "abrasive",
+              "grease_dissolving"
+            ],
+            "reasons": "The sponge's textured surface and soapy composition allow it to scrub off stuck food and dissolve grease from hard surfaces."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "covered_in",
+            "objects": [
+              "food_contaminated_plate",
+              "dish_soap_lather"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "covered_in",
+            "objects": [
+              "fork",
+              "dish_soap_lather"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "covered_in",
+            "objects": [
+              "kitchen_knife",
+              "dish_soap_lather"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "covered_in",
+            "objects": [
+              "spatula",
+              "dish_soap_lather"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contains",
+            "objects": [
+              "spatula",
+              "food_residue"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "food_contaminated_plate",
+            "affordance_types": [
+              "rinse_ready"
+            ],
+            "reasons": "The plate's surface is covered in soapy lather that has loosened all remaining food residue, making it ready for rinsing to remove soap."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "food_residue_free"
+            ],
+            "reasons": "Soapy scrubbing has dislodged all visible food residue from the spatula's surface."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "soapy_cleaning_sponge"
+        ],
+        "materials": [
+          "food_contaminated_plate_fork_kitchen_knife_spatula"
+        ],
+        "hotspot": {
+          "description": "Plate's entire surface and spatula's head",
+          "affordance_type": "cleaning_surface",
+          "mechanism": "Soapy lather has dissolved grease and loosened all visible residue, with scrubbing completing the removal of contaminants from all surfaces."
+        }
+      }
+    }
+  ]
+}

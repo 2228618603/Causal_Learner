@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Transfer remaining mixture from pan to a serving plate.",
+  "clip_path": "../stage2/step_clips/step04_transfer_remaining_mixture_from_pan_to_a_serving_plate.mp4",
+  "clip_start_sec": 139.57290623957292,
+  "clip_end_sec": 179.97997997998,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:21:51.781564Z",
+  "manifest_path": "frame_manifest.json"
+}

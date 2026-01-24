@@ -1,0 +1,10 @@
+{
+  "step_id": 1,
+  "step_goal": "Scrub and rinse metal box grater",
+  "clip_path": "../stage2/step_clips/step01_scrub_and_rinse_metal_box_grater.mp4",
+  "clip_start_sec": 3.6703370036703373,
+  "clip_end_sec": 22.038705372038706,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:16:42.638979Z",
+  "manifest_path": "frame_manifest.json"
+}

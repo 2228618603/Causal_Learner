@@ -1,0 +1,280 @@
+{
+  "high_level_goal": "To prepare a complete cooked meal by sautéing mixed vegetables, seasoning a liquid base for rice, and incorporating tofu pieces into the vegetable mixture.",
+  "steps": [
+    {
+      "step_id": 1,
+      "step_goal": "Add chopped red onion to sautéed vegetables in frying pan",
+      "rationale": "Incorporates the onion into the existing vegetable mix to allow it to sauté, soften, and add flavor to the dish.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "transfer and deposit chopped red onion from cutting board to frying pan",
+        "patient": "chopped_red_onion",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive",
+              "cookware"
+            ],
+            "reasons": "The frying pan is on a functioning stove with visible sautéed vegetables, indicating it is hot and suitable for cooking the onion."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "chopped_red_onion",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "mixed_vegetables",
+            "affordance_types": [
+              "flavor_enhanced"
+            ],
+            "reasons": "The addition of the onion introduces new flavor compounds, enhancing the overall flavor potential of the vegetable mix as it cooks."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the frying pan was cold when adding the chopped red onion?",
+      "expected_challenge_outcome": "The onion would not soften or caramelize; it would remain raw, crunchy, and fail to integrate its flavor with the other vegetables.",
+      "failure_reflecting": {
+        "reason": "A portion of the chopped onion falls off the cutting board onto the kitchen floor during transfer.",
+        "recovery_strategy": "Retrieve any clean, undamaged onion pieces from the floor and add them to the pan, or chop a small additional amount of onion to replace the lost portion."
+      }
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Stir mixed vegetables in frying pan for even cooking",
+      "rationale": "Distributes heat and ingredients throughout the pan to prevent burning, ensure uniform cooking of the onion and existing vegetables, and blend flavors.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "agitate mixed vegetables with spatula in a circular motion",
+        "patient": "mixed_vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "heat_resistant",
+              "mixing_tool"
+            ],
+            "reasons": "The spatula is designed for cooking, with a heat-resistant handle and flat surface suitable for stirring and lifting hot vegetables."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "uniformly_distributed_in",
+            "objects": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "mixed_vegetables",
+            "affordance_types": [
+              "partially_cooked"
+            ],
+            "reasons": "Stirring ensures even heat exposure, resulting in partial cooking of all vegetable components, making them ready for further seasoning or additions."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the spatula was not heat-resistant and melted while stirring?",
+      "expected_challenge_outcome": "Melted plastic would contaminate the vegetables, ruining the dish and requiring disposal of the contaminated food and replacement of the spatula.",
+      "failure_reflecting": {
+        "reason": "Vegetable pieces stick to the pan bottom despite stirring, leading to uneven browning and potential burning.",
+        "recovery_strategy": "Reduce the stove heat slightly, scrape the stuck pieces loose with the spatula, and stir more frequently to prevent further sticking."
+      }
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Add salt to the small metal pot on the stove",
+      "rationale": "Season the liquid in the small pot (likely water for rice) to enhance its flavor, ensuring the cooked rice has a well-balanced taste.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scoop salt from container and deposit into small metal pot",
+        "patient": "salt",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "small_metal_pot",
+              "stove"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "salt_container",
+            "affordance_types": [
+              "open",
+              "dispensable"
+            ],
+            "reasons": "The salt container's lid is removed, allowing easy access to the salt inside for scooping and adding to the pot."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "salt",
+              "small_metal_pot"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "small_metal_pot_liquid",
+            "affordance_types": [
+              "seasoned"
+            ],
+            "reasons": "The added salt dissolves in the pot's liquid, creating a seasoned base that will infuse flavor into any rice cooked in it."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if too much salt was added to the small pot?",
+      "expected_challenge_outcome": "The liquid (and subsequent rice cooked in it) would be overly salty, making it unpalatable unless diluted with additional water.",
+      "failure_reflecting": {
+        "reason": "Salt is spilled onto the kitchen counter instead of into the pot during transfer.",
+        "recovery_strategy": "Wipe up the spilled salt with a paper towel, then scoop a fresh portion of salt into the pot to ensure the correct amount is added."
+      }
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Retrieve rice package from kitchen cabinet",
+      "rationale": "Obtain the rice ingredient to cook alongside the sautéed vegetables and tofu, completing the meal components.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "open cabinet door and retrieve rice package from shelf",
+        "patient": "rice_package",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "rice_package",
+              "kitchen_cabinet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_cabinet",
+            "affordance_types": [
+              "accessible",
+              "openable"
+            ],
+            "reasons": "The cabinet door is closed but can be opened, providing access to the rice package stored inside the shelf."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "rice_package",
+              "kitchen_counter"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "rice_package",
+            "affordance_types": [
+              "ready_for_preparation"
+            ],
+            "reasons": "The rice package is now on the counter, making it easy to open and add the rice to the seasoned liquid in the small pot."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the rice package was empty when retrieved?",
+      "expected_challenge_outcome": "No rice would be available to cook, requiring a trip to purchase more rice or substituting with another grain to complete the meal.",
+      "failure_reflecting": {
+        "reason": "The cabinet door is stuck and cannot be opened to reach the rice package.",
+        "recovery_strategy": "Check for any obstructions blocking the door, gently jiggle the door to loosen it, or use a different cabinet to retrieve an alternative grain if available."
+      }
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Add tofu pieces to frying pan and stir with vegetables",
+      "rationale": "Incorporate the tofu into the vegetable mix to heat it through, allowing it to absorb flavors from the sautéed vegetables and become a protein component of the dish.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "transfer tofu pieces from container to frying pan, then stir with spatula to mix",
+        "patient": "tofu_pieces",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "open",
+            "objects": [
+              "tofu_container",
+              "tofu_container_lid"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "still_hot",
+              "cookware"
+            ],
+            "reasons": "The frying pan remains on the stove with partially cooked vegetables, indicating it is still hot enough to heat the tofu pieces."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "tofu_pieces",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "tofu_vegetable_mix",
+            "affordance_types": [
+              "ready_for_final_cooking"
+            ],
+            "reasons": "The tofu is mixed with the vegetables, ensuring even heat distribution, and is ready to be cooked until heated through and fully seasoned."
+          }
+        ]
+      },
+      "counterfactual_challenge_question": "What if the frying pan was turned off before adding the tofu?",
+      "expected_challenge_outcome": "The tofu would not heat through, remaining cold and firm instead of absorbing flavors and becoming tender.",
+      "failure_reflecting": {
+        "reason": "Some tofu pieces stick together in clumps when added to the pan, leading to uneven heating.",
+        "recovery_strategy": "Use the spatula to break apart the tofu clumps while stirring, ensuring each piece is exposed to the pan's heat and mixes with the vegetables."
+      }
+    }
+  ]
+}

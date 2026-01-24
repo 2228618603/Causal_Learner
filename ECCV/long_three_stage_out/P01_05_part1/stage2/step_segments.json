@@ -1,0 +1,71 @@
+{
+  "source_video": "/e2e-data/embodied-research-data/luzheng/kitchen/long/P01_05_part1.MP4",
+  "video_id": "P01_05_part1",
+  "generated_at_utc": "2026-01-23T14:29:56.270292Z",
+  "num_frames": 50,
+  "cut": {
+    "mode": "reencode",
+    "seek_slop_sec": 1.0,
+    "crf": 18,
+    "preset": "veryfast",
+    "keep_audio": false,
+    "ffmpeg_bin": "ffmpeg"
+  },
+  "segments": [
+    {
+      "step_id": 1,
+      "step_goal": "Retrieve mushroom and sausage containers from refrigerator",
+      "start_frame_index": 2,
+      "end_frame_index": 8,
+      "start_sec": 3.6703370036703373,
+      "end_sec": 25.709042375709043,
+      "start_image_relpath": "sampled_frames/sample_002_ts_3.67s.jpg",
+      "end_image_relpath": "sampled_frames/sample_008_ts_25.71s.jpg",
+      "clip_relpath": "step_clips/step01_retrieve_mushroom_and_sausage_containers_from_refrigerator.mp4"
+    },
+    {
+      "step_id": 2,
+      "step_goal": "Store clean plates and bowls in kitchen cabinets",
+      "start_frame_index": 8,
+      "end_frame_index": 23,
+      "start_sec": 25.709042375709043,
+      "end_sec": 80.81414748081416,
+      "start_image_relpath": "sampled_frames/sample_008_ts_25.71s.jpg",
+      "end_image_relpath": "sampled_frames/sample_023_ts_80.81s.jpg",
+      "clip_relpath": "step_clips/step02_store_clean_plates_and_bowls_in_kitchen_cabinets.mp4"
+    },
+    {
+      "step_id": 3,
+      "step_goal": "Dry and store kitchen utensils in drawers",
+      "start_frame_index": 23,
+      "end_frame_index": 40,
+      "start_sec": 80.81414748081416,
+      "end_sec": 143.24324324324326,
+      "start_image_relpath": "sampled_frames/sample_023_ts_80.81s.jpg",
+      "end_image_relpath": "sampled_frames/sample_040_ts_143.24s.jpg",
+      "clip_relpath": "step_clips/step03_dry_and_store_kitchen_utensils_in_drawers.mp4"
+    },
+    {
+      "step_id": 4,
+      "step_goal": "Position raw potato on cutting board for prep",
+      "start_frame_index": 40,
+      "end_frame_index": 46,
+      "start_sec": 143.24324324324326,
+      "end_sec": 165.28194861528195,
+      "start_image_relpath": "sampled_frames/sample_040_ts_143.24s.jpg",
+      "end_image_relpath": "sampled_frames/sample_046_ts_165.28s.jpg",
+      "clip_relpath": "step_clips/step04_position_raw_potato_on_cutting_board_for_prep.mp4"
+    },
+    {
+      "step_id": 5,
+      "step_goal": "Fill electric kettle with tap water",
+      "start_frame_index": 46,
+      "end_frame_index": 51,
+      "start_sec": 165.28194861528195,
+      "end_sec": 183.6503169836503,
+      "start_image_relpath": "sampled_frames/sample_046_ts_165.28s.jpg",
+      "end_image_relpath": "sampled_frames/sample_050_ts_179.98s.jpg",
+      "clip_relpath": "step_clips/step05_fill_electric_kettle_with_tap_water.mp4"
+    }
+  ]
+}

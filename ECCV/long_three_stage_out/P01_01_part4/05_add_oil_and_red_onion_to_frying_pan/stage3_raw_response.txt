@@ -1,0 +1,198 @@
+{
+  "step_id": 5,
+  "step_goal": "Add oil and red onion to frying pan",
+  "rationale": "Cooking oil prevents the sautéed vegetables from sticking to the pan and adds richness, while chopped red onion introduces a pungent, savory flavor and vibrant color to balance the sweet carrot and earthy green vegetables, creating a well-rounded base for the meal.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "pour oil from bottle and scrape onion from cutting board into pan",
+    "patient": "cooking_oil_chopped_red_onion",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": ["frying_pan", "stove_burner"],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": ["chopped_red_onion", "green_cutting_board"],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": ["oil_bottle", "kitchen_counter"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "oil_bottle",
+        "affordance_types": ["controlled_pour_spout"],
+        "reasons": "The oil bottle has a narrow pour spout that allows precise, controlled dispensing of oil to avoid over-pouring and ensure even coverage in the pan."
+      },
+      {
+        "object_name": "chopped_red_onion",
+        "affordance_types": ["ready_to_sauté"],
+        "reasons": "The red onion is chopped into small, uniform pieces that will cook quickly and distribute flavor evenly throughout the vegetable mix."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": ["cooking_oil", "frying_pan"],
+        "truth": true
+      },
+      {
+        "relation": "inside",
+        "objects": ["chopped_red_onion", "frying_pan"],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "frying_pan",
+        "affordance_types": ["non_stick_surface"],
+        "reasons": "The cooking oil coats the pan's interior, creating a barrier to prevent vegetables from sticking during sautéing."
+      },
+      {
+        "object_name": "mixed_vegetables",
+        "affordance_types": ["enhanced_flavor_profile"],
+        "reasons": "The addition of red onion introduces a pungent, savory flavor that complements the sweet carrot and earthy green vegetables, balancing the overall taste of the base."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the oil bottle's pour spout was clogged with dried oil residue?",
+  "expected_challenge_outcome": "The oil would flow unevenly or not at all, leading to insufficient oil in the pan (causing vegetables to stick) or messy spills, and preventing the pan from being properly coated for sautéing.",
+  "failure_reflecting": {
+    "reason": "Chopped red onion falls onto the counter instead of the frying pan when being scraped from the cutting board.",
+    "recovery_strategy": "Gather the fallen onion pieces from the counter using a spatula, add them directly to the frying pan, and wipe the counter with a paper towel to remove any remaining onion bits and prevent cross-contamination."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 10,
+      "action_state_change_description": "Hands grasp the oil bottle and begin unscrewing the cap to initiate the oil-pouring process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pour oil from bottle and scrape onion from cutting board into pan",
+        "patient": "cooking_oil_chopped_red_onion",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": ["hands", "oil_bottle"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["frying_pan", "stove_burner"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["chopped_red_onion", "green_cutting_board"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "oil_bottle",
+            "affordance_types": ["sealable"],
+            "reasons": "The oil bottle's screw cap creates an airtight seal, which can be released via twisting to enable pouring of oil."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "open",
+            "objects": ["oil_bottle_cap", "oil_bottle"],
+            "truth": true
+          },
+          {
+            "relation": "moving_toward",
+            "objects": ["oil_bottle", "frying_pan"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "oil_bottle",
+            "affordance_types": ["pourable"],
+            "reasons": "Unscrewing the cap breaks the seal, allowing oil to flow out of the bottle when tilted over the pan."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["cooking_oil_chopped_red_onion", "oil_bottle", "frying_pan"],
+        "hotspot": {
+          "description": "Screw cap of the oil bottle",
+          "affordance_type": "seal_point",
+          "mechanism": "Applying rotational twisting torque to the cap breaks the airtight seal, converting the bottle from a sealed container to a pourable vessel for oil dispensing."
+        }
+      }
+    },
+    {
+      "frame_index": 50,
+      "action_state_change_description": "Holds position the green cutting board with chopped red onion over the frying pan, using a spatula to scrape the onion pieces into the pan.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pour oil from bottle and scrape onion from cutting board into pan",
+        "patient": "cooking_oil_chopped_red_onion",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "aligned_with",
+            "objects": ["green_cutting_board", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": ["cooking_oil", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": ["hands", "spatula"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "spatula",
+            "affordance_types": ["scraping_surface"],
+            "reasons": "The spatula has a flat, rigid edge that can push small, loose onion pieces across the cutting board's surface."
+          },
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": ["transferable"],
+            "reasons": "The onion pieces are small and lightweight, making them easy to move via scraping and gravity into the pan."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["chopped_red_onion", "frying_pan"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["chopped_red_onion", "green_cutting_board"],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": ["flavor_ready_to_enhance"],
+            "reasons": "The pan now contains oil and red onion, which will cook together to infuse the existing vegetables with a pungent, savory flavor."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands", "spatula"],
+        "materials": ["cooking_oil_chopped_red_onion", "green_cutting_board", "frying_pan"],
+        "hotspot": {
+          "description": "Edge of the green cutting board",
+          "affordance_type": "scrape_surface",
+          "mechanism": "Tilting the cutting board leverages gravity, while the spatula's flat edge applies direct force to push onion pieces from the board into the pan, ensuring efficient transfer."
+        }
+      }
+    }
+  ]
+}

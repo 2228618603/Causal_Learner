@@ -1,0 +1,220 @@
+{
+  "step_id": 2,
+  "step_goal": "Retrieve blue-lidded container from refrigerator",
+  "rationale": "This step is necessary to access the blue-lidded container, which holds an ingredient required for preparing the cereal with plant-based milk. Retrieving it from the refrigerator makes the ingredient accessible for use in subsequent steps of the meal preparation process.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "pull open refrigerator door, grasp blue-lidded container, and place it on the kitchen table",
+    "patient": "blue_lidded_container",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": [
+          "blue_lidded_container",
+          "refrigerator_interior"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "closed",
+        "objects": [
+          "refrigerator_door"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "refrigerator_door",
+        "affordance_types": [
+          "pull_openable",
+          "sealable"
+        ],
+        "reasons": "The door has a smooth, graspable surface with no obstructions, allowing it to be pulled open to access the interior and closed afterward to maintain cooling."
+      },
+      {
+        "object_name": "blue_lidded_container",
+        "affordance_types": [
+          "graspable"
+        ],
+        "reasons": "The container has a flat, rigid lid that provides a stable surface for grasping and lifting."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "blue_lidded_container",
+          "kitchen_table"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "closed",
+        "objects": [
+          "refrigerator_door"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "blue_lidded_container",
+        "affordance_types": [
+          "accessible_for_opening",
+          "position_changed"
+        ],
+        "reasons": "The container is now on the kitchen table instead of inside the refrigerator, making it easy to grasp, open, and use its contents for meal preparation."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the blue-lidded container was wedged under a heavy carton of milk inside the refrigerator?",
+  "expected_challenge_outcome": "The container cannot be grasped or lifted without first moving the heavy milk carton, delaying retrieval and requiring an additional step to reposition the carton to access the container.",
+  "failure_reflecting": {
+    "reason": "The container slips from the hand while being lifted out of the refrigerator, falling onto the floor and spilling some of its contents.",
+    "recovery_strategy": "Pick up the container, inspect it for damage, wipe up spilled contents with a clean cloth, and transfer any remaining ingredient to a clean, sealable container if the original is damaged."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 5,
+      "action_state_change_description": "Hand makes contact with the refrigerator door, initiating the action of opening it to access the interior.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pull open refrigerator door, grasp blue-lidded container, and place it on the kitchen table",
+        "patient": "blue_lidded_container",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "closed",
+            "objects": [
+              "refrigerator_door"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "blue_lidded_container",
+              "refrigerator_interior"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "refrigerator_door",
+            "affordance_types": [
+              "pull_openable"
+            ],
+            "reasons": "The door has a graspable surface with no obstructions, allowing it to be pulled open."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "open",
+            "objects": [
+              "refrigerator_door"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "refrigerator_interior",
+            "affordance_types": [
+              "accessible"
+            ],
+            "reasons": "Opening the door exposes the interior, making objects inside reachable."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "refrigerator_door",
+          "blue_lidded_container"
+        ],
+        "hotspot": {
+          "description": "Refrigerator door exterior surface",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hand and door surface allows application of pulling force to open the door."
+        }
+      }
+    },
+    {
+      "frame_index": 37,
+      "action_state_change_description": "Blue-lidded container is placed on the kitchen table, completing the retrieval action.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "pull open refrigerator door, grasp blue-lidded container, and place it on the kitchen table",
+        "patient": "blue_lidded_container",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "grasped",
+            "objects": [
+              "hands",
+              "blue_lidded_container"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "open",
+            "objects": [
+              "refrigerator_door"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "blue_lidded_container",
+            "affordance_types": [
+              "liftable"
+            ],
+            "reasons": "The container is stable and graspable, allowing it to be carried to the table."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "blue_lidded_container",
+              "kitchen_table"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "closed",
+            "objects": [
+              "refrigerator_door"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "blue_lidded_container",
+            "affordance_types": [
+              "accessible_for_opening"
+            ],
+            "reasons": "The container is now on the table, making it easy to open and access its contents."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "blue_lidded_container"
+        ],
+        "hotspot": {
+          "description": "Blue-lidded container's lid top surface",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between hand and lid allows controlled lowering of the container onto the table surface."
+        }
+      }
+    }
+  ]
+}

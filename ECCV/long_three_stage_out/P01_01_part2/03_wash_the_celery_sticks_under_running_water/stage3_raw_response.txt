@@ -1,0 +1,153 @@
+{
+  "step_id": 3,
+  "step_goal": "Wash the celery sticks under running water.",
+  "rationale": "Washing the celery is essential to remove surface dirt, pesticides, and potential contaminants, ensuring the vegetable is sanitary before chopping and cooking.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "rinse under running water",
+    "patient": "celery_sticks",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": ["hands", "celery_sticks"],
+        "truth": true
+      },
+      {
+        "relation": "flowing",
+        "objects": ["water_stream"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "celery_sticks",
+        "affordance_types": ["washable"],
+        "reasons": "The celery sticks have exposed surfaces that can be cleaned by the mechanical and solvent action of water."
+      },
+      {
+        "object_name": "water_tap",
+        "affordance_types": ["dispensability"],
+        "reasons": "The tap is active and providing a stream of water necessary for the washing process."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "wet",
+        "objects": ["celery_sticks"],
+        "truth": true
+      },
+      {
+        "relation": "flowing",
+        "objects": ["water_stream"],
+        "truth": false
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "celery_sticks",
+        "affordance_types": ["clean"],
+        "reasons": "The rinsing action has removed surface debris, changing the state of the celery to clean."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "If the water tap was broken and no water flowed, how would the step outcome change?",
+  "expected_challenge_outcome": "The physical mechanism of rinsing (fluid flow removing particles) would fail, leaving the celery dirty despite the agent's positioning.",
+  "failure_reflecting": {
+    "reason": "The agent might not rotate the celery sticks sufficiently, leaving some sides unwashed.",
+    "recovery_strategy": "Manipulate the celery sticks in hand to expose all surfaces to the water stream."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 12,
+      "action_state_change_description": "Initiation: The celery sticks are brought into the running water stream to begin the rinsing process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "rinse under running water",
+        "patient": "celery_sticks",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": ["celery_sticks", "water_stream"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "water_stream",
+            "affordance_types": ["active"],
+            "reasons": "The water is visibly flowing, providing the medium for cleaning."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "wet",
+            "objects": ["celery_sticks"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": ["being_cleaned"],
+            "reasons": "The contact with flowing water initiates the cleaning state."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["celery_sticks", "water_stream"],
+        "hotspot": {
+          "description": "The surface of the celery sticks intersecting the water stream.",
+          "affordance_type": "washable_surface",
+          "mechanism": "Fluid dynamics and solvent action of the water remove surface particulates."
+        }
+      }
+    },
+    {
+      "frame_index": 26,
+      "action_state_change_description": "Completion: The agent turns off the tap lever, terminating the water flow as washing concludes.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "rinse under running water",
+        "patient": "celery_sticks",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": ["hands", "celery_sticks"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "tap_lever",
+            "affordance_types": ["manipulable"],
+            "reasons": "The lever is positioned to be pushed down to stop the flow."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "flowing",
+            "objects": ["water_stream"],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "celery_sticks",
+            "affordance_types": ["clean"],
+            "reasons": "The washing process is finished, and the object is now in a clean state."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["celery_sticks", "tap_lever"],
+        "hotspot": {
+          "description": "The handle/lever of the kitchen tap.",
+          "affordance_type": "flow_control",
+          "mechanism": "Pushing the lever downward mechanically closes the valve to stop water flow."
+        }
+      }
+    }
+  ]
+}

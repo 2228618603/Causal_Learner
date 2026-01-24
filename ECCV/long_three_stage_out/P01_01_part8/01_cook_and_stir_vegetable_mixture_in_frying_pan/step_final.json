@@ -1,0 +1,256 @@
+{
+  "step_id": 1,
+  "step_goal": "Cook and stir vegetable mixture in frying pan",
+  "rationale": "Cooking the vegetable mixture softens the ingredients, develops flavor through heat-induced chemical reactions, and creates a fully cooked base component to combine with rice in subsequent steps.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "stir and heat chopped vegetable mixture",
+    "patient": "vegetable_mixture_in_frying_pan",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "frying_pan",
+          "stove_burner"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "spatula"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "inside",
+        "objects": [
+          "vegetable_mixture_in_frying_pan",
+          "frying_pan"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "stove",
+        "affordance_types": [
+          "heat_emitting"
+        ],
+        "reasons": "Visible steam rising from the frying pan confirms the stove burner is active and providing heat to cook the vegetables."
+      },
+      {
+        "object_name": "frying_pan",
+        "affordance_types": [
+          "heat_conducting"
+        ],
+        "reasons": "The metal construction of the frying pan efficiently transfers heat from the stove to the vegetable mixture."
+      },
+      {
+        "object_name": "spatula",
+        "affordance_types": [
+          "stirrable"
+        ],
+        "reasons": "The flat, rigid surface of the spatula can physically move vegetable pieces to ensure even heat exposure."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "evenly_distributed",
+        "objects": [
+          "vegetable_mixture_in_frying_pan",
+          "frying_pan"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "vegetable_mixture_in_frying_pan",
+        "affordance_types": [
+          "partially_cooked",
+          "flavor_developed"
+        ],
+        "reasons": "Stirring and heating break down vegetable cell structures, softening ingredients and triggering reactions that enhance flavor and texture."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the frying pan was placed on an inactive stove burner during this step?",
+  "expected_challenge_outcome": "The vegetable mixture would not cook; it would remain raw and firm with no flavor development, making it unsuitable to combine with cooked rice for the final stir-fry.",
+  "failure_reflecting": {
+    "reason": "Insufficient stirring leads to localized overheating, causing some vegetable pieces to burn while others remain undercooked.",
+    "recovery_strategy": "Scrape burnt pieces from the pan, reduce stove heat to medium, and stir continuously to ensure even cooking of remaining ingredients."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 7,
+      "action_state_change_description": "Hand grasps the spatula and initiates stirring of the vegetable mixture in the frying pan.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "stir and heat chopped vegetable mixture",
+        "patient": "vegetable_mixture_in_frying_pan",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove_burner"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contacting",
+            "objects": [
+              "hands",
+              "spatula"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "inside",
+            "objects": [
+              "vegetable_mixture_in_frying_pan",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "stove",
+            "affordance_types": [
+              "heat_emitting"
+            ],
+            "reasons": "Visible steam confirms the stove is active and providing heat to the frying pan."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The spatula's handle is accessible and shaped for secure hand gripping."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving",
+            "objects": [
+              "vegetable_mixture_in_frying_pan",
+              "spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "vegetable_mixture_in_frying_pan",
+            "affordance_types": [
+              "being_stirred"
+            ],
+            "reasons": "The spatula's movement initiates rearrangement of the vegetable mixture to expose it to even heat."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "spatula"
+        ],
+        "materials": [
+          "vegetable_mixture_in_frying_pan"
+        ],
+        "hotspot": {
+          "description": "Flat, wide surface of the spatula",
+          "affordance_type": "stir_surface",
+          "mechanism": "Friction between the spatula's surface and vegetable pieces transfers force to move and rearrange the mixture for even heat exposure."
+        }
+      }
+    },
+    {
+      "frame_index": 40,
+      "action_state_change_description": "Vegetable mixture is evenly distributed, shows signs of partial cooking, and stirring activity nears completion.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "stir and heat chopped vegetable mixture",
+        "patient": "vegetable_mixture_in_frying_pan",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove_burner"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "spatula"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "evenly_distributed",
+            "objects": [
+              "vegetable_mixture_in_frying_pan",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "stove",
+            "affordance_types": [
+              "heat_emitting"
+            ],
+            "reasons": "Continuous steam from the pan confirms ongoing heat supply for cooking."
+          },
+          {
+            "object_name": "vegetable_mixture_in_frying_pan",
+            "affordance_types": [
+              "cookable"
+            ],
+            "reasons": "The mixture has been exposed to sufficient heat to soften and develop flavor."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "stationary",
+            "objects": [
+              "vegetable_mixture_in_frying_pan",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "vegetable_mixture_in_frying_pan",
+            "affordance_types": [
+              "partially_cooked",
+              "ready_for_combination"
+            ],
+            "reasons": "Stirring and heating have softened vegetables, enhanced flavor, and prepared them to combine with cooked rice in subsequent steps."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "spatula"
+        ],
+        "materials": [
+          "vegetable_mixture_in_frying_pan"
+        ],
+        "hotspot": {
+          "description": "Inner surface of the frying pan",
+          "affordance_type": "heat_transfer_surface",
+          "mechanism": "Conductive heat transfer from the pan's metal surface cooks vegetables, while stirring ensures uniform heat distribution."
+        }
+      }
+    }
+  ]
+}

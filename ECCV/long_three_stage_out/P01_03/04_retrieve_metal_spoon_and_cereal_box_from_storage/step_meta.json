@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Retrieve metal spoon and cereal box from storage",
+  "clip_path": "../stage2/step_clips/step04_retrieve_metal_spoon_and_cereal_box_from_storage.mp4",
+  "clip_start_sec": 70.33693333333333,
+  "clip_end_sec": 94.57781666666666,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:23:33.197308Z",
+  "manifest_path": "frame_manifest.json"
+}

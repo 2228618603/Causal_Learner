@@ -1,0 +1,10 @@
+{
+  "step_id": 6,
+  "step_goal": "Wash remaining spoon and rinse all cleaned items",
+  "clip_path": "../stage2/step_clips/step06_wash_remaining_spoon_and_rinse_all_cleaned_items.mp4",
+  "clip_start_sec": 168.96896896896897,
+  "clip_end_sec": 183.6503169836503,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:26:06.296553Z",
+  "manifest_path": "frame_manifest.json"
+}

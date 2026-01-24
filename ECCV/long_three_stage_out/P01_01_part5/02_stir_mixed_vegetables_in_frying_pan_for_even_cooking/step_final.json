@@ -1,0 +1,254 @@
+{
+  "step_id": 2,
+  "step_goal": "Stir mixed vegetables in frying pan for even cooking",
+  "rationale": "This step distributes heat and vegetable ingredients throughout the frying pan to prevent localized burning, ensure uniform cooking of all vegetable components, and blend initial flavors from sautéing. It also dislodges any pieces stuck to the pan bottom, maintaining consistent texture and preventing overcooking in specific areas.",
+  "causal_chain": {
+    "agent": "right_hand",
+    "action": "agitate mixed vegetables with spatula in a circular motion",
+    "patient": "mixed_vegetables",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "right_hand",
+          "spatula"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "contacting",
+        "objects": [
+          "spatula",
+          "mixed_vegetables"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "frying_pan",
+          "stove_burner"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "spatula",
+        "affordance_types": [
+          "heat_resistant",
+          "mixing_tool"
+        ],
+        "reasons": "The spatula has a heat-resistant handle and flat, wide surface suitable for lifting and moving hot vegetables without melting or breaking."
+      },
+      {
+        "object_name": "frying_pan",
+        "affordance_types": [
+          "heated"
+        ],
+        "reasons": "The frying pan is placed on an active stove burner, providing the heat needed to cook the vegetables during stirring."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "uniformly_distributed_in",
+        "objects": [
+          "mixed_vegetables",
+          "frying_pan"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "not_stuck_to",
+        "objects": [
+          "mixed_vegetables",
+          "frying_pan"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "mixed_vegetables",
+        "affordance_types": [
+          "evenly_heated",
+          "partially_cooked"
+        ],
+        "reasons": "Stirring exposes all vegetable pieces to the pan's heated surface, resulting in uniform partial cooking and softened texture."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the frying pan was not pre-heated before starting to stir the vegetables?",
+  "expected_challenge_outcome": "The vegetables would not receive uniform heat exposure, so no meaningful cooking or softening would occur. Stirring would only move the vegetables without contributing to browning or flavor development, requiring additional heating time after stopping stirring.",
+  "failure_reflecting": {
+    "reason": "Vegetable pieces stick firmly to the pan bottom despite regular stirring, leading to uneven browning and potential burning of stuck pieces.",
+    "recovery_strategy": "Reduce the stove burner heat slightly, use the spatula to scrape all stuck vegetable pieces loose from the pan bottom, add a small amount of cooking oil to the pan, and continue stirring more frequently to prevent future sticking."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Right hand initiates circular stirring motion with spatula to agitate mixed vegetables in the frying pan.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "agitate mixed vegetables with spatula in a circular motion",
+        "patient": "mixed_vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "spatula"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "contacting",
+            "objects": [
+              "spatula",
+              "mixed_vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove_burner"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "heat_resistant",
+              "mixing_tool"
+            ],
+            "reasons": "The spatula has a heat-resistant handle and flat, wide surface suitable for lifting and moving hot vegetables without melting or breaking."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heated"
+            ],
+            "reasons": "The frying pan is placed on an active stove burner, providing the heat needed to cook the vegetables during stirring."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving_through",
+            "objects": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "mixed_vegetables",
+            "affordance_types": [
+              "heat_distribution_initiated"
+            ],
+            "reasons": "The stirring motion begins to expose different vegetable pieces to the pan's heated surface, initiating uniform heat transfer."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "right_hand",
+          "spatula"
+        ],
+        "materials": [
+          "mixed_vegetables",
+          "frying_pan"
+        ],
+        "hotspot": {
+          "description": "Flat, wide blade of the spatula",
+          "affordance_type": "mixing_surface",
+          "mechanism": "The spatula's blade uses friction and force to lift and move vegetable pieces, transferring force from the hand to the vegetables to distribute them across the pan's heated surface."
+        }
+      }
+    },
+    {
+      "frame_index": 44,
+      "action_state_change_description": "Stirring motion concludes, mixed vegetables are uniformly distributed across the frying pan, and the spatula is lifted away from the vegetable mixture.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "agitate mixed vegetables with spatula in a circular motion",
+        "patient": "mixed_vegetables",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "moving_through",
+            "objects": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "right_hand",
+              "spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heated"
+            ],
+            "reasons": "The frying pan remains on the active stove burner, maintaining heat exposure for the vegetables throughout stirring."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "uniformly_distributed_in",
+            "objects": [
+              "mixed_vegetables",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "not_contacting",
+            "objects": [
+              "spatula",
+              "mixed_vegetables"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "mixed_vegetables",
+            "affordance_types": [
+              "evenly_heated",
+              "partially_cooked"
+            ],
+            "reasons": "The completed stirring motion has exposed all vegetable pieces to the pan's heat, resulting in uniform partial cooking and softened texture."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "right_hand",
+          "spatula"
+        ],
+        "materials": [
+          "mixed_vegetables",
+          "frying_pan"
+        ],
+        "hotspot": {
+          "description": "Flat, wide blade of the spatula",
+          "affordance_type": "mixing_surface",
+          "mechanism": "The spatula's blade has finished transferring force to distribute vegetables, ensuring even heat exposure across all pieces before being lifted away."
+        }
+      }
+    }
+  ]
+}

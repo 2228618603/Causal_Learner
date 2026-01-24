@@ -1,0 +1,244 @@
+You are an expert Physical Interaction Analyst and Causal Planner.
+You are given 50 uniformly sampled frames from a SINGLE STEP CLIP (chronological order), and the draft step definition (read-only).
+
+Task (Stage 3):
+Using the step-clip frames as the PRIMARY evidence, refine and complete the annotation for this step and generate 2 keyframe annotations.
+
+Keyframe selection procedure (recommended; follow silently):
+1) Scan all frames quickly to understand the step progression.
+2) Pick 2 frames that best represent (a) initiation and (b) completion of the step, with clear visual evidence.
+3) Treat each keyframe as a conjunction of constraints: the selected `frame_index` MUST be consistent with its own
+   `action_state_change_description`, `causal_chain`, and `interaction` simultaneously (avoid partial matches).
+4) If multiple frames match similarly well, prefer the EARLIER index.
+
+Strict requirements:
+- You MUST NOT change `step_id` or `step_goal` from the draft.
+- You MUST output exactly 2 `critical_frames`.
+- Each `critical_frames[*].frame_index` MUST be an integer in [1, 50] and refers to the step-clip frame pool provided here.
+- Do NOT reference frame/image numbers (e.g., "Frame 12", "Image 12") in any text fields; use only the numeric `frame_index` field to specify frames.
+- Do NOT reference timestamps/durations/timecodes in any text fields (e.g., "3 seconds", "00:03", "t=3.2s").
+- Choose 2 DISTINCT frames that show meaningful temporal progression (initiation → completion); do not pick duplicates.
+- The indices within `critical_frames` must be in increasing time order.
+- Do NOT output `keyframe_image_path` (keyframe JPEGs are resolved from the filesystem by the script).
+- Output strict JSON only; no explanations.
+- Do NOT add any extra keys beyond the schema below.
+- The step-level `causal_chain.agent`, `causal_chain.action`, `causal_chain.patient` MUST be identical to the corresponding fields in EACH `critical_frames[*].causal_chain` (copy them verbatim).
+- `causal_chain.agent/action/patient` MUST be non-empty strings.
+- `causal_chain.causal_precondition_on_spatial`, `causal_chain.causal_precondition_on_affordance`, `causal_chain.causal_effect_on_spatial`, `causal_chain.causal_effect_on_affordance` MUST be non-empty lists.
+- `causal_chain.causal_precondition_on_affordance[*].reasons` and `causal_chain.causal_effect_on_affordance[*].reasons` MUST be non-empty grounded strings.
+- `interaction.hotspot.description`, `interaction.hotspot.affordance_type`, `interaction.hotspot.mechanism` MUST be non-empty grounded strings.
+- `interaction.tools` and `interaction.materials` MUST be lists; BOTH must be non-empty (use "hands" as a tool if no external tool is used).
+- In each `critical_frames[*].interaction`, `tools` MUST include the `causal_chain.agent`, and `materials` MUST include the `causal_chain.patient` (keep identifiers consistent).
+- All `truth` fields are JSON booleans (`true`/`false`), not strings.
+
+Quality and grounding constraints:
+- Treat the frames as the ONLY source of truth. Do not hallucinate objects, contacts, or states not supported by the images.
+- `causal_chain.causal_precondition_on_spatial` must be visually verifiable in the chosen frame (contacts, containment, support, relative pose, reachability).
+- `causal_chain.causal_precondition_on_affordance` must be grounded in visible functional state (e.g., graspable handle exposed; blade contacting object; container open).
+- `causal_chain` should describe the physical constraints and the causal effects for the whole step (consistent with the chosen keyframes).
+- `interaction.hotspot` must refer to a specific functional region that is visibly involved (edge, handle, rim, hinge, etc.).
+- `interaction.hotspot.mechanism` should explain the physical mechanism (force/torque transfer, friction, leverage, fluid flow, heat transfer, stress concentration, etc.).
+- Avoid placeholders like "N/A", "unknown", or empty strings; fill all required fields with grounded, specific content.
+- Use consistent object naming across all fields (causal_chain, interaction); do not rename the same object with different synonyms within the step.
+- Prefer concrete relation verbs in `causal_precondition_on_spatial` and `causal_effect_on_spatial` (examples: "contacting", "holding", "on_top_of", "inside", "inserted_into", "aligned_with", "open", "closed").
+- Use `snake_case` for object identifiers where possible.
+- Keep `agent` as a person/body part (e.g., "hand", "hands", "finger", "person"); keep `action` as a verb phrase; keep `patient` as the acted-on object.
+
+Output schema (strict):
+(Do NOT add any extra keys beyond this schema. Your output must be valid JSON with real values.)
+
+Top-level fields (one step JSON object):
+- `step_id` (int): Must equal the draft `step_id` exactly (read-only).
+- `step_goal` (string): Must exactly equal the draft `step_goal` (read-only; do not rephrase or paraphrase).
+- `rationale` (string): 1–3 sentences explaining why this step is necessary and what it causally enables/changes (mechanistic and grounded; do NOT mention frame numbers).
+- `causal_chain` (object): Step-level physical causal analysis for the WHOLE step; must be consistent with both keyframes (see `CausalChain` below).
+- `counterfactual_challenge_question` (string): A realistic what-if that changes a physical precondition (e.g., access, friction, alignment, openness), not a question about frames.
+- `expected_challenge_outcome` (string): Predicted physical outcome for the what-if, with brief physical reasoning.
+- `failure_reflecting` (object):
+  - `reason` (string): Plausible failure mode for this step (what goes wrong physically/procedurally).
+  - `recovery_strategy` (string): Concrete, actionable recovery strategy that would plausibly fix the failure.
+- `critical_frames` (list; MUST contain exactly 2 objects, in strictly increasing time order):
+  Each `critical_frames[*]` object contains:
+  - `frame_index` (int): 1-based index into THIS step-clip frame pool (1..50); the 2 indices must be distinct.
+  - `action_state_change_description` (string): Observable action/state change at this frame (describe objects + state; do NOT write "Frame X" in text).
+  - `causal_chain` (object): Keyframe-level causal analysis; SAME `CausalChain` schema as the step-level one (preconditions should be true at/just before this frame).
+  - `interaction` (object):
+    - `tools` (list[string]): Force applicators (use "hands" if no external tool); prefer `snake_case` identifiers; MUST be non-empty and MUST include the step's `causal_chain.agent` (same identifier).
+    - `materials` (list[string]): Manipulated objects/substances; prefer `snake_case`; keep naming consistent with `causal_chain` entities; MUST be non-empty and MUST include the step's `causal_chain.patient` (same identifier).
+    - `hotspot` (object):
+      - `description` (string): Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded.
+      - `affordance_type` (string): One token describing the hotspot's functional role (prefer `snake_case`, e.g., "grasp_point", "cutting_edge", "pour_spout").
+      - `mechanism` (string): Brief physical mechanism explaining how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.).
+
+`CausalChain` (used in BOTH `causal_chain` and `critical_frames[*].causal_chain`):
+- `agent` (string): Primary force/controller for the step (prefer body part like "hands"/"right_hand"; use a tool part only if it is clearly the direct force applicator).
+- `action` (string): Concise verb phrase describing the core physical action (ideally includes the physical mechanism: push/pull/rotate/tilt/insert/press, etc.).
+- `patient` (string): Primary entity being acted upon (`snake_case` identifier; keep it consistent across all fields in the step).
+- `causal_precondition_on_spatial` (list; non-empty): Spatial/physical relations that MUST hold immediately before and throughout the step (concrete, visually verifiable).
+- `causal_precondition_on_affordance` (list; non-empty): Functional affordances/states that MUST already be true to execute the action (grounded in visible cues).
+- `causal_effect_on_spatial` (list; non-empty): Spatial/physical relations that become true/false as a RESULT of completing the step.
+- `causal_effect_on_affordance` (list; non-empty): Functional affordances/states that change as a RESULT of completing the step.
+
+`SpatialRelation` (elements of `*_on_spatial` lists):
+- `relation` (string): Short, concrete, visually verifiable token (prefer mechanistic relations like "holding", "contacting", "inside", "aligned_with", "open", "closed"; avoid full sentences).
+- `objects` (list[string]): Involved entities (`snake_case`; non-empty list; typically two entities).
+- `truth` (bool): Whether the relation holds. For preconditions this is usually true; for effects, set it to the post-step truth value (true = established, false = broken).
+
+`AffordanceState` (elements of `*_on_affordance` lists):
+- `object_name` (string): The object whose functional affordance/state is asserted (`snake_case`; grounded in the frames).
+- `affordance_types` (list[string]): One or more affordance/state tokens (`snake_case`; keep tokens short and functional; non-empty list).
+- `reasons` (string): Grounded justification referencing visible cues and physical constraints/mechanism (no speculation).
+
+Output JSON template (fill with real values; keep keys exactly; `critical_frames` MUST have exactly 2 entries):
+{
+  "step_id": 1,
+  "step_goal": "Exactly equal to the draft step_goal (do not change).",
+  "rationale": "Why this step is necessary for the overall plan, explained causally (how it enables later steps).",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "A concise verb phrase summarizing the core physical action for the WHOLE step.",
+    "patient": "snake_case_patient_object",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": ["hands", "snake_case_patient_object"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "snake_case_patient_object",
+        "affordance_types": ["graspable"],
+        "reasons": "Grounded justification referencing visible cues and why this affordance/state is required."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "aligned_with",
+        "objects": ["snake_case_patient_object", "snake_case_target_object"],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "snake_case_patient_object",
+        "affordance_types": ["position_changed"],
+        "reasons": "Grounded justification of how the action causes this affordance/state change."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "A realistic what-if question challenging the physical understanding of this step.",
+  "expected_challenge_outcome": "The predicted physical outcome for the challenge question.",
+  "failure_reflecting": {
+    "reason": "A plausible failure mode for this step.",
+    "recovery_strategy": "A concise recovery strategy."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Initiation: what observable action/state change begins at this frame.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "A concise verb phrase summarizing the core physical action for the WHOLE step.",
+        "patient": "snake_case_patient_object",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": ["hands", "snake_case_patient_object"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "snake_case_patient_object",
+            "affordance_types": ["reachable"],
+            "reasons": "Grounded justification referencing visible cues and why this affordance/state is required."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving_toward",
+            "objects": ["snake_case_patient_object", "snake_case_target_object"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "snake_case_patient_object",
+            "affordance_types": ["in_motion"],
+            "reasons": "Grounded justification of how the action causes this affordance/state change."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["snake_case_patient_object"],
+        "hotspot": {
+          "description": "Specific functional region involved (e.g., handle, rim, edge, hinge).",
+          "affordance_type": "grasp_point",
+          "mechanism": "Explain the physical mechanism grounded in what is visible."
+        }
+      }
+    },
+    {
+      "frame_index": 2,
+      "action_state_change_description": "Completion: what observable action/state change is achieved at this frame.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "A concise verb phrase summarizing the core physical action for the WHOLE step.",
+        "patient": "snake_case_patient_object",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "aligned_with",
+            "objects": ["snake_case_patient_object", "snake_case_target_object"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "snake_case_target_object",
+            "affordance_types": ["available"],
+            "reasons": "Grounded justification referencing visible cues and why this affordance/state is required."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": ["snake_case_patient_object", "snake_case_target_object"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "snake_case_patient_object",
+            "affordance_types": ["placed"],
+            "reasons": "Grounded justification of how the action causes this affordance/state change."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["snake_case_patient_object"],
+        "hotspot": {
+          "description": "Specific functional region involved (edge, handle, rim, hinge, etc.).",
+          "affordance_type": "contact_surface",
+          "mechanism": "Explain the physical mechanism grounded in what is visible."
+        }
+      }
+    }
+  ]
+}
+
+High-level goal (context): Prepare peeled, uniformly sliced potatoes and set up kitchen equipment (including a water-filled electric kettle and cookware on the stove) for subsequent cooking, while cleaning up potato skin scraps from the workspace.
+
+Draft plan outline (read-only; for coherence across steps; do not modify step_goals):
+- Step 1: Fill electric kettle with water and position it for heating
+- Step 2: Retrieve peeling knife from kitchen drawer
+- Step 3: Remove outer skin from raw potato
+- Step 4: Slice peeled potato into uniform round pieces
+- Step 5: Clean up potato scraps and arrange cookware on stove
+
+Reference draft step JSON (read-only; do not echo it in output):
+```json
+{"step_id": 1, "step_goal": "Fill electric kettle with water and position it for heating", "rationale": "Having boiling water available is essential for cooking steps like boiling potatoes, which requires pre-heating water to reduce overall cooking time.", "causal_chain": {"agent": "hands", "action": "tilt kettle under faucet to fill with water, then place kettle on its power base", "patient": "electric_kettle", "causal_precondition_on_spatial": [{"relation": "on_top_of", "objects": ["electric_kettle_base", "countertop"], "truth": true}], "causal_precondition_on_affordance": [{"object_name": "kitchen_faucet", "affordance_types": ["water_dispensable"], "reasons": "Faucet must be able to release water to fill the kettle; visible cues show the faucet is functional and connected to a water supply."}], "causal_effect_on_spatial": [{"relation": "inside", "objects": ["water", "electric_kettle"], "truth": true}, {"relation": "on_top_of", "objects": ["electric_kettle", "electric_kettle_base"], "truth": true}], "causal_effect_on_affordance": [{"object_name": "electric_kettle", "affordance_types": ["heatable"], "reasons": "Kettle is now filled with water and positioned on its power base, enabling it to be activated for boiling."}]}, "counterfactual_challenge_question": "What if the kettle base was not on a stable countertop?", "expected_challenge_outcome": "The kettle would tip over when filled with water, spilling water and preventing it from being heated safely.", "failure_reflecting": {"reason": "Faucet releases too much water, causing overflow from the kettle.", "recovery_strategy": "Turn off the faucet immediately, pour excess water into the sink, and dry the kettle base before positioning it on the power base."}}
+```

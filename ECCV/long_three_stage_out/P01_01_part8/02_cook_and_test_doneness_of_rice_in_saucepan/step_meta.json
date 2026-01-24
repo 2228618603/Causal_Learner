@@ -1,0 +1,10 @@
+{
+  "step_id": 2,
+  "step_goal": "Cook and test doneness of rice in saucepan",
+  "clip_path": "../stage2/step_clips/step02_cook_and_test_doneness_of_rice_in_saucepan.mp4",
+  "clip_start_sec": 40.40707374040708,
+  "clip_end_sec": 132.23223223223223,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T13:49:47.413259Z",
+  "manifest_path": "frame_manifest.json"
+}

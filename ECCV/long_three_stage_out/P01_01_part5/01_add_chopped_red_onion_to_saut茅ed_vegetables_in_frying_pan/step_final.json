@@ -1,0 +1,344 @@
+{
+  "step_id": 1,
+  "step_goal": "Add chopped red onion to sautéed vegetables in frying pan",
+  "rationale": "This step integrates chopped red onion into the existing sautéed vegetable mix, allowing the onion to soften, caramelize, and infuse its flavor into the dish while cooking alongside other vegetables, which is essential for developing the overall savory profile of the meal.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scoop and transfer chopped red onion from cutting board to frying pan then stir to integrate with sautéed vegetables",
+    "patient": "chopped_red_onion",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "frying_pan",
+          "stove"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "chopped_red_onion",
+          "cutting_board"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "cutting_board"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "spatula"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "frying_pan",
+        "affordance_types": [
+          "heat_conductive",
+          "hot"
+        ],
+        "reasons": "The frying pan is on a stove with visible sautéed vegetables, indicating it is actively heating and suitable for cooking the onion."
+      },
+      {
+        "object_name": "spatula",
+        "affordance_types": [
+          "scoopable",
+          "stirrable"
+        ],
+        "reasons": "The spatula has a wide, flat surface that can collect small onion pieces and mix them with other vegetables."
+      },
+      {
+        "object_name": "chopped_red_onion",
+        "affordance_types": [
+          "transferable"
+        ],
+        "reasons": "The onion is chopped into small, manageable pieces that can be moved with a spatula."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": [
+          "chopped_red_onion",
+          "frying_pan"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": [
+          "chopped_red_onion",
+          "cutting_board"
+        ],
+        "truth": false
+      },
+      {
+        "relation": "mixed_with",
+        "objects": [
+          "chopped_red_onion",
+          "sautéed_vegetables"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "chopped_red_onion",
+        "affordance_types": [
+          "cookable_in_pan"
+        ],
+        "reasons": "The onion is placed in the hot frying pan, exposing it to heat for sautéing."
+      },
+      {
+        "object_name": "mixed_vegetables",
+        "affordance_types": [
+          "flavor_enhanced"
+        ],
+        "reasons": "The addition of red onion introduces new flavor compounds that will meld with the existing vegetables as they cook together."
+      },
+      {
+        "object_name": "cutting_board",
+        "affordance_types": [
+          "empty"
+        ],
+        "reasons": "All onion pieces have been transferred from the cutting board to the frying pan."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the cutting board was tilted too steeply while transferring the onion?",
+  "expected_challenge_outcome": "Most of the chopped red onion would slide off the cutting board onto the kitchen counter or floor instead of being scooped into the frying pan, resulting in lost ingredients and incomplete integration into the vegetable mix.",
+  "failure_reflecting": {
+    "reason": "Some chopped onion pieces stick to the spatula or cutting board and are not transferred to the frying pan, remaining on the utensil or surface.",
+    "recovery_strategy": "Scrape the stuck onion pieces from the spatula into the frying pan using the edge of the cutting board, or wipe the spatula against the inner wall of the pan to dislodge any remaining onion bits."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Holds a cutting board with chopped red onion and a spatula, preparing to scoop and transfer the onion to the frying pan.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scoop and transfer chopped red onion from cutting board to frying pan then stir to integrate with sautéed vegetables",
+        "patient": "chopped_red_onion",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "frying_pan",
+              "stove"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "chopped_red_onion",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "cutting_board"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "spatula"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive",
+              "hot"
+            ],
+            "reasons": "The frying pan is on a stove with visible sautéed vegetables, indicating it is actively heating and suitable for cooking the onion."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "scoopable"
+            ],
+            "reasons": "The spatula has a wide, flat surface that can collect small onion pieces for transfer."
+          },
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": [
+              "transferable"
+            ],
+            "reasons": "The onion is chopped into small, manageable pieces that can be moved with a spatula."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving_toward",
+            "objects": [
+              "chopped_red_onion",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": [
+              "in_motion"
+            ],
+            "reasons": "The spatula is positioned to push the onion pieces toward the edge of the cutting board for transfer to the pan."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "spatula"
+        ],
+        "materials": [
+          "chopped_red_onion",
+          "cutting_board",
+          "frying_pan"
+        ],
+        "hotspot": {
+          "description": "Flat surface of the spatula and upper edge of the cutting board",
+          "affordance_type": "scoop_point",
+          "mechanism": "Friction between the spatula's flat surface and onion pieces allows the spatula to collect and move the onion toward the frying pan."
+        }
+      }
+    },
+    {
+      "frame_index": 50,
+      "action_state_change_description": "Chopped red onion is fully mixed into the sautéed vegetables in the frying pan, and the cutting board is empty.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scoop and transfer chopped red onion from cutting board to frying pan then stir to integrate with sautéed vegetables",
+        "patient": "chopped_red_onion",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "chopped_red_onion",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "spatula"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "heat_conductive",
+              "hot"
+            ],
+            "reasons": "The frying pan remains on the stove, maintaining heat to cook the mixed vegetables."
+          },
+          {
+            "object_name": "spatula",
+            "affordance_types": [
+              "stirrable"
+            ],
+            "reasons": "The spatula's flat surface can move and mix the vegetables and onion within the pan."
+          },
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": [
+              "mixable"
+            ],
+            "reasons": "The onion pieces are small enough to blend evenly with the existing sautéed vegetables."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "mixed_with",
+            "objects": [
+              "chopped_red_onion",
+              "sautéed_vegetables"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": [
+              "chopped_red_onion",
+              "cutting_board"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "chopped_red_onion",
+            "affordance_types": [
+              "cookable_in_pan"
+            ],
+            "reasons": "The onion is evenly distributed in the hot frying pan, exposed to consistent heat for sautéing."
+          },
+          {
+            "object_name": "mixed_vegetables",
+            "affordance_types": [
+              "flavor_enhanced"
+            ],
+            "reasons": "The onion is integrated into the vegetable mix, allowing flavor compounds to meld as they cook together."
+          },
+          {
+            "object_name": "cutting_board",
+            "affordance_types": [
+              "empty"
+            ],
+            "reasons": "All onion pieces have been transferred from the cutting board to the frying pan."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "spatula"
+        ],
+        "materials": [
+          "chopped_red_onion",
+          "sautéed_vegetables",
+          "frying_pan"
+        ],
+        "hotspot": {
+          "description": "Inner surface of the frying pan and edge of the spatula",
+          "affordance_type": "mixing_surface",
+          "mechanism": "Torque applied via the spatula moves the onion and vegetables, creating contact and mixing them evenly within the hot pan to ensure uniform cooking."
+        }
+      }
+    }
+  ]
+}

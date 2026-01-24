@@ -1,0 +1,218 @@
+{
+  "step_id": 2,
+  "step_goal": "Rinse and scrub metal strainer",
+  "rationale": "This step eliminates trapped food particles and residue from the metal strainer's mesh, preventing bacterial growth and ensuring the strainer can effectively separate solids from liquids in future use. It also prepares the strainer for storage or immediate reuse.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scrub mesh surface under running water, agitate to dislodge trapped residue",
+    "patient": "metal_strainer",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "metal_strainer"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "running",
+        "objects": [
+          "kitchen_faucet"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "metal_strainer",
+        "affordance_types": [
+          "scrubbable"
+        ],
+        "reasons": "Rigid metal mesh construction is visible, confirming it can withstand hand scrubbing without damage to the strainer structure."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "mesh_clear",
+        "objects": [
+          "metal_strainer"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "in_dish_rack",
+        "objects": [
+          "metal_strainer",
+          "kitchen_dish_rack"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "metal_strainer",
+        "affordance_types": [
+          "straining_ready"
+        ],
+        "reasons": "Mesh is free of blockages, allowing liquid to pass through effectively while capturing solid particles as intended."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the strainer was not held under running water while scrubbing?",
+  "expected_challenge_outcome": "Dislodged food particles would re-settle in the mesh gaps, leaving the strainer still clogged and unable to function properly.",
+  "failure_reflecting": {
+    "reason": "Fine food particles remain trapped in mesh gaps after initial cleaning.",
+    "recovery_strategy": "Soak the strainer in a solution of vinegar and warm water for 10 minutes, then rinse and scrub with a brush under running water."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 2,
+      "action_state_change_description": "Hands grasp the metal strainer and position it under running water to initiate scrubbing and rinsing.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub mesh surface under running water, agitate to dislodge trapped residue",
+        "patient": "metal_strainer",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "metal_strainer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "running",
+            "objects": [
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_strainer",
+            "affordance_types": [
+              "scrubbable"
+            ],
+            "reasons": "Rigid metal mesh construction is visible, confirming it can withstand hand scrubbing without damage to the strainer structure."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "mesh_clear",
+            "objects": [
+              "metal_strainer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "metal_strainer",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "metal_strainer",
+            "affordance_types": [
+              "straining_ready"
+            ],
+            "reasons": "Mesh is free of blockages, allowing liquid to pass through effectively while capturing solid particles as intended."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "metal_strainer"
+        ],
+        "hotspot": {
+          "description": "Metal mesh surface and wire handle",
+          "affordance_type": "grasp_point_scrub_surface",
+          "mechanism": "Friction from hand contact with mesh dislodges trapped particles, while running water carries debris away from the strainer."
+        }
+      }
+    },
+    {
+      "frame_index": 43,
+      "action_state_change_description": "The clean metal strainer is placed into the dish rack, completing the rinsing and scrubbing process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub mesh surface under running water, agitate to dislodge trapped residue",
+        "patient": "metal_strainer",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "metal_strainer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "running",
+            "objects": [
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_strainer",
+            "affordance_types": [
+              "scrubbable"
+            ],
+            "reasons": "Rigid metal mesh construction is visible, confirming it can withstand hand scrubbing without damage to the strainer structure."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "mesh_clear",
+            "objects": [
+              "metal_strainer"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "metal_strainer",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "metal_strainer",
+            "affordance_types": [
+              "straining_ready"
+            ],
+            "reasons": "Mesh is free of blockages, allowing liquid to pass through effectively while capturing solid particles as intended."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "metal_strainer"
+        ],
+        "hotspot": {
+          "description": "Metal strainer rim and wire handle",
+          "affordance_type": "placement_surface_grasp_point",
+          "mechanism": "Gravity holds the strainer in the dish rack's slots, allowing residual water to drain and the strainer to air-dry completely."
+        }
+      }
+    }
+  ]
+}

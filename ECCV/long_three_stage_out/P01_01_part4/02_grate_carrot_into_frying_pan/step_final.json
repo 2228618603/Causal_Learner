@@ -1,0 +1,294 @@
+{
+  "step_id": 2,
+  "step_goal": "Grate carrot into frying pan",
+  "rationale": "Adding grated carrot introduces natural sweetness, color, and nutrients, while its fine texture ensures quick, even cooking with the sautéed green vegetables, creating a balanced vegetable base for the meal.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "grate whole carrot against box grater over frying pan",
+    "patient": "whole_carrot",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "whole_carrot"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "box_grater"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "positioned_above",
+        "objects": [
+          "box_grater",
+          "frying_pan"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "stable_on",
+        "objects": [
+          "frying_pan",
+          "stove"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "box_grater",
+        "affordance_types": [
+          "sharp_grating_surface"
+        ],
+        "reasons": "The box grater has visible metal holes with sharp edges designed to shred hard vegetables into fine pieces."
+      },
+      {
+        "object_name": "whole_carrot",
+        "affordance_types": [
+          "graspable",
+          "firm_texture"
+        ],
+        "reasons": "The whole carrot is solid and has a smooth, graspable surface that allows it to be pressed against the grater without breaking apart prematurely."
+      },
+      {
+        "object_name": "frying_pan",
+        "affordance_types": [
+          "containable"
+        ],
+        "reasons": "The frying pan has a wide, deep enough surface to catch all grated carrot pieces as they fall."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "inside",
+        "objects": [
+          "grated_carrot",
+          "frying_pan"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "reduced_size",
+        "objects": [
+          "whole_carrot"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "positioned_above",
+        "objects": [
+          "box_grater",
+          "frying_pan"
+        ],
+        "truth": false
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "whole_carrot",
+        "affordance_types": [
+          "no_longer_grateable"
+        ],
+        "reasons": "The whole carrot is reduced to a small, unusable piece that cannot be effectively pressed against the grater."
+      },
+      {
+        "object_name": "frying_pan",
+        "affordance_types": [
+          "ready_for_stirring"
+        ],
+        "reasons": "The frying pan now contains a mix of sautéed green vegetables and grated carrot, which is ready to be stirred for even cooking."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the box grater's holes were dull and not sharp?",
+  "expected_challenge_outcome": "The carrot would not shred into fine, uniform pieces; instead, it would tear into larger, uneven chunks that may not cook evenly with the green vegetables, and some carrot pieces might fall outside the frying pan due to inconsistent shredding.",
+  "failure_reflecting": {
+    "reason": "Grated carrot clogs the grater's holes, preventing further shredding of the carrot and causing pieces to pile up on the grater surface instead of falling into the pan.",
+    "recovery_strategy": "Tap the grater firmly against the side of the frying pan to dislodge the clogged carrot pieces, then resume grating the remaining portion of the carrot using gentle, consistent pressure."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 3,
+      "action_state_change_description": "Hands position the whole carrot against the box grater above the frying pan, initiating the back-and-forth grating motion.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "grate whole carrot against box grater over frying pan",
+        "patient": "whole_carrot",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "whole_carrot"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "box_grater"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "positioned_above",
+            "objects": [
+              "box_grater",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "box_grater",
+            "affordance_types": [
+              "sharp_grating_surface"
+            ],
+            "reasons": "The box grater's metal holes have visible sharp edges suitable for shredding hard vegetables."
+          },
+          {
+            "object_name": "whole_carrot",
+            "affordance_types": [
+              "graspable"
+            ],
+            "reasons": "The whole carrot has a firm, smooth surface that can be securely held and pressed against the grater."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "moving_against",
+            "objects": [
+              "whole_carrot",
+              "box_grater"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "falling_into",
+            "objects": [
+              "grated_carrot",
+              "frying_pan"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "whole_carrot",
+            "affordance_types": [
+              "in_motion"
+            ],
+            "reasons": "The hands apply pressure and move the carrot against the grater, initiating the shredding process."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "box_grater"
+        ],
+        "materials": [
+          "whole_carrot",
+          "frying_pan"
+        ],
+        "hotspot": {
+          "description": "Sharp metal grating holes on the box grater",
+          "affordance_type": "shredding_surface",
+          "mechanism": "Friction and shear force from the carrot being pressed against the sharp holes cut the vegetable into fine, uniform pieces that fall downward."
+        }
+      }
+    },
+    {
+      "frame_index": 45,
+      "action_state_change_description": "All usable portions of the whole carrot are grated into the frying pan, hands move the box grater away from the pan, completing the shredding process.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "grate whole carrot against box grater over frying pan",
+        "patient": "whole_carrot",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "inside",
+            "objects": [
+              "grated_carrot",
+              "frying_pan"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "reduced_size",
+            "objects": [
+              "whole_carrot"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "whole_carrot",
+            "affordance_types": [
+              "no_longer_grateable"
+            ],
+            "reasons": "The remaining carrot piece is too small to be effectively pressed against the grater's holes."
+          },
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "contained_mixed_vegetables"
+            ],
+            "reasons": "The frying pan holds both the original green vegetables and the newly grated carrot."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "positioned_above",
+            "objects": [
+              "box_grater",
+              "frying_pan"
+            ],
+            "truth": false
+          },
+          {
+            "relation": "resting_on",
+            "objects": [
+              "box_grater"
+            ],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "frying_pan",
+            "affordance_types": [
+              "ready_for_stirring"
+            ],
+            "reasons": "The mixed vegetables in the pan are now ready to be stirred for even cooking and flavor integration."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands",
+          "box_grater"
+        ],
+        "materials": [
+          "whole_carrot",
+          "frying_pan",
+          "grated_carrot"
+        ],
+        "hotspot": {
+          "description": "Side edge of the frying pan",
+          "affordance_type": "dislodging_surface",
+          "mechanism": "Tapping the grater against the pan's side uses impact force to dislodge any remaining grated carrot pieces stuck in the grater holes into the pan."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+You are an expert video step temporal localization assistant.
+You are given:
+1) 50 uniformly sampled frames from the FULL original video (chronological order).
+2) A draft step list extracted from a plan (read-only; do NOT edit it).
+
+High-level goal (context): To cook diced celery, prepare chopped red onion, prepare hot water, and set up a dining area to serve the fully cooked vegetables.
+
+Draft steps (read-only):
+- Step 1: Cook and stir diced celery in frying pan
+- Step 2: Chop red onion into small pieces
+- Step 3: Fill electric kettle with tap water
+- Step 4: Organize kitchen items and set dining table
+- Step 5: Complete cooking and stirring diced celery
+
+Note on indices:
+- Some frames may look identical due to uniform sampling/padding; avoid choosing a segment whose boundaries fall on visually identical frames with no time progress.
+
+Task (Stage 2):
+For EACH step, predict the corresponding time interval in the original video by selecting:
+- `start_frame_index`: the 1-based index of the boundary timestamp where this step starts (inclusive).
+- `end_frame_index`: the 1-based index of the boundary timestamp where this step ends (exclusive; the first frame AFTER the step ends).
+
+Interpretation:
+- Let `t(i)` be the timestamp of sampled frame `i`.
+- The step clip is cut as the half-open interval `[t(start_frame_index), t(end_frame_index))`.
+- Because boundaries are on a shared grid, `end_i` may equal `start_(i+1)` (contiguous, no overlap).
+
+Example:
+- If Step 2 ends and Step 3 begins at the same boundary, you may set `end_2 == start_3`.
+
+Procedure (recommended):
+1) Read the draft step_goal texts to know what to look for.
+2) Scan the sampled frames in order to find where each step begins/ends.
+3) Choose boundaries that fully cover the step. When uncertain, expand outward by 1 frame rather than risking cutting out essential context for Stage 3.
+
+IMPORTANT:
+- Indices refer ONLY to the provided 50 frames (1..50), not the original video frame numbers.
+- You MAY output `51` ONLY for `end_frame_index` to indicate the exclusive boundary AFTER the last provided frame (typically for the last step to cover the video end).
+- Do NOT output seconds/timestamps; output indices only.
+- Do NOT add/remove/reorder steps. Output must cover exactly the draft step_ids.
+- Output must contain exactly one entry per draft `step_id` and MUST NOT include any extra step_ids.
+- Do NOT change `step_goal` (it is fixed by the draft).
+- Enforce monotonic, non-overlapping segments: for consecutive steps, `end_i <= start_(i+1)`.
+- Enforce positive duration in the sampled timeline: `start_frame_index < end_frame_index` for every step.
+- Prefer near-contiguous coverage across steps (often `end_i == start_(i+1)`), unless there is clear idle time or a real gap between actions.
+- Prefer full coverage of the video: typically `start_1 == 1` and `end_last == 51` unless the video clearly begins/ends with irrelevant idle content.
+- Do NOT add any semantic annotations or extra fields beyond the required indices.
+- Each entry in `steps` MUST contain exactly these keys: `step_id`, `start_frame_index`, `end_frame_index`.
+- Output MUST be exactly one JSON object with a single top-level key `steps` (no other top-level keys).
+- Output steps in ascending `step_id` order.
+- The example below is illustrative only; your output MUST include exactly one entry per draft `step_id`.
+
+Silent self-check before you output:
+- All step_ids included exactly once; no extra ids.
+- All indices are integers; `start_frame_index` within [1, 50], `end_frame_index` within [2, 51].
+- For every step: start < end.
+- For every consecutive pair: end_i <= start_(i+1).
+
+Output format (strict JSON only):
+
+Field definitions (read carefully; output JSON must contain ONLY the keys in the template):
+- `steps` (list): Exactly one entry per draft `step_id` (no extra/missing ids), in ascending `step_id` order.
+- `steps[*].step_id` (int): Draft step identifier (must match exactly; do not renumber/reorder).
+- `steps[*].start_frame_index` (int): Inclusive start boundary (1-based, within [1, 50]). Choose the boundary where the step begins; when uncertain, bias slightly earlier to preserve context for Stage 3.
+- `steps[*].end_frame_index` (int): Exclusive end boundary (1-based, within [2, 51]). Choose the first boundary AFTER the step ends; can equal the next step's `start_frame_index`; must satisfy `start_frame_index < end_frame_index`. Use `51` to indicate "after the last provided frame" (typically for the last step).
+
+Output JSON template (replace the numbers with your chosen indices; keep keys exactly):
+{
+  "steps": [
+    {
+      "step_id": 1,
+      "start_frame_index": 1,
+      "end_frame_index": 2
+    },
+    {
+      "step_id": 2,
+      "start_frame_index": 2,
+      "end_frame_index": 5
+    }
+  ]
+}

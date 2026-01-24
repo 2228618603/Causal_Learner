@@ -1,0 +1,193 @@
+{
+  "step_id": 5,
+  "step_goal": "Prepare dining table with utensils for serving.",
+  "rationale": "This step establishes a functional eating area by placing necessary eating utensils within easy reach on the dining table, eliminating the need for diners to retrieve utensils separately and ensuring the served rice-and-vegetable dish is ready for immediate consumption. It also creates an organized setup that streamlines the eating process and reduces post-meal cleanup effort.",
+  "causal_chain": {
+    "agent": "right_hand",
+    "action": "place dining utensils on dining table",
+    "patient": "dining_utensils",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": ["dining_utensils", "kitchen_counter"],
+        "truth": true
+      },
+      {
+        "relation": "has_empty_space",
+        "objects": ["dining_table"],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "dining_utensils",
+        "affordance_types": ["graspable", "usable_for_eating"],
+        "reasons": "The utensils have intact, exposed handles that allow a secure grip for movement, and they are clean, making them suitable for consuming the prepared meal."
+      },
+      {
+        "object_name": "dining_table",
+        "affordance_types": ["supportive"],
+        "reasons": "The dining table has a flat, rigid wooden surface that can safely hold the utensils without them tipping or sliding off easily."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "on_top_of",
+        "objects": ["dining_utensils", "dining_table"],
+        "truth": true
+      },
+      {
+        "relation": "on_top_of",
+        "objects": ["dining_utensils", "kitchen_counter"],
+        "truth": false
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "dining_table",
+        "affordance_types": ["ready_for_serving", "usable_for_eating"],
+        "reasons": "The table now holds properly placed eating utensils, creating a functional setup that allows diners to immediately access tools to consume the prepared rice-and-vegetable dish."
+      },
+      {
+        "object_name": "dining_utensils",
+        "affordance_types": ["positioned_for_eating"],
+        "reasons": "The utensils are located in a convenient, stable position on the dining table, making them easily reachable for anyone ready to eat the meal."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the dining table had a large, heavy baking tray covering most of its flat surface during this step?",
+  "expected_challenge_outcome": "There would be no stable, dedicated space to place the utensils, so they would either have to be placed on the unstable edge of the tray or table, increasing the risk of them falling off, or the tray would need to be moved first, adding an extra step to the setup process.",
+  "failure_reflecting": {
+    "reason": "Utensils are placed too close to the dining table's edge and slide onto the floor, picking up dust and debris.",
+    "recovery_strategy": "Retrieve the fallen utensils, wash them thoroughly with soap and warm water to remove contaminants, then re-place them in a central, stable position on the dining table away from all edges."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Right hand grasps the spatula's handle, initiating the process of moving dining utensils from the kitchen counter to the dining table.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "place dining utensils on dining table",
+        "patient": "dining_utensils",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": ["spatula", "cutting_board"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["knife", "kitchen_counter"],
+            "truth": true
+          },
+          {
+            "relation": "has_empty_space",
+            "objects": ["dining_table"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "spatula",
+            "affordance_types": ["graspable"],
+            "reasons": "The spatula has a long, textured plastic handle that is fully exposed, allowing a secure grip for the hand to lift and move it."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "being_held",
+            "objects": ["right_hand", "spatula"],
+            "truth": true
+          },
+          {
+            "relation": "moving_toward",
+            "objects": ["spatula", "dining_table"],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "spatula",
+            "affordance_types": ["being_transported"],
+            "reasons": "The hand's secure grip on the handle initiates movement of the spatula away from the kitchen counter toward the dining table."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand"],
+        "materials": ["dining_utensils", "spatula", "knife"],
+        "hotspot": {
+          "description": "Textured plastic handle of the spatula",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between the right hand's fingers and the spatula's textured handle surface creates a secure grip, allowing the hand to exert upward force to lift the utensil and initiate its movement toward the dining table."
+        }
+      }
+    },
+    {
+      "frame_index": 40,
+      "action_state_change_description": "Dining utensils are positioned on the dining table, completing the setup of the dining area for serving and eating.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "place dining utensils on dining table",
+        "patient": "dining_utensils",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "being_held",
+            "objects": ["right_hand", "spatula"],
+            "truth": true
+          },
+          {
+            "relation": "moving_toward",
+            "objects": ["knife", "dining_table"],
+            "truth": true
+          },
+          {
+            "relation": "has_empty_space",
+            "objects": ["dining_table"],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "dining_table",
+            "affordance_types": ["supportive"],
+            "reasons": "The dining table has a flat, rigid wooden surface that is stable enough to hold the utensils without tipping or sliding."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "on_top_of",
+            "objects": ["spatula", "dining_table"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["knife", "dining_table"],
+            "truth": true
+          },
+          {
+            "relation": "on_top_of",
+            "objects": ["dining_utensils", "kitchen_counter"],
+            "truth": false
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "dining_table",
+            "affordance_types": ["ready_for_serving"],
+            "reasons": "The table now holds both required eating utensils in a central, accessible position, making it fully prepared for the served rice-and-vegetable dish to be consumed."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["right_hand"],
+        "materials": ["dining_utensils", "spatula", "knife"],
+        "hotspot": {
+          "description": "Flat wooden surface of the dining table",
+          "affordance_type": "support_surface",
+          "mechanism": "The rigid, flat texture of the dining table's surface creates a stable platform that supports the weight of the utensils, maintaining their position and making them easily reachable for anyone ready to eat the prepared meal."
+        }
+      }
+    }
+  ]
+}

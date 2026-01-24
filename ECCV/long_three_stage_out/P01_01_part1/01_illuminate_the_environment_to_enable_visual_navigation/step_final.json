@@ -1,0 +1,174 @@
+{
+  "step_id": 1,
+  "step_goal": "Illuminate the environment to enable visual navigation.",
+  "rationale": "Illuminating the room is physically required to change the environment's affordance from dark to visible, allowing the agent to identify and navigate to the kitchen resources safely.",
+  "causal_chain": {
+    "agent": "right_hand",
+    "action": "press_switch",
+    "patient": "light_switch",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "contacting",
+        "objects": [
+          "right_hand",
+          "light_switch"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "light_switch",
+        "affordance_types": [
+          "toggleable"
+        ],
+        "reasons": "The switch must be mechanically operable to close the electrical circuit."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "actuated",
+        "objects": [
+          "light_switch"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "room",
+        "affordance_types": [
+          "illuminated"
+        ],
+        "reasons": "Completing the circuit powers the light fixtures, changing the visibility state of the room."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "If the switch mechanism was jammed or the circuit lacked power, what would be the physical result of the pressing action?",
+  "expected_challenge_outcome": "The button would not depress or the light would not activate, leaving the room dark and preventing visual navigation.",
+  "failure_reflecting": {
+    "reason": "The agent might fumble in the darkness, missing the specific button hotspot or failing to apply sufficient normal force.",
+    "recovery_strategy": "Slide the hand across the wall panel to tactilely locate the button contours before re-attempting the press."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 18,
+      "action_state_change_description": "Initiation: The right hand makes contact with the light switch panel to locate the button.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "press_switch",
+        "patient": "light_switch",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "reachable",
+            "objects": [
+              "right_hand",
+              "light_switch"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "light_switch",
+            "affordance_types": [
+              "contactable"
+            ],
+            "reasons": "The switch surface must be exposed to allow the hand to apply force."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "right_hand",
+              "light_switch"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "light_switch",
+            "affordance_types": [
+              "under_manipulation"
+            ],
+            "reasons": "The hand has established physical control over the switch surface."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "right_hand"
+        ],
+        "materials": [
+          "light_switch"
+        ],
+        "hotspot": {
+          "description": "The specific push-button on the wall-mounted switch panel.",
+          "affordance_type": "press_surface",
+          "mechanism": "The hand aligns with the button surface to prepare for force application."
+        }
+      }
+    },
+    {
+      "frame_index": 26,
+      "action_state_change_description": "Completion: The button is fully depressed by the finger, triggering the light to turn on.",
+      "causal_chain": {
+        "agent": "right_hand",
+        "action": "press_switch",
+        "patient": "light_switch",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "contacting",
+            "objects": [
+              "right_hand",
+              "light_switch"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "light_switch",
+            "affordance_types": [
+              "compressible"
+            ],
+            "reasons": "The button mechanism must yield to pressure to actuate the switch."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "depressed",
+            "objects": [
+              "light_switch"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "room",
+            "affordance_types": [
+              "illuminated"
+            ],
+            "reasons": "The mechanical actuation closes the circuit, causing the lights to illuminate the room."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "right_hand"
+        ],
+        "materials": [
+          "light_switch"
+        ],
+        "hotspot": {
+          "description": "The depressed push-button on the switch panel.",
+          "affordance_type": "trigger_point",
+          "mechanism": "Applying normal force compresses the internal spring mechanism to close the electrical contact."
+        }
+      }
+    }
+  ]
+}

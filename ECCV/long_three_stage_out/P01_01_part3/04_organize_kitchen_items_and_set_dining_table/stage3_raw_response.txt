@@ -1,0 +1,157 @@
+{
+  "step_id": 4,
+  "step_goal": "Organize kitchen items and set dining table",
+  "rationale": "This step clears countertop clutter by storing clean dishes in cabinets and sets up the dining table with necessary tableware, ensuring the kitchen workspace is unobstructed for finishing vegetable cooking and the dining area is ready to serve the prepared vegetables.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "store kitchen glass, green mug, and bowls in cabinet, and set dining table with plate, glass, bottle, placemat, and utensils",
+    "patient": "kitchen_items_dining_tableware",
+    "causal_precondition_on_spatial": [
+      {"relation": "on_top_of", "objects": ["kitchen_glass", "sink_counter"], "truth": true},
+      {"relation": "on_top_of", "objects": ["green_mug", "dish_rack"], "truth": true},
+      {"relation": "empty", "objects": ["dining_table", "surface"], "truth": true}
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "kitchen_cabinet",
+        "affordance_types": ["door_accessible"],
+        "reasons": "Cabinet doors are unobstructed and can be opened to access interior storage space for dishes, confirmed by visible handles and clear cabinet surroundings."
+      },
+      {
+        "object_name": "dining_table",
+        "affordance_types": ["stable_surface"],
+        "reasons": "Dining table surface is flat and free of obstacles, suitable for securely holding tableware items."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {"relation": "inside", "objects": ["kitchen_glass", "kitchen_cabinet"], "truth": true},
+      {"relation": "inside", "objects": ["green_mug", "kitchen_cabinet"], "truth": true},
+      {"relation": "inside", "objects": ["stacked_bowls", "kitchen_cabinet"], "truth": true},
+      {"relation": "on_top_of", "objects": ["dining_plate", "dining_placemat"], "truth": true},
+      {"relation": "on_top_of", "objects": ["dining_placemat", "dining_table"], "truth": true},
+      {"relation": "on_top_of", "objects": ["dining_glass", "dining_table"], "truth": true},
+      {"relation": "on_top_of", "objects": ["dining_bottle", "dining_table"], "truth": true}
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "kitchen_counter",
+        "affordance_types": ["clutter_free"],
+        "reasons": "Stored dishes remove countertop items, creating an unobstructed workspace for completing the vegetable cooking step."
+      },
+      {
+        "object_name": "dining_table",
+        "affordance_types": ["ready_for_serving"],
+        "reasons": "The table is set with all necessary tableware, making it suitable for holding and serving the cooked vegetables once prepared."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the kitchen cabinet doors were stuck and could not be opened?",
+  "expected_challenge_outcome": "The clean glass, mug, and bowls could not be stored in the cabinet, leaving them on the countertop and cluttering the workspace, which would hinder access to the counter for finishing the vegetable cooking process.",
+  "failure_reflecting": {
+    "reason": "Dining table items (plate, glass, bottle) are placed crookedly and misaligned, creating an unorganized and unstable serving area.",
+    "recovery_strategy": "Adjust each tableware item to align evenly with the edges of the dining table and each other, ensuring a neat, stable, and functional setup."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 2,
+      "action_state_change_description": "Hands initiate organizing by grasping the kitchen glass from the sink countertop to prepare for storage in the cabinet.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "store kitchen glass, green mug, and bowls in cabinet, and set dining table with plate, glass, bottle, placemat, and utensils",
+        "patient": "kitchen_items_dining_tableware",
+        "causal_precondition_on_spatial": [
+          {"relation": "on_top_of", "objects": ["kitchen_glass", "sink_counter"], "truth": true},
+          {"relation": "on_top_of", "objects": ["green_mug", "dish_rack"], "truth": true},
+          {"relation": "empty", "objects": ["dining_table", "surface"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_cabinet",
+            "affordance_types": ["door_accessible"],
+            "reasons": "Cabinet doors are unobstructed and can be opened to access interior storage space for dishes, confirmed by visible handles and clear cabinet surroundings."
+          },
+          {
+            "object_name": "dining_table",
+            "affordance_types": ["stable_surface"],
+            "reasons": "Dining table surface is flat and free of obstacles, suitable for securely holding tableware items."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "moving_toward", "objects": ["kitchen_glass", "kitchen_cabinet"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "kitchen_glass",
+            "affordance_types": ["in_motion"],
+            "reasons": "Hands apply force to grasp and lift the glass, initiating movement toward the cabinet for storage."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["kitchen_items_dining_tableware"],
+        "hotspot": {
+          "description": "Rim of the kitchen glass",
+          "affordance_type": "grasp_point",
+          "mechanism": "Friction between fingers and the glass rim provides a secure grip to lift and move the glass toward the storage cabinet."
+        }
+      }
+    },
+    {
+      "frame_index": 44,
+      "action_state_change_description": "Dining table setup is completed with the plate placed on the placemat, glass, bottle positioned, and kitchen items stored, finishing the organization step.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "store kitchen glass, green mug, and bowls in cabinet, and set dining table with plate, glass, bottle, placemat, and utensils",
+        "patient": "kitchen_items_dining_tableware",
+        "causal_precondition_on_spatial": [
+          {"relation": "on_top_of", "objects": ["kitchen_glass", "sink_counter"], "truth": true},
+          {"relation": "on_top_of", "objects": ["green_mug", "dish_rack"], "truth": true},
+          {"relation": "empty", "objects": ["dining_table", "surface"], "truth": true}
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "kitchen_cabinet",
+            "affordance_types": ["door_accessible"],
+            "reasons": "Cabinet doors are unobstructed and can be opened to access interior storage space for dishes, confirmed by visible handles and clear cabinet surroundings."
+          },
+          {
+            "object_name": "dining_table",
+            "affordance_types": ["stable_surface"],
+            "reasons": "Dining table surface is flat and free of obstacles, suitable for securely holding tableware items."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {"relation": "inside", "objects": ["kitchen_glass", "kitchen_cabinet"], "truth": true},
+          {"relation": "inside", "objects": ["green_mug", "kitchen_cabinet"], "truth": true},
+          {"relation": "inside", "objects": ["stacked_bowls", "kitchen_cabinet"], "truth": true},
+          {"relation": "on_top_of", "objects": ["dining_plate", "dining_placemat"], "truth": true},
+          {"relation": "on_top_of", "objects": ["dining_placemat", "dining_table"], "truth": true},
+          {"relation": "on_top_of", "objects": ["dining_glass", "dining_table"], "truth": true},
+          {"relation": "on_top_of", "objects": ["dining_bottle", "dining_table"], "truth": true}
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "kitchen_counter",
+            "affordance_types": ["clutter_free"],
+            "reasons": "Stored dishes remove countertop items, creating an unobstructed workspace for completing the vegetable cooking step."
+          },
+          {
+            "object_name": "dining_table",
+            "affordance_types": ["ready_for_serving"],
+            "reasons": "The table is set with all necessary tableware, making it suitable for holding and serving the cooked vegetables once prepared."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": ["hands"],
+        "materials": ["kitchen_items_dining_tableware"],
+        "hotspot": {
+          "description": "Flat surface of the dining table",
+          "affordance_type": "placement_surface",
+          "mechanism": "Static friction between the tableware and the table surface keeps the items securely positioned in their organized setup, ensuring stability for serving."
+        }
+      }
+    }
+  ]
+}

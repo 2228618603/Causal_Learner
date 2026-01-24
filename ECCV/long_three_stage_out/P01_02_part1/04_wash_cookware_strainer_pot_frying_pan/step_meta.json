@@ -1,0 +1,10 @@
+{
+  "step_id": 4,
+  "step_goal": "Wash cookware (strainer, pot, frying pan)",
+  "clip_path": "../stage2/step_clips/step04_wash_cookware_strainer_pot_frying_pan.mp4",
+  "clip_start_sec": 84.48448448448448,
+  "clip_end_sec": 139.57290623957292,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T14:21:57.908651Z",
+  "manifest_path": "frame_manifest.json"
+}

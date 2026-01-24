@@ -1,0 +1,10 @@
+{
+  "step_id": 3,
+  "step_goal": "Wash the celery sticks under running water.",
+  "clip_path": "../stage2/step_clips/step03_wash_the_celery_sticks_under_running_water.mp4",
+  "clip_start_sec": 117.53420086753421,
+  "clip_end_sec": 139.57290623957292,
+  "num_frames": 50,
+  "generated_at_utc": "2026-01-23T10:19:56.936348Z",
+  "manifest_path": "frame_manifest.json"
+}

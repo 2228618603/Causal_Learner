@@ -1,0 +1,243 @@
+{
+  "step_id": 1,
+  "step_goal": "Scrub and rinse metal box grater",
+  "rationale": "Food residue trapped in the grater's sharp perforations can harbor bacteria, so scrubbing and rinsing removes these particles to sanitize the tool, prevent cross-contamination, and restore its functionality for future food preparation tasks.",
+  "causal_chain": {
+    "agent": "hands",
+    "action": "scrub all grating surfaces under running water, rotate to access all sides",
+    "patient": "metal_box_grater",
+    "causal_precondition_on_spatial": [
+      {
+        "relation": "holding",
+        "objects": [
+          "hands",
+          "metal_box_grater"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "under_running_water",
+        "objects": [
+          "metal_box_grater",
+          "kitchen_faucet"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_precondition_on_affordance": [
+      {
+        "object_name": "metal_box_grater",
+        "affordance_types": [
+          "grating_surfaces_accessible"
+        ],
+        "reasons": "The grater's box shape allows all sides to be rotated into reach for direct scrubbing by hands."
+      },
+      {
+        "object_name": "kitchen_faucet",
+        "affordance_types": [
+          "water_dispensing"
+        ],
+        "reasons": "Visible continuous water flow from the faucet provides the necessary medium to rinse away dislodged food residue."
+      }
+    ],
+    "causal_effect_on_spatial": [
+      {
+        "relation": "free_of_food_residue",
+        "objects": [
+          "metal_box_grater"
+        ],
+        "truth": true
+      },
+      {
+        "relation": "in_dish_rack",
+        "objects": [
+          "metal_box_grater",
+          "kitchen_dish_rack"
+        ],
+        "truth": true
+      }
+    ],
+    "causal_effect_on_affordance": [
+      {
+        "object_name": "metal_box_grater",
+        "affordance_types": [
+          "sanitized",
+          "food_prep_ready"
+        ],
+        "reasons": "All visible food residue is removed, eliminating bacterial hiding spots and restoring the grater's ability to safely and effectively shred food."
+      }
+    ]
+  },
+  "counterfactual_challenge_question": "What if the grater was not rotated to access all its sides during the scrubbing process?",
+  "expected_challenge_outcome": "Food residue would remain trapped on the un-scrubbed grating surfaces, creating a breeding ground for bacteria that could contaminate future food items processed with the grater.",
+  "failure_reflecting": {
+    "reason": "Tough, dried-on food residue is stuck in the grater's smallest perforations that cannot be dislodged by hand scrubbing alone.",
+    "recovery_strategy": "Use a small, stiff-bristled brush to agitate the stuck residue, then rinse the grater thoroughly under running water to wash away the loosened particles."
+  },
+  "critical_frames": [
+    {
+      "frame_index": 1,
+      "action_state_change_description": "Hands grasp the metal box grater under running water and begin scrubbing its visible grating surfaces.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub all grating surfaces under running water, rotate to access all sides",
+        "patient": "metal_box_grater",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "metal_box_grater"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "under_running_water",
+            "objects": [
+              "metal_box_grater",
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_box_grater",
+            "affordance_types": [
+              "grating_surfaces_accessible"
+            ],
+            "reasons": "The grater's current orientation presents its largest grating surface directly to the hands for scrubbing."
+          },
+          {
+            "object_name": "kitchen_faucet",
+            "affordance_types": [
+              "water_dispensing"
+            ],
+            "reasons": "Continuous water flow from the faucet is available to rinse dislodged residue as scrubbing begins."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "being_scrubbed",
+            "objects": [
+              "hands",
+              "metal_box_grater"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "residue_dislodged",
+            "objects": [
+              "metal_box_grater"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "metal_box_grater",
+            "affordance_types": [
+              "residue_loosened"
+            ],
+            "reasons": "Friction from hands scrubbing the grating surfaces begins to break down and dislodge trapped food residue."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "metal_box_grater"
+        ],
+        "hotspot": {
+          "description": "Perforated grating surfaces on the side of the metal box grater",
+          "affordance_type": "scrub_target",
+          "mechanism": "Friction between skin and the grating edges dislodges trapped food particles, which are then rinsed away by running water."
+        }
+      }
+    },
+    {
+      "frame_index": 44,
+      "action_state_change_description": "The metal box grater is free of visible food residue and is being moved toward the dish rack for drying.",
+      "causal_chain": {
+        "agent": "hands",
+        "action": "scrub all grating surfaces under running water, rotate to access all sides",
+        "patient": "metal_box_grater",
+        "causal_precondition_on_spatial": [
+          {
+            "relation": "free_of_food_residue",
+            "objects": [
+              "metal_box_grater"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "holding",
+            "objects": [
+              "hands",
+              "metal_box_grater"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_precondition_on_affordance": [
+          {
+            "object_name": "metal_box_grater",
+            "affordance_types": [
+              "sanitized"
+            ],
+            "reasons": "All grating surfaces have been scrubbed and rinsed to remove residue, ensuring the grater is clean."
+          },
+          {
+            "object_name": "kitchen_dish_rack",
+            "affordance_types": [
+              "available_for_placement"
+            ],
+            "reasons": "The dish rack is positioned nearby and has space to hold the grater for air drying."
+          }
+        ],
+        "causal_effect_on_spatial": [
+          {
+            "relation": "in_dish_rack",
+            "objects": [
+              "metal_box_grater",
+              "kitchen_dish_rack"
+            ],
+            "truth": true
+          },
+          {
+            "relation": "no_longer_under_water",
+            "objects": [
+              "metal_box_grater",
+              "kitchen_faucet"
+            ],
+            "truth": true
+          }
+        ],
+        "causal_effect_on_affordance": [
+          {
+            "object_name": "metal_box_grater",
+            "affordance_types": [
+              "food_prep_ready"
+            ],
+            "reasons": "The grater is fully cleaned and placed in the dish rack to dry, ready for future food preparation tasks."
+          }
+        ]
+      },
+      "interaction": {
+        "tools": [
+          "hands"
+        ],
+        "materials": [
+          "metal_box_grater"
+        ],
+        "hotspot": {
+          "description": "Metal handle on the top of the metal box grater",
+          "affordance_type": "grasp_point",
+          "mechanism": "A secure grip on the handle allows the clean grater to be safely lifted and moved to the dish rack without contact with the sharp grating surfaces."
+        }
+      }
+    }
+  ]
+}
