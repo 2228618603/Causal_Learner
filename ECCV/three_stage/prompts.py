@@ -201,11 +201,11 @@ Task (Stage 3):
 Using the step-clip frames as the PRIMARY evidence, refine and complete the annotation for this step and generate 2 keyframe annotations.
 
 Keyframe selection procedure (recommended; follow silently):
-1) Scan all frames quickly to understand the step progression.
-2) Pick 2 frames that best represent (a) initiation and (b) completion of the step, with clear visual evidence.
+1) Scan all frames quickly to understand the step progression and physical state changes.
+2) Pick exactly 2 DISTINCT frames that are the two most causally important and visually anchorable key moments within this step (NOT limited to initiation/completion).
 3) Treat each keyframe as a conjunction of constraints: the selected `frame_index` MUST be consistent with its own
-   `action_state_change_description`, `causal_chain`, and `interaction` simultaneously (avoid partial matches).
-4) If multiple frames match similarly well, prefer the EARLIER index.
+   `action_state_change_description`, `causal_chain` (frame-level), and `interaction` simultaneously (avoid partial matches).
+4) Ensure the 2 selected frames are in chronological order (`frame_index` strictly increases). If multiple frames match similarly well, prefer the EARLIER index.
 
 Strict requirements:
 - You MUST NOT change `step_id` or `step_goal` from the draft.
@@ -213,30 +213,25 @@ Strict requirements:
 - Each `critical_frames[*].frame_index` MUST be an integer in [1, {num_frames}] and refers to the step-clip frame pool provided here.
 - Do NOT reference frame/image numbers (e.g., "Frame 12", "Image 12") in any text fields; use only the numeric `frame_index` field to specify frames.
 - Do NOT reference timestamps/durations/timecodes in any text fields (e.g., "3 seconds", "00:03", "t=3.2s").
-- Choose 2 DISTINCT frames that show meaningful temporal progression (initiation → completion); do not pick duplicates.
-- The indices within `critical_frames` must be in increasing time order.
+- Choose 2 DISTINCT frames that show meaningful temporal progression within the step; do not pick duplicates.
+- The indices within `critical_frames` must be in strictly increasing time order.
 - Do NOT output `keyframe_image_path` (keyframe JPEGs are resolved from the filesystem by the script).
 - Output strict JSON only; no explanations.
 - Do NOT add any extra keys beyond the schema below.
-- The step-level `causal_chain.agent`, `causal_chain.action`, `causal_chain.patient` MUST be identical to the corresponding fields in EACH `critical_frames[*].causal_chain` (copy them verbatim).
-- `causal_chain.agent/action/patient` MUST be non-empty strings.
-- `causal_chain.causal_precondition_on_spatial`, `causal_chain.causal_precondition_on_affordance`, `causal_chain.causal_effect_on_spatial`, `causal_chain.causal_effect_on_affordance` MUST be non-empty lists.
-- `causal_chain.causal_precondition_on_affordance[*].reasons` and `causal_chain.causal_effect_on_affordance[*].reasons` MUST be non-empty grounded strings.
-- `interaction.hotspot.description`, `interaction.hotspot.affordance_type`, `interaction.hotspot.mechanism` MUST be non-empty grounded strings.
-- `interaction.tools` and `interaction.materials` MUST be lists; BOTH must be non-empty (use "hands" as a tool if no external tool is used).
-- In each `critical_frames[*].interaction`, `tools` MUST include the `causal_chain.agent`, and `materials` MUST include the `causal_chain.patient` (keep identifiers consistent).
-- All `truth` fields are JSON booleans (`true`/`false`), not strings.
+- `counterfactual_challenge_question` MUST start with 'What if ...?'.
+- In each `critical_frames[*]`, `causal_chain` MUST contain ONLY the 4 textual fields (`causal_precondition_on_spatial`, `causal_precondition_on_affordance`, `causal_effect_on_spatial`, `causal_effect_on_affordance`) and MUST NOT include `agent`/`action`/`patient`.
+- In each `critical_frames[*]`, `interaction` MUST contain ONLY `description`, `affordance_type`, and `mechanism` (do NOT output tools/materials and do NOT nest a `hotspot` object).
+- For every `causal_*` field (both step-level and keyframe-level), output a single JSON string listing numbered points using lines starting with `1. `, `2. `, ...; do NOT put raw newlines inside a JSON string and instead separate points using the escaped sequence `\\n` inside the string; each numbered line may contain multiple sentences but MUST end with '.' (mandatory); each numbered line must be a complete, objective statement tightly tied to the current step or key moment (avoid short, generic fragments).
 
 Quality and grounding constraints:
 - Treat the frames as the ONLY source of truth. Do not hallucinate objects, contacts, or states not supported by the images.
-- `causal_chain.causal_precondition_on_spatial` must be visually verifiable in the chosen frame (contacts, containment, support, relative pose, reachability).
-- `causal_chain.causal_precondition_on_affordance` must be grounded in visible functional state (e.g., graspable handle exposed; blade contacting object; container open).
-- `causal_chain` should describe the physical constraints and the causal effects for the whole step (consistent with the chosen keyframes).
-- `interaction.hotspot` must refer to a specific functional region that is visibly involved (edge, handle, rim, hinge, etc.).
-- `interaction.hotspot.mechanism` should explain the physical mechanism (force/torque transfer, friction, leverage, fluid flow, heat transfer, stress concentration, etc.).
+- Step-level `causal_chain.causal_precondition_on_*` and `causal_chain.causal_effect_on_*` MUST be MACRO summaries that integrate the entire step (not a single instant).
+- In each `critical_frames[*]`, `causal_chain.causal_precondition_on_spatial` and `causal_chain.causal_precondition_on_affordance` MUST describe the state of the world TRUE/REQUIRED AT that key moment, and MUST be visually consistent with the chosen image.
+- In each `critical_frames[*]`, `causal_chain.causal_effect_on_spatial` and `causal_chain.causal_effect_on_affordance` MUST describe the PREDICTED immediate, local post-action effects right after the micro-action implied by `action_state_change_description` completes (short-term/local; not necessarily currently visible).
+- `interaction.description/affordance_type/mechanism` must refer to a specific functional region that is visibly involved (edge, handle, rim, hinge, etc.) and explain a plausible physical mechanism (force/torque transfer, friction, leverage, flow, etc.).
 - Avoid placeholders like "N/A", "unknown", or empty strings; fill all required fields with grounded, specific content.
 - Use consistent object naming across all fields (causal_chain, interaction); do not rename the same object with different synonyms within the step.
-- Prefer concrete relation verbs in `causal_precondition_on_spatial` and `causal_effect_on_spatial` (examples: "contacting", "holding", "on_top_of", "inside", "inserted_into", "aligned_with", "open", "closed").
+- Prefer concrete, mechanistic relations and state terms (e.g., contacting, holding, inside, aligned_with, open/closed) rather than vague language.
 - Use `snake_case` for object identifiers where possible.
 - Keep `agent` as a person/body part (e.g., "hand", "hands", "finger", "person"); keep `action` as a verb phrase; keep `patient` as the acted-on object.
 
@@ -246,85 +241,50 @@ Output schema (strict):
 Top-level fields (one step JSON object):
 - `step_id` (int): Must equal the draft `step_id` exactly (read-only).
 - `step_goal` (string): Must exactly equal the draft `step_goal` (read-only; do not rephrase or paraphrase).
-- `rationale` (string): 1–3 sentences explaining why this step is necessary and what it causally enables/changes (mechanistic and grounded; do NOT mention frame numbers).
-- `causal_chain` (object): Step-level physical causal analysis for the WHOLE step; must be consistent with both keyframes (see `CausalChain` below).
-- `counterfactual_challenge_question` (string): A realistic what-if that changes a physical precondition (e.g., access, friction, alignment, openness), not a question about frames.
-- `expected_challenge_outcome` (string): Predicted physical outcome for the what-if, with brief physical reasoning.
-- `failure_reflecting` (object):
-  - `reason` (string): Plausible failure mode for this step (what goes wrong physically/procedurally).
-  - `recovery_strategy` (string): Concrete, actionable recovery strategy that would plausibly fix the failure.
-- `critical_frames` (list; MUST contain exactly 2 objects, in strictly increasing time order):
+- `rationale` (string): 1–2 grounded sentences explaining why this step is necessary and what macro preconditions/effects it connects (mechanistic, not narration; do NOT mention frames/images/timestamps).
+- `causal_chain` (object): Step-level MACRO physical causal analysis for the ENTIRE step:
+  - `agent` (string): Primary force/controller for the whole step (prefer body part like 'hands'/'left_hand'/'right_hand'; use a tool part only if it is clearly the direct force applicator). Use one stable identifier.
+  - `action` (string): Concise physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.
+  - `patient` (string): Primary acted-on object identifier in `snake_case`. Keep naming consistent across all fields.
+  - `causal_precondition_on_spatial` (string): A single JSON string listing MACRO spatial preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).
+  - `causal_precondition_on_affordance` (string): A single JSON string listing MACRO affordance/state preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).
+  - `causal_effect_on_spatial` (string): A single JSON string listing MACRO spatial effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting contacts/containment/support/alignment/orientation/open-closed changes; avoid short, generic fragments).
+  - `causal_effect_on_affordance` (string): A single JSON string listing MACRO affordance/state effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting functional/state changes; avoid short, generic fragments).
+- `counterfactual_challenge_question` (string): One realistic counterfactual what-if question that could disrupt this step due to physics/constraints, grounded in the scene. MUST start with 'What if ...?'. This field is ONLY about a counterfactual disruption; do NOT mix in non-counterfactual failure analysis. Do NOT mention frames/images/timestamps.
+- `expected_challenge_outcome` (string): Predicted physical outcome if that counterfactual challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).
+- `failure_reflecting` (object): Real (non-counterfactual) failure analysis and recovery:
+  - `reason` (string): Most plausible real failure mode for this step (physical/interaction reason), grounded in what is visible and the mechanism (avoid invisible/unknown causes).
+  - `recovery_strategy` (string): A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects).
+- `critical_frames` (list): MUST contain exactly 2 objects, in strictly increasing time order. These are the two most causally important, visually anchorable key moments within the step (NOT limited to initiation/completion).
   Each `critical_frames[*]` object contains:
-  - `frame_index` (int): 1-based index into THIS step-clip frame pool (1..{num_frames}); the 2 indices must be distinct.
-  - `action_state_change_description` (string): Observable action/state change at this frame (describe objects + state; do NOT write "Frame X" in text).
-  - `causal_chain` (object): Keyframe-level causal analysis; SAME `CausalChain` schema as the step-level one (preconditions should be true at/just before this frame).
-  - `interaction` (object):
-    - `tools` (list[string]): Force applicators (use "hands" if no external tool); prefer `snake_case` identifiers; MUST be non-empty and MUST include the step's `causal_chain.agent` (same identifier).
-    - `materials` (list[string]): Manipulated objects/substances; prefer `snake_case`; keep naming consistent with `causal_chain` entities; MUST be non-empty and MUST include the step's `causal_chain.patient` (same identifier).
-    - `hotspot` (object):
-      - `description` (string): Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded.
-      - `affordance_type` (string): One token describing the hotspot's functional role (prefer `snake_case`, e.g., "grasp_point", "cutting_edge", "pour_spout").
-      - `mechanism` (string): Brief physical mechanism explaining how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.).
-
-`CausalChain` (used in BOTH `causal_chain` and `critical_frames[*].causal_chain`):
-- `agent` (string): Primary force/controller for the step (prefer body part like "hands"/"right_hand"; use a tool part only if it is clearly the direct force applicator).
-- `action` (string): Concise verb phrase describing the core physical action (ideally includes the physical mechanism: push/pull/rotate/tilt/insert/press, etc.).
-- `patient` (string): Primary entity being acted upon (`snake_case` identifier; keep it consistent across all fields in the step).
-- `causal_precondition_on_spatial` (list; non-empty): Spatial/physical relations that MUST hold immediately before and throughout the step (concrete, visually verifiable).
-- `causal_precondition_on_affordance` (list; non-empty): Functional affordances/states that MUST already be true to execute the action (grounded in visible cues).
-- `causal_effect_on_spatial` (list; non-empty): Spatial/physical relations that become true/false as a RESULT of completing the step.
-- `causal_effect_on_affordance` (list; non-empty): Functional affordances/states that change as a RESULT of completing the step.
-
-`SpatialRelation` (elements of `*_on_spatial` lists):
-- `relation` (string): Short, concrete, visually verifiable token (prefer mechanistic relations like "holding", "contacting", "inside", "aligned_with", "open", "closed"; avoid full sentences).
-- `objects` (list[string]): Involved entities (`snake_case`; non-empty list; typically two entities).
-- `truth` (bool): Whether the relation holds. For preconditions this is usually true; for effects, set it to the post-step truth value (true = established, false = broken).
-
-`AffordanceState` (elements of `*_on_affordance` lists):
-- `object_name` (string): The object whose functional affordance/state is asserted (`snake_case`; grounded in the frames).
-- `affordance_types` (list[string]): One or more affordance/state tokens (`snake_case`; keep tokens short and functional; non-empty list).
-- `reasons` (string): Grounded justification referencing visible cues and physical constraints/mechanism (no speculation).
+  - `frame_index` (int): 1-based index into THIS step-clip frame pool (1..{num_frames}); the 2 indices must be distinct and strictly increasing.
+  - `action_state_change_description` (string): Describe the micro-action at this key moment and the key state that begins changing, with discriminative contacts/spatial relations/orientation/open-closed cues; objective and grounded in visual evidence; no frame/time references.
+  - `causal_chain` (object): Keyframe-level causal analysis with EXACTLY these 4 fields (no agent/action/patient):
+    - `causal_precondition_on_spatial` (string): A single JSON string listing DETAILED spatial preconditions TRUE AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).
+    - `causal_precondition_on_affordance` (string): A single JSON string listing DETAILED affordance/state preconditions REQUIRED AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).
+    - `causal_effect_on_spatial` (string): A single JSON string listing PREDICTED immediate, local spatial effects right AFTER the micro-action implied by action_state_change_description completes (short-term/local post-action prediction; not necessarily currently visible) as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).
+    - `causal_effect_on_affordance` (string): A single JSON string listing PREDICTED immediate, local affordance/state effects right AFTER that micro-action completes (short-term/local post-action prediction; not necessarily currently visible) as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).
+  - `interaction` (object): MUST contain ONLY these 3 keys (do NOT output tools/materials and do NOT nest a `hotspot` object):
+    - `description` (string): Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded.
+    - `affordance_type` (string): One `snake_case` token describing this region's functional role (e.g., grasp_point, pressing_surface, contact_surface).
+    - `mechanism` (string): Brief physical mechanism describing how interaction at this region achieves the micro-action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible.
 
 Output JSON template (fill with real values; keep keys exactly; `critical_frames` MUST have exactly 2 entries):
 {{
   "step_id": 1,
   "step_goal": "Exactly equal to the draft step_goal (do not change).",
-  "rationale": "Why this step is necessary for the overall plan, explained causally (how it enables later steps).",
+  "rationale": "1–2 grounded sentences explaining why this step is necessary and what it enables.",
   "causal_chain": {{
     "agent": "hands",
-    "action": "A concise verb phrase summarizing the core physical action for the WHOLE step.",
+    "action": "rotate to loosen",
     "patient": "snake_case_patient_object",
-    "causal_precondition_on_spatial": [
-      {{
-        "relation": "holding",
-        "objects": ["hands", "snake_case_patient_object"],
-        "truth": true
-      }}
-    ],
-    "causal_precondition_on_affordance": [
-      {{
-        "object_name": "snake_case_patient_object",
-        "affordance_types": ["graspable"],
-        "reasons": "Grounded justification referencing visible cues and why this affordance/state is required."
-      }}
-    ],
-    "causal_effect_on_spatial": [
-      {{
-        "relation": "aligned_with",
-        "objects": ["snake_case_patient_object", "snake_case_target_object"],
-        "truth": true
-      }}
-    ],
-    "causal_effect_on_affordance": [
-      {{
-        "object_name": "snake_case_patient_object",
-        "affordance_types": ["position_changed"],
-        "reasons": "Grounded justification of how the action causes this affordance/state change."
-      }}
-    ]
+    "causal_precondition_on_spatial": "1. ...\\n2. ...",
+    "causal_precondition_on_affordance": "1. ...\\n2. ...",
+    "causal_effect_on_spatial": "1. ...\\n2. ...",
+    "causal_effect_on_affordance": "1. ...\\n2. ..."
   }},
-  "counterfactual_challenge_question": "A realistic what-if question challenging the physical understanding of this step.",
-  "expected_challenge_outcome": "The predicted physical outcome for the challenge question.",
+  "counterfactual_challenge_question": "What if ...?",
+  "expected_challenge_outcome": "One concise sentence describing the predicted outcome.",
   "failure_reflecting": {{
     "reason": "A plausible failure mode for this step.",
     "recovery_strategy": "A concise recovery strategy."
@@ -332,94 +292,32 @@ Output JSON template (fill with real values; keep keys exactly; `critical_frames
   "critical_frames": [
     {{
       "frame_index": 1,
-      "action_state_change_description": "Initiation: what observable action/state change begins at this frame.",
+      "action_state_change_description": "Key moment 1 (earlier than Key moment 2): describe the micro-action and key state change onset.",
       "causal_chain": {{
-        "agent": "hands",
-        "action": "A concise verb phrase summarizing the core physical action for the WHOLE step.",
-        "patient": "snake_case_patient_object",
-        "causal_precondition_on_spatial": [
-          {{
-            "relation": "contacting",
-            "objects": ["hands", "snake_case_patient_object"],
-            "truth": true
-          }}
-        ],
-        "causal_precondition_on_affordance": [
-          {{
-            "object_name": "snake_case_patient_object",
-            "affordance_types": ["reachable"],
-            "reasons": "Grounded justification referencing visible cues and why this affordance/state is required."
-          }}
-        ],
-        "causal_effect_on_spatial": [
-          {{
-            "relation": "moving_toward",
-            "objects": ["snake_case_patient_object", "snake_case_target_object"],
-            "truth": true
-          }}
-        ],
-        "causal_effect_on_affordance": [
-          {{
-            "object_name": "snake_case_patient_object",
-            "affordance_types": ["in_motion"],
-            "reasons": "Grounded justification of how the action causes this affordance/state change."
-          }}
-        ]
+        "causal_precondition_on_spatial": "1. ...\\n2. ...",
+        "causal_precondition_on_affordance": "1. ...\\n2. ...",
+        "causal_effect_on_spatial": "1. ...\\n2. ...",
+        "causal_effect_on_affordance": "1. ...\\n2. ..."
       }},
       "interaction": {{
-        "tools": ["hands"],
-        "materials": ["snake_case_patient_object"],
-        "hotspot": {{
-          "description": "Specific functional region involved (e.g., handle, rim, edge, hinge).",
-          "affordance_type": "grasp_point",
-          "mechanism": "Explain the physical mechanism grounded in what is visible."
-        }}
+        "description": "Specific functional region involved (e.g., handle, rim, edge, hinge).",
+        "affordance_type": "grasp_point",
+        "mechanism": "Explain the physical mechanism grounded in what is visible."
       }}
     }},
     {{
       "frame_index": 2,
-      "action_state_change_description": "Completion: what observable action/state change is achieved at this frame.",
+      "action_state_change_description": "Key moment 2 (later than Key moment 1): describe the micro-action and key state change onset.",
       "causal_chain": {{
-        "agent": "hands",
-        "action": "A concise verb phrase summarizing the core physical action for the WHOLE step.",
-        "patient": "snake_case_patient_object",
-        "causal_precondition_on_spatial": [
-          {{
-            "relation": "aligned_with",
-            "objects": ["snake_case_patient_object", "snake_case_target_object"],
-            "truth": true
-          }}
-        ],
-        "causal_precondition_on_affordance": [
-          {{
-            "object_name": "snake_case_target_object",
-            "affordance_types": ["available"],
-            "reasons": "Grounded justification referencing visible cues and why this affordance/state is required."
-          }}
-        ],
-        "causal_effect_on_spatial": [
-          {{
-            "relation": "inside",
-            "objects": ["snake_case_patient_object", "snake_case_target_object"],
-            "truth": true
-          }}
-        ],
-        "causal_effect_on_affordance": [
-          {{
-            "object_name": "snake_case_patient_object",
-            "affordance_types": ["placed"],
-            "reasons": "Grounded justification of how the action causes this affordance/state change."
-          }}
-        ]
+        "causal_precondition_on_spatial": "1. ...\\n2. ...",
+        "causal_precondition_on_affordance": "1. ...\\n2. ...",
+        "causal_effect_on_spatial": "1. ...\\n2. ...",
+        "causal_effect_on_affordance": "1. ...\\n2. ..."
       }},
       "interaction": {{
-        "tools": ["hands"],
-        "materials": ["snake_case_patient_object"],
-        "hotspot": {{
-          "description": "Specific functional region involved (edge, handle, rim, hinge, etc.).",
-          "affordance_type": "contact_surface",
-          "mechanism": "Explain the physical mechanism grounded in what is visible."
-        }}
+        "description": "Specific functional region involved (edge, handle, rim, hinge, etc.).",
+        "affordance_type": "contact_surface",
+        "mechanism": "Explain the physical mechanism grounded in what is visible."
       }}
     }}
   ]

@@ -65,7 +65,7 @@ class ScriptConfig:
 PLANNING_CONFIG = ScriptConfig(
     VIDEO_PATH="placeholder.mp4", 
     OUTPUT_BASE_FOLDER="causal_plan_dataset_gemini",
-    API_KEY=os.environ.get("API_KEY", "sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s"),
+    API_KEY=os.environ.get("API_KEY", "EMPTY"),
     API_BASE_URL="http://model.mify.ai.srv/v1",
     MODEL_PROVIDER_ID="vertex_ai",
     MODEL_NAME="gemini-3-pro-preview",
@@ -75,7 +75,7 @@ PLANNING_CONFIG = ScriptConfig(
 SELECTION_CONFIG = ScriptConfig(
     VIDEO_PATH="placeholder.mp4",
     OUTPUT_BASE_FOLDER="causal_spafa_plan_dataset_long",
-    API_KEY=os.environ.get("API_KEY", "sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s"),
+    API_KEY=os.environ.get("API_KEY", "EMPTY"),
     API_BASE_URL="http://model.mify.ai.srv/v1",
     MODEL_PROVIDER_ID="vertex_ai",
     MODEL_NAME="gemini-3-pro-preview",

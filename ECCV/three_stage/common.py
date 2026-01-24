@@ -1113,7 +1113,7 @@ def normalize_stage3_step_output(
             return bool(v)
         return None
 
-    allowed_cc_keys = {
+    allowed_step_cc_keys = {
         "agent",
         "action",
         "patient",
@@ -1122,150 +1122,214 @@ def normalize_stage3_step_output(
         "causal_effect_on_spatial",
         "causal_effect_on_affordance",
     }
-    allowed_rel_keys = {"relation", "objects", "truth"}
-    allowed_aff_keys = {"object_name", "affordance_types", "reasons"}
+    allowed_frame_cc_keys = {
+        "causal_precondition_on_spatial",
+        "causal_precondition_on_affordance",
+        "causal_effect_on_spatial",
+        "causal_effect_on_affordance",
+        # Allow legacy keys in input; they will be dropped during normalization.
+        "agent",
+        "action",
+        "patient",
+    }
+    allowed_interaction_keys = {
+        "description",
+        "affordance_type",
+        "mechanism",
+        # Allow legacy keys in input; they will be dropped during normalization.
+        "hotspot",
+        "tools",
+        "materials",
+    }
 
-    def _norm_spatial_relations(v: Any, *, label: str) -> List[Dict[str, Any]]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[Dict[str, Any]] = []
-        for j, sp in enumerate(v):
-            if not isinstance(sp, dict):
+    _LEADING_LIST_MARKER_RE = re.compile(r"^\s*(?:[-*•]|\u2022)\s+")
+    _LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[\.\)、]\s*")
+
+    def _normalize_numbered_statement_block(text: str) -> str:
+        """Normalize a multi-line text block into '1. ...' numbered statements.
+
+        - Each statement occupies one line.
+        - Lines are re-numbered sequentially starting from 1.
+        - Each numbered line MUST end with '.'.
+        """
+        raw = (text or "").strip()
+        if not raw:
+            return ""
+        # If a model output included literal "\\n" sequences, convert them into real newlines for normalization.
+        raw = raw.replace("\\n", "\n")
+        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+        if not lines:
+            lines = [raw]
+        normalized: List[str] = []
+        for i, line in enumerate(lines, start=1):
+            line = _LEADING_LIST_MARKER_RE.sub("", line)
+            line = _LEADING_NUMBER_RE.sub("", line)
+            line = line.strip()
+            if not line:
                 continue
-            extra_sp = sorted(set(sp.keys()) - allowed_rel_keys)
-            if extra_sp:
-                errors.append(f"{label}[{j}] contains extra keys (not allowed): {extra_sp}")
-            rel_raw = sp.get("relation", "")
-            if _contains_frame_ref(rel_raw):
-                errors.append(f"{label}[{j}].relation must not reference frame/image indices.")
-            if _contains_time_ref(rel_raw):
-                errors.append(f"{label}[{j}].relation must not reference timestamps/durations.")
-            if isinstance(rel_raw, str) and ("=>" in rel_raw or "(" in rel_raw or ")" in rel_raw):
-                errors.append(
-                    f"{label}[{j}].relation must be a short token (no '=>', no parentheses); got: {rel_raw!r}"
-                )
-            # Normalize to snake_case token.
-            rel = _norm_identifier(rel_raw)
-            if rel and len(rel) > 40:
-                errors.append(f"{label}[{j}].relation is too long (>40 chars); got: {rel!r}")
-            objs_raw = sp.get("objects")
-            if isinstance(objs_raw, str):
-                if _contains_frame_ref(objs_raw):
-                    errors.append(f"{label}[{j}].objects must not reference frame/image indices.")
-                if _contains_time_ref(objs_raw):
-                    errors.append(f"{label}[{j}].objects must not reference timestamps/durations.")
-            elif isinstance(objs_raw, list) and any(_contains_frame_ref(x) for x in objs_raw):
-                errors.append(f"{label}[{j}].objects must not reference frame/image indices.")
-            elif isinstance(objs_raw, list) and any(_contains_time_ref(x) for x in objs_raw):
-                errors.append(f"{label}[{j}].objects must not reference timestamps/durations.")
-            objs_list = _norm_identifier_list(objs_raw)
-            raw_truth = sp.get("truth")
-            if not isinstance(raw_truth, bool):
-                errors.append(f"{label}[{j}].truth must be a JSON boolean (true/false).")
-            truth = _parse_bool(raw_truth)
+            if not line.endswith("."):
+                line = f"{line}."
+            normalized.append(f"{i}. {line}")
+        return "\n".join(normalized)
+
+    def _spatial_item_to_statement(item: Any) -> str:
+        if isinstance(item, str):
+            return item.strip()
+        if isinstance(item, dict):
+            relation = str(item.get("relation", "")).strip()
+            objects = item.get("objects", [])
+            if not isinstance(objects, list):
+                objects = []
+            objects = [str(o).strip() for o in objects if str(o).strip()]
+            truth = _parse_bool(item.get("truth", True))
             if truth is None:
-                errors.append(f"{label}[{j}].truth missing/invalid (expected boolean true/false).")
                 truth = True
-            if not rel:
-                errors.append(f"{label}[{j}].relation is empty (expected a non-empty string).")
-            if not objs_list:
-                errors.append(f"{label}[{j}].objects is empty (expected a non-empty list of strings).")
-            if rel and objs_list:
-                out_list.append({"relation": rel, "objects": objs_list, "truth": truth})
-        return _dedupe_keep_order(
-            out_list,
-            key_fn=lambda d: (d.get("relation"), tuple(d.get("objects") or []), bool(d.get("truth"))),
-        )
+            rel = relation or "unspecified_relation"
+            if objects:
+                objs = ", ".join(objects)
+                return f"Relation '{rel}' {'holds' if truth else 'does not hold'} between {objs}."
+            return f"Relation '{rel}' {'holds' if truth else 'does not hold'}."
+        return str(item or "").strip()
 
-    def _norm_affordance_states(v: Any, *, label: str) -> List[Dict[str, Any]]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[Dict[str, Any]] = []
-        for j, ap in enumerate(v):
-            if not isinstance(ap, dict):
-                continue
-            extra_ap = sorted(set(ap.keys()) - allowed_aff_keys)
-            if extra_ap:
-                errors.append(f"{label}[{j}] contains extra keys (not allowed): {extra_ap}")
-            obj_raw = ap.get("object_name", "")
-            if _contains_frame_ref(obj_raw):
-                errors.append(f"{label}[{j}].object_name must not reference frame/image indices.")
-            if _contains_time_ref(obj_raw):
-                errors.append(f"{label}[{j}].object_name must not reference timestamps/durations.")
-            obj = _norm_identifier(obj_raw)
-            affs_raw = ap.get("affordance_types")
-            if isinstance(affs_raw, str):
-                if _contains_frame_ref(affs_raw):
-                    errors.append(f"{label}[{j}].affordance_types must not reference frame/image indices.")
-                if _contains_time_ref(affs_raw):
-                    errors.append(f"{label}[{j}].affordance_types must not reference timestamps/durations.")
-            elif isinstance(affs_raw, list) and any(_contains_frame_ref(x) for x in affs_raw):
-                errors.append(f"{label}[{j}].affordance_types must not reference frame/image indices.")
-            elif isinstance(affs_raw, list) and any(_contains_time_ref(x) for x in affs_raw):
-                errors.append(f"{label}[{j}].affordance_types must not reference timestamps/durations.")
-            aff_list = _norm_identifier_list(affs_raw)
-            reasons_raw = ap.get("reasons", "")
-            if _contains_frame_ref(reasons_raw):
-                errors.append(f"{label}[{j}].reasons must not reference frame/image indices.")
-            if _contains_time_ref(reasons_raw):
-                errors.append(f"{label}[{j}].reasons must not reference timestamps/durations.")
-            reasons = _norm_str(reasons_raw)
-            if not obj:
-                errors.append(f"{label}[{j}].object_name is empty (expected a non-empty string).")
-            if not aff_list:
-                errors.append(f"{label}[{j}].affordance_types is empty (expected a non-empty list).")
-            if not reasons:
-                errors.append(f"{label}[{j}].reasons is empty (expected a non-empty grounded string).")
-            if obj and aff_list and reasons:
-                out_list.append({"object_name": obj, "affordance_types": aff_list, "reasons": reasons})
-        return _dedupe_keep_order(
-            out_list,
-            key_fn=lambda d: (d.get("object_name"), tuple(d.get("affordance_types") or []), d.get("reasons")),
-        )
+    def _affordance_item_to_statement(item: Any) -> str:
+        if isinstance(item, str):
+            return item.strip()
+        if isinstance(item, dict):
+            object_name = str(item.get("object_name", "")).strip()
+            affordance_types = item.get("affordance_types", [])
+            if not isinstance(affordance_types, list):
+                affordance_types = []
+            affordance_types = [str(a).strip() for a in affordance_types if str(a).strip()]
+            reasons = str(item.get("reasons", "")).strip()
+            obj = object_name or "unspecified_object"
+            aff = ", ".join(affordance_types) if affordance_types else "unspecified_affordance"
+            if reasons:
+                return f"The object {obj} has affordance/state {aff}. {reasons}"
+            return f"The object {obj} has affordance/state {aff}."
+        return str(item or "").strip()
 
-    def _norm_causal_chain(v: Any, *, label: str) -> Dict[str, Any]:
+    def _normalize_causal_text(v: Any, *, label: str, kind: str) -> str:
+        """Normalize a causal_* field into a numbered statement block string.
+
+        Supports:
+        - New schema: a single string with numbered points.
+        - Legacy schema: a list of structured dicts for spatial/affordance.
+        """
+        if isinstance(v, list):
+            if kind == "spatial":
+                statements = [_spatial_item_to_statement(x) for x in v]
+            else:
+                statements = [_affordance_item_to_statement(x) for x in v]
+            text = "\n".join(s for s in statements if str(s).strip())
+        elif isinstance(v, dict):
+            text = _spatial_item_to_statement(v) if kind == "spatial" else _affordance_item_to_statement(v)
+        else:
+            text = _norm_str(v)
+        normalized = _normalize_numbered_statement_block(text)
+        if not normalized:
+            errors.append(f"{label} is empty (expected a non-empty numbered statement string).")
+            return ""
+        if _contains_frame_ref(normalized):
+            errors.append(f"{label} must not reference frame/image indices.")
+        if _contains_time_ref(normalized):
+            errors.append(f"{label} must not reference timestamps/durations.")
+        return normalized
+
+    def _norm_step_causal_chain(v: Any, *, label: str) -> Dict[str, Any]:
         d = v if isinstance(v, dict) else {}
         if isinstance(v, dict):
-            extra_cc = sorted(set(d.keys()) - allowed_cc_keys)
+            extra_cc = sorted(set(d.keys()) - allowed_step_cc_keys)
             if extra_cc:
                 errors.append(f"{label}.causal_chain contains extra keys (not allowed): {extra_cc}")
-        if _contains_frame_ref(d.get("agent", "")) or _contains_frame_ref(d.get("action", "")) or _contains_frame_ref(
-            d.get("patient", "")
-        ):
+
+        agent_raw = d.get("agent", "")
+        action_raw = d.get("action", "")
+        patient_raw = d.get("patient", "")
+        if _contains_frame_ref(agent_raw) or _contains_frame_ref(action_raw) or _contains_frame_ref(patient_raw):
             errors.append(f"{label}.causal_chain agent/action/patient must not reference frame/image indices.")
-        if _contains_time_ref(d.get("agent", "")) or _contains_time_ref(d.get("action", "")) or _contains_time_ref(
-            d.get("patient", "")
-        ):
+        if _contains_time_ref(agent_raw) or _contains_time_ref(action_raw) or _contains_time_ref(patient_raw):
             errors.append(f"{label}.causal_chain agent/action/patient must not reference timestamps/durations.")
+
         cc = {
-            "agent": _norm_identifier(d.get("agent", "")),
-            "action": _norm_str(d.get("action", "")),
-            "patient": _norm_identifier(d.get("patient", "")),
-            "causal_precondition_on_spatial": _norm_spatial_relations(
-                d.get("causal_precondition_on_spatial"), label=f"{label}.causal_chain.causal_precondition_on_spatial"
+            "agent": _norm_identifier(agent_raw),
+            "action": _norm_str(action_raw),
+            "patient": _norm_identifier(patient_raw),
+            "causal_precondition_on_spatial": _normalize_causal_text(
+                d.get("causal_precondition_on_spatial"),
+                label=f"{label}.causal_chain.causal_precondition_on_spatial",
+                kind="spatial",
             ),
-            "causal_precondition_on_affordance": _norm_affordance_states(
+            "causal_precondition_on_affordance": _normalize_causal_text(
                 d.get("causal_precondition_on_affordance"),
                 label=f"{label}.causal_chain.causal_precondition_on_affordance",
+                kind="affordance",
             ),
-            "causal_effect_on_spatial": _norm_spatial_relations(
-                d.get("causal_effect_on_spatial"), label=f"{label}.causal_chain.causal_effect_on_spatial"
+            "causal_effect_on_spatial": _normalize_causal_text(
+                d.get("causal_effect_on_spatial"),
+                label=f"{label}.causal_chain.causal_effect_on_spatial",
+                kind="spatial",
             ),
-            "causal_effect_on_affordance": _norm_affordance_states(
-                d.get("causal_effect_on_affordance"), label=f"{label}.causal_chain.causal_effect_on_affordance"
+            "causal_effect_on_affordance": _normalize_causal_text(
+                d.get("causal_effect_on_affordance"),
+                label=f"{label}.causal_chain.causal_effect_on_affordance",
+                kind="affordance",
             ),
         }
         if not cc["agent"] or not cc["action"] or not cc["patient"]:
             errors.append(f"{label}.causal_chain must include non-empty agent/action/patient.")
-        if not cc["causal_precondition_on_spatial"]:
-            errors.append(f"{label}.causal_chain.causal_precondition_on_spatial is empty (expected a non-empty list).")
-        if not cc["causal_precondition_on_affordance"]:
-            errors.append(f"{label}.causal_chain.causal_precondition_on_affordance is empty (expected a non-empty list).")
-        if not cc["causal_effect_on_spatial"]:
-            errors.append(f"{label}.causal_chain.causal_effect_on_spatial is empty (expected a non-empty list).")
-        if not cc["causal_effect_on_affordance"]:
-            errors.append(f"{label}.causal_chain.causal_effect_on_affordance is empty (expected a non-empty list).")
         return cc
+
+    def _norm_frame_causal_chain(v: Any, *, label: str) -> Dict[str, Any]:
+        d = v if isinstance(v, dict) else {}
+        if isinstance(v, dict):
+            extra_cc = sorted(set(d.keys()) - allowed_frame_cc_keys)
+            if extra_cc:
+                errors.append(f"{label}.causal_chain contains extra keys (not allowed): {extra_cc}")
+        return {
+            "causal_precondition_on_spatial": _normalize_causal_text(
+                d.get("causal_precondition_on_spatial"),
+                label=f"{label}.causal_chain.causal_precondition_on_spatial",
+                kind="spatial",
+            ),
+            "causal_precondition_on_affordance": _normalize_causal_text(
+                d.get("causal_precondition_on_affordance"),
+                label=f"{label}.causal_chain.causal_precondition_on_affordance",
+                kind="affordance",
+            ),
+            "causal_effect_on_spatial": _normalize_causal_text(
+                d.get("causal_effect_on_spatial"),
+                label=f"{label}.causal_chain.causal_effect_on_spatial",
+                kind="spatial",
+            ),
+            "causal_effect_on_affordance": _normalize_causal_text(
+                d.get("causal_effect_on_affordance"),
+                label=f"{label}.causal_chain.causal_effect_on_affordance",
+                kind="affordance",
+            ),
+        }
+
+    def _norm_interaction(v: Any, *, label: str) -> Dict[str, str]:
+        d = v if isinstance(v, dict) else {}
+        if isinstance(v, dict):
+            extra_inter = sorted(set(d.keys()) - allowed_interaction_keys)
+            if extra_inter:
+                errors.append(f"{label}.interaction contains extra keys (not allowed): {extra_inter}")
+        hotspot = d.get("hotspot", {}) if isinstance(d.get("hotspot"), dict) else {}
+        desc_raw = d.get("description") or hotspot.get("description") or ""
+        aff_raw = d.get("affordance_type") or hotspot.get("affordance_type") or ""
+        mech_raw = d.get("mechanism") or hotspot.get("mechanism") or ""
+
+        if _contains_frame_ref(desc_raw) or _contains_frame_ref(aff_raw) or _contains_frame_ref(mech_raw):
+            errors.append(f"{label}.interaction must not reference frame/image indices.")
+        if _contains_time_ref(desc_raw) or _contains_time_ref(aff_raw) or _contains_time_ref(mech_raw):
+            errors.append(f"{label}.interaction must not reference timestamps/durations.")
+
+        desc = _norm_str(desc_raw)
+        aff = _norm_identifier(aff_raw)
+        mech = _norm_str(mech_raw)
+        if not desc or not aff or not mech:
+            errors.append(f"{label}.interaction must include non-empty description/affordance_type/mechanism.")
+        return {"description": desc, "affordance_type": aff, "mechanism": mech}
 
     sid = step_json.get("step_id")
     sid_int: Optional[int] = int(sid) if _is_strict_int(sid) else None
@@ -1292,6 +1356,8 @@ def normalize_stage3_step_output(
     counterfactual_q = _norm_str(step_json.get("counterfactual_challenge_question", ""))
     if not counterfactual_q:
         errors.append("Missing/empty counterfactual_challenge_question.")
+    if counterfactual_q and not counterfactual_q.lstrip().lower().startswith("what if"):
+        errors.append("counterfactual_challenge_question must start with 'What if ...?'.")
     if _contains_frame_ref(counterfactual_q):
         errors.append("counterfactual_challenge_question must not reference frame/image indices.")
     if _contains_time_ref(counterfactual_q):
@@ -1322,7 +1388,7 @@ def normalize_stage3_step_output(
     if _contains_time_ref(fr_reason) or _contains_time_ref(fr_recovery):
         errors.append("failure_reflecting fields must not reference timestamps/durations.")
 
-    step_cc = _norm_causal_chain(step_json.get("causal_chain", {}), label="step")
+    step_cc = _norm_step_causal_chain(step_json.get("causal_chain", {}), label="step")
 
     cfs = step_json.get("critical_frames")
     if not isinstance(cfs, list):
@@ -1373,105 +1439,20 @@ def normalize_stage3_step_output(
         if _contains_time_ref(desc):
             errors.append(f"critical_frames[{i}].action_state_change_description must not reference timestamps/durations.")
 
-        cf_cc = _norm_causal_chain(cf.get("causal_chain", {}), label=f"critical_frames[{i}]")
-        # Enforce that the keyframe-level causal_chain agrees with the step-level one.
-        if cf_cc.get("agent") != step_cc.get("agent"):
-            errors.append(
-                f"critical_frames[{i}].causal_chain.agent must match step.causal_chain.agent "
-                f"(expected {step_cc.get('agent')!r}, got {cf_cc.get('agent')!r})."
-            )
-        if _canon_text(cf_cc.get("action")) != _canon_text(step_cc.get("action")):
-            errors.append(
-                f"critical_frames[{i}].causal_chain.action must match step.causal_chain.action "
-                f"(expected {step_cc.get('action')!r}, got {cf_cc.get('action')!r})."
-            )
-        if cf_cc.get("patient") != step_cc.get("patient"):
-            errors.append(
-                f"critical_frames[{i}].causal_chain.patient must match step.causal_chain.patient "
-                f"(expected {step_cc.get('patient')!r}, got {cf_cc.get('patient')!r})."
-            )
+        cf_cc = _norm_frame_causal_chain(cf.get("causal_chain", {}), label=f"critical_frames[{i}]")
 
-        interaction = cf.get("interaction")
-        if not isinstance(interaction, dict):
+        interaction_raw = cf.get("interaction")
+        if not isinstance(interaction_raw, dict):
             errors.append(f"critical_frames[{i}].interaction missing/invalid (expected an object).")
-            interaction = {}
-        extra_inter = sorted(set(interaction.keys()) - {"tools", "materials", "hotspot"})
-        if extra_inter:
-            errors.append(f"critical_frames[{i}].interaction contains extra keys (not allowed): {extra_inter}")
-        raw_tools = interaction.get("tools")
-        raw_materials = interaction.get("materials")
-
-        if not isinstance(raw_tools, list):
-            errors.append(f"critical_frames[{i}].interaction.tools missing/invalid (expected a list[string]).")
-            raw_tools = []
-        if not isinstance(raw_materials, list):
-            errors.append(f"critical_frames[{i}].interaction.materials missing/invalid (expected a list[string]).")
-            raw_materials = []
-
-        if any(_contains_frame_ref(x) for x in raw_tools) or any(_contains_frame_ref(x) for x in raw_materials):
-            errors.append(f"critical_frames[{i}].interaction.tools/materials must not reference frame/image indices.")
-        if any(_contains_time_ref(x) for x in raw_tools) or any(_contains_time_ref(x) for x in raw_materials):
-            errors.append(f"critical_frames[{i}].interaction.tools/materials must not reference timestamps/durations.")
-
-        if any(not (isinstance(x, str) and x.strip()) for x in raw_tools):
-            errors.append(f"critical_frames[{i}].interaction.tools must contain only non-empty strings.")
-        if any(not (isinstance(x, str) and x.strip()) for x in raw_materials):
-            errors.append(f"critical_frames[{i}].interaction.materials must contain only non-empty strings.")
-
-        tools = _norm_identifier_list(raw_tools)
-        materials = _norm_identifier_list(raw_materials)
-
-        if not tools:
-            errors.append(f"critical_frames[{i}].interaction.tools is empty (expected a non-empty list[string]).")
-        if not materials:
-            errors.append(f"critical_frames[{i}].interaction.materials is empty (expected a non-empty list[string]).")
-
-        # Quality: keep interaction aligned with causal_chain identifiers.
-        agent = str(step_cc.get("agent", "") or "")
-        if agent and agent not in tools:
-            errors.append(
-                f"critical_frames[{i}].interaction.tools must include the causal_chain.agent "
-                f"(expected agent={agent!r}, tools={tools})."
-            )
-        patient = str(step_cc.get("patient", "") or "")
-        if patient and patient not in materials:
-            errors.append(
-                f"critical_frames[{i}].interaction.materials must include the causal_chain.patient "
-                f"(expected patient={patient!r}, materials={materials})."
-            )
-
-        hotspot = interaction.get("hotspot")
-        if not isinstance(hotspot, dict):
-            errors.append(f"critical_frames[{i}].interaction.hotspot missing/invalid (expected an object).")
-            hotspot = {}
-        extra_hs = sorted(set(hotspot.keys()) - {"description", "affordance_type", "mechanism"})
-        if extra_hs:
-            errors.append(f"critical_frames[{i}].interaction.hotspot contains extra keys (not allowed): {extra_hs}")
-        hs_desc_raw = hotspot.get("description", "")
-        hs_type_raw = hotspot.get("affordance_type", "")
-        hs_mech_raw = hotspot.get("mechanism", "")
-        hs_desc = _norm_str(hs_desc_raw)
-        hs_type = _norm_identifier(hs_type_raw)
-        hs_mech = _norm_str(hs_mech_raw)
-        if _contains_frame_ref(hs_desc_raw) or _contains_frame_ref(hs_type_raw) or _contains_frame_ref(hs_mech_raw):
-            errors.append(f"critical_frames[{i}].interaction.hotspot must not reference frame/image indices.")
-        if _contains_time_ref(hs_desc_raw) or _contains_time_ref(hs_type_raw) or _contains_time_ref(hs_mech_raw):
-            errors.append(f"critical_frames[{i}].interaction.hotspot must not reference timestamps/durations.")
-        if not hs_desc or not hs_type or not hs_mech:
-            errors.append(
-                f"critical_frames[{i}].interaction.hotspot must include non-empty description/affordance_type/mechanism."
-            )
+            interaction_raw = {}
+        interaction_norm = _norm_interaction(interaction_raw, label=f"critical_frames[{i}]")
 
         normalized_cfs.append(
             {
                 "frame_index": fi,
                 "action_state_change_description": desc,
                 "causal_chain": cf_cc,
-                "interaction": {
-                    "tools": tools,
-                    "materials": materials,
-                    "hotspot": {"description": hs_desc, "affordance_type": hs_type, "mechanism": hs_mech},
-                },
+                "interaction": interaction_norm,
             }
         )
 
