@@ -21,7 +21,7 @@ import time
 import sys
 from datetime import datetime
 from dataclasses import dataclass, asdict
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 
 # Suppress OpenAI's internal httpx logging to keep the console clean
 import logging
@@ -64,8 +64,8 @@ class ScriptConfig:
 # The VIDEO_PATH will be overwritten for each file in the folder.
 PLANNING_CONFIG = ScriptConfig(
     VIDEO_PATH="placeholder.mp4", 
-    OUTPUT_BASE_FOLDER="causal_spafa_plan_dataset_long",
-    API_KEY=os.environ.get("API_KEY", "EMPTY"),
+    OUTPUT_BASE_FOLDER="causal_plan_dataset_gemini",
+    API_KEY=os.environ.get("API_KEY", "sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s"),
     API_BASE_URL="http://model.mify.ai.srv/v1",
     MODEL_PROVIDER_ID="vertex_ai",
     MODEL_NAME="gemini-3-pro-preview",
@@ -75,7 +75,7 @@ PLANNING_CONFIG = ScriptConfig(
 SELECTION_CONFIG = ScriptConfig(
     VIDEO_PATH="placeholder.mp4",
     OUTPUT_BASE_FOLDER="causal_spafa_plan_dataset_long",
-    API_KEY=os.environ.get("API_KEY", "EMPTY"),
+    API_KEY=os.environ.get("API_KEY", "sk-44oHu4ZaRdEoSMiFPL61x5LvGSSNZ6qD7RSXMuoscwfKwW3s"),
     API_BASE_URL="http://model.mify.ai.srv/v1",
     MODEL_PROVIDER_ID="vertex_ai",
     MODEL_NAME="gemini-3-pro-preview",
@@ -87,60 +87,47 @@ SELECTION_CONFIG = ScriptConfig(
 # ==============================================================================
 
 @dataclass
-class CausalChain:
-    """Core physical causal reasoning structure."""
+class StepCausalChain:
+    """Macro physical causal reasoning structure for an entire step."""
 
     agent: str
     action: str
     patient: str
-    causal_precondition_on_spatial: List["SpatialRelation"]
-    causal_precondition_on_affordance: List["AffordanceState"]
-    causal_effect_on_spatial: List["SpatialRelation"]
-    causal_effect_on_affordance: List["AffordanceState"]
+    causal_precondition_on_spatial: str
+    causal_precondition_on_affordance: str
+    causal_effect_on_spatial: str
+    causal_effect_on_affordance: str
 
 
 @dataclass
-class SpatialRelation:
-    """A single, visually verifiable spatial/physical relation."""
+class FrameCausalChain:
+    """Frame-level causal reasoning for a key moment within a step.
 
-    relation: str
-    objects: List[str]
-    truth: bool
+    NOTE: This frame-level causal_chain MUST NOT include agent/action/patient.
+    """
 
-
-@dataclass
-class AffordanceState:
-    """The functional affordance/state of an object."""
-
-    object_name: str
-    affordance_types: List[str]
-    reasons: str = ""
+    causal_precondition_on_spatial: str
+    causal_precondition_on_affordance: str
+    causal_effect_on_spatial: str
+    causal_effect_on_affordance: str
 
 
 @dataclass
-class Hotspot:
-    """Specific functional region involved in the interaction."""
+class Interaction:
+    """Keyframe interaction details (flattened; no tools/materials/hotspot nesting)."""
 
     description: str
     affordance_type: str
     mechanism: str
 
-
-@dataclass
-class Interaction:
-    """Tools/materials and hotspot involved in a keyframe."""
-
-    tools: List[str]
-    materials: List[str]
-    hotspot: Hotspot
-
 @dataclass
 class CriticalFrameAnnotation:
     """Complete annotation for a single pivotal moment."""
 
-    frame_index: int
+    # 1-based in the sampled frame pool; omitted in Stage 1 and added in Stage 2.
+    frame_index: Optional[int]
     action_state_change_description: str
-    causal_chain: CausalChain
+    causal_chain: FrameCausalChain
     interaction: Interaction
 
 @dataclass
@@ -157,107 +144,61 @@ class PlanningStep:
     step_id: int
     step_goal: str
     rationale: str
-    causal_chain: CausalChain
+    causal_chain: StepCausalChain
     counterfactual_challenge_question: str
     expected_challenge_outcome: str
     failure_reflecting: FailureReflecting
     critical_frames: List[CriticalFrameAnnotation]
 
+def _coerce_str(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False)
+    except Exception:
+        return str(value)
 
-def _parse_spatial_relation(data: Any) -> SpatialRelation:
+
+def _parse_step_causal_chain(data: Any) -> StepCausalChain:
+    """Parse step-level `causal_chain` while tolerating missing fields."""
     if not isinstance(data, dict):
         data = {}
-    objects = data.get("objects", [])
-    if not isinstance(objects, list):
-        objects = []
-
-    def _coerce_json_bool(val: Any) -> bool:
-        if isinstance(val, bool):
-            return val
-        if isinstance(val, (int, float)):
-            return bool(val)
-        if isinstance(val, str):
-            s = val.strip().lower()
-            if s in ("true", "t", "yes", "y", "1"):
-                return True
-            if s in ("false", "f", "no", "n", "0", ""):
-                return False
-        return False
-
-    return SpatialRelation(
-        relation=str(data.get("relation", "")),
-        objects=[str(o) for o in objects],
-        truth=_coerce_json_bool(data.get("truth", False)),
-    )
-
-
-def _parse_affordance_state(data: Any) -> AffordanceState:
-    if not isinstance(data, dict):
-        data = {}
-    affordance_types = data.get("affordance_types", [])
-    if not isinstance(affordance_types, list):
-        affordance_types = []
-    return AffordanceState(
-        object_name=str(data.get("object_name", "")),
-        affordance_types=[str(a) for a in affordance_types],
-        reasons=str(data.get("reasons", "")),
-    )
-
-
-def _parse_causal_chain(data: Any) -> CausalChain:
-    """Parse `causal_chain` while tolerating missing fields."""
-
-    if not isinstance(data, dict):
-        data = {}
-
-    pre_spatial = data.get("causal_precondition_on_spatial", [])
-    pre_aff = data.get("causal_precondition_on_affordance", [])
-    eff_spatial = data.get("causal_effect_on_spatial", [])
-    eff_aff = data.get("causal_effect_on_affordance", [])
-
-    if not isinstance(pre_spatial, list):
-        pre_spatial = []
-    if not isinstance(pre_aff, list):
-        pre_aff = []
-    if not isinstance(eff_spatial, list):
-        eff_spatial = []
-    if not isinstance(eff_aff, list):
-        eff_aff = []
-
-    return CausalChain(
+    return StepCausalChain(
         agent=str(data.get("agent", "")),
         action=str(data.get("action", "")),
         patient=str(data.get("patient", "")),
-        causal_precondition_on_spatial=[_parse_spatial_relation(x) for x in pre_spatial],
-        causal_precondition_on_affordance=[_parse_affordance_state(x) for x in pre_aff],
-        causal_effect_on_spatial=[_parse_spatial_relation(x) for x in eff_spatial],
-        causal_effect_on_affordance=[_parse_affordance_state(x) for x in eff_aff],
+        causal_precondition_on_spatial=_coerce_str(data.get("causal_precondition_on_spatial", "")),
+        causal_precondition_on_affordance=_coerce_str(data.get("causal_precondition_on_affordance", "")),
+        causal_effect_on_spatial=_coerce_str(data.get("causal_effect_on_spatial", "")),
+        causal_effect_on_affordance=_coerce_str(data.get("causal_effect_on_affordance", "")),
     )
 
 
-def _parse_hotspot(data: Any) -> Hotspot:
+def _parse_frame_causal_chain(data: Any) -> FrameCausalChain:
+    """Parse frame-level `causal_chain` while tolerating missing fields."""
     if not isinstance(data, dict):
         data = {}
-    return Hotspot(
-        description=str(data.get("description", "")),
-        affordance_type=str(data.get("affordance_type", "")),
-        mechanism=str(data.get("mechanism", "")),
+    return FrameCausalChain(
+        causal_precondition_on_spatial=_coerce_str(data.get("causal_precondition_on_spatial", "")),
+        causal_precondition_on_affordance=_coerce_str(data.get("causal_precondition_on_affordance", "")),
+        causal_effect_on_spatial=_coerce_str(data.get("causal_effect_on_spatial", "")),
+        causal_effect_on_affordance=_coerce_str(data.get("causal_effect_on_affordance", "")),
     )
 
 
 def _parse_interaction(data: Any) -> Interaction:
     if not isinstance(data, dict):
         data = {}
-    tools = data.get("tools", [])
-    materials = data.get("materials", [])
-    if not isinstance(tools, list):
-        tools = []
-    if not isinstance(materials, list):
-        materials = []
+    hotspot = data.get("hotspot", {}) if isinstance(data.get("hotspot"), dict) else {}
+    description = data.get("description") or hotspot.get("description") or ""
+    affordance_type = data.get("affordance_type") or hotspot.get("affordance_type") or ""
+    mechanism = data.get("mechanism") or hotspot.get("mechanism") or ""
     return Interaction(
-        tools=[str(t) for t in tools],
-        materials=[str(m) for m in materials],
-        hotspot=_parse_hotspot(data.get("hotspot", {})),
+        description=str(description),
+        affordance_type=str(affordance_type),
+        mechanism=str(mechanism),
     )
 
 
@@ -431,17 +372,30 @@ def _overlay_index_on_base64_image(b64_img: str, index_1based: int, timestamp_se
     except Exception:
         return b64_img
 
-def build_api_content(sampled_frames: List[Dict[str, Any]], embed_index: bool) -> List[Dict[str, Any]]:
-    """Build message content list: manifest + alternating text + image items in 1-based order."""
+def build_api_content(
+    sampled_frames: List[Dict[str, Any]],
+    embed_index: bool,
+    *,
+    include_manifest: bool = True,
+    include_frame_labels: bool = True,
+) -> List[Dict[str, Any]]:
+    """Build message content list for the multimodal API in 1-based order.
+
+    - When include_manifest is True, adds an index+timestamp manifest text block.
+    - When include_frame_labels is True, adds per-image "Frame N" text items.
+    - When embed_index is True, overlays the 1-based frame index + timestamp onto each image.
+    """
     content: List[Dict[str, Any]] = []
-    manifest = build_index_manifest(sampled_frames)
-    content.append({"type": "text", "text": manifest})
+    if include_manifest:
+        manifest = build_index_manifest(sampled_frames)
+        content.append({"type": "text", "text": manifest})
     for i, frame in enumerate(sampled_frames, start=1):
         ts = float(frame.get("timestamp_sec", 0.0))
         b64 = frame.get("base64")
         if embed_index and isinstance(b64, str):
             b64 = _overlay_index_on_base64_image(b64, i, ts)
-        content.append({"type": "text", "text": f"Frame {i}"})
+        if include_frame_labels:
+            content.append({"type": "text", "text": f"Frame {i}"})
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
     return content
 
@@ -450,6 +404,42 @@ def sanitize_filename(text: str) -> str:
     text = re.sub(r'[^\w\s-]', '', text).strip().lower()
     text = re.sub(r'[-\s]+', '_', text)
     return text
+
+_FRAME_REF_RE = re.compile(r"\b(frame|image|img|picture)\s*\d+\b", re.IGNORECASE)
+_FRAME_REF_ORDINAL_RE = re.compile(
+    r"\b(initial|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|last|final|beginning|ending)\s+"
+    r"(frame|image|img|picture)\b",
+    re.IGNORECASE,
+)
+
+
+def _contains_frame_ref(text: Any) -> bool:
+    s = str(text or "")
+    return bool(_FRAME_REF_RE.search(s) or _FRAME_REF_ORDINAL_RE.search(s))
+
+
+_TIME_REF_RE = re.compile(
+    r"(?:"
+    r"\bt\s*=\s*\d+(?:\.\d+)?\s*(?:s|sec|secs|second|seconds|ms|msec|milliseconds?)\b"
+    r"|"
+    r"\b\d+(?:\.\d+)?\s*(?:s|sec|secs|second|seconds|ms|msec|milliseconds?)\b"
+    r"|"
+    r"\b\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _contains_time_ref(text: Any) -> bool:
+    s = str(text or "")
+    return bool(_TIME_REF_RE.search(s))
+
+
+def _assert_no_disallowed_refs(text: Any, *, label: str) -> None:
+    if _contains_frame_ref(text):
+        raise ValueError(f"{label} must not reference frame/image indices (e.g., 'Frame 12').")
+    if _contains_time_ref(text):
+        raise ValueError(f"{label} must not reference timestamps/durations/timecodes (e.g., 't=3.2s', '00:03').")
 
 def extract_json_from_response(response_text: str) -> str:
     """Extracts a JSON string from the model's response using multiple strategies."""
@@ -498,142 +488,56 @@ Your response MUST be a single, syntactically flawless JSON object. No extra tex
 {{
     "high_level_goal": "One comprehensive English sentence describing the overall goal and intended final outcome of the entire video (final world state; do NOT list steps; do NOT mention frames/images/timestamps).",
     "steps": [
-    {{
-        "step_id": 1,
-        "step_goal": "One concise English sentence describing the intended outcome of this step as a single atomic action (avoid 'and/then'; no multi-action conjunctions; no frame/time references).",
-        "rationale": "1–2 grounded sentences explaining WHY this step is necessary: (a) what physical/spatial/affordance preconditions it assumes, and (b) what effects it establishes that enable later steps. Do NOT just restate step_goal.",
-        "causal_chain": {{
-            "agent": "Primary force/controller for the whole step (prefer body part like 'hands'/'left_hand'/'right_hand'; use tool part only if it is clearly the direct force applicator). Use one stable identifier, reuse it verbatim in the keyframes, and include it in `interaction.tools`.",
-        "action": "Concise physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.",
-            "patient": "Primary acted-on object identifier in snake_case. Keep naming consistent across all fields (do not rename the same object) and include it in `interaction.materials`.",
-        "causal_precondition_on_spatial": [
-            {{
-            "relation": "Short, concrete, visually verifiable token (prefer mechanistic relations like 'holding', 'contacting', 'inside', 'on_top_of', 'aligned_with', 'open', 'closed'; avoid full sentences).",
-            "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-            "truth": true
-            }}
-        ],
-        "causal_precondition_on_affordance": [
-            {{
-            "object_name": "snake_case_entity",
-            "affordance_types": ["snake_case_affordance_or_state_token"],
-            "reasons": "Grounded justification referencing visible cues + physical constraints/mechanism explaining why this affordance/state is required (no speculation)."
-            }}
-        ],
-        "causal_effect_on_spatial": [
-            {{
-            "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
-            "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-            "truth": true
-            }}
-        ],
-        "causal_effect_on_affordance": [
-            {{
-            "object_name": "snake_case_entity",
-            "affordance_types": ["snake_case_affordance_or_state_token"],
-            "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
-            }}
-        ]
-        }},
-        "counterfactual_challenge_question": "One realistic what-if question that could disrupt this step due to physics/constraints, grounded in the scene. Start with 'What if ...?'. Do NOT mention frames/images/timestamps.",
-        "expected_challenge_outcome": "Predicted physical outcome if that challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).",
-        "failure_reflecting": {{
-        "reason": "Most plausible failure mode for this step (physical/interaction reason), grounded in what is visible (avoid invisible/unknown causes).",
-        "recovery_strategy": "A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects)."
-        }},
-        "critical_frames": [
         {{
-                "action_state_change_description": "Initiation: describe the visible onset of the action and the key state that begins changing (name objects; include discriminative contacts/spatial relations/orientation/open-closed cues; stick to visible evidence; no frame/time references).",
+            "step_id": 1,
+            "step_goal": "One concise English sentence describing the intended outcome of this step as a single atomic action (avoid 'and/then'; no multi-action conjunctions; no frame/time references).",
+            "rationale": "1–2 grounded sentences explaining WHY this step is necessary: (a) what macro physical/spatial/affordance preconditions it assumes across the entire step, and (b) what macro effects it establishes across the entire step that enable later steps. Do NOT just restate step_goal.",
             "causal_chain": {{
-            "agent": "MUST match the step-level causal_chain.agent exactly (copy verbatim).",
-            "action": "MUST match the step-level causal_chain.action exactly (copy verbatim).",
-            "patient": "MUST match the step-level causal_chain.patient exactly (copy verbatim).",
-            "causal_precondition_on_spatial": [
+                "agent": "Primary force/controller for the whole step (prefer body part like 'hands'/'left_hand'/'right_hand'; use tool part only if it is clearly the direct force applicator). Use one stable identifier and keep it consistent within the step.",
+                "action": "Concise physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.",
+                "patient": "Primary acted-on object identifier in snake_case. Keep naming consistent across all fields (do not rename the same object).",
+                "causal_precondition_on_spatial": "A single JSON string listing MACRO spatial preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
+                "causal_precondition_on_affordance": "A single JSON string listing MACRO affordance/state preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
+                "causal_effect_on_spatial": "A single JSON string listing MACRO spatial effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting contacts/containment/support/alignment/orientation/open-closed changes; avoid short, generic fragments).",
+                "causal_effect_on_affordance": "A single JSON string listing MACRO affordance/state effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting functional/state changes; avoid short, generic fragments)."
+            }},
+            "counterfactual_challenge_question": "One realistic counterfactual what-if question that could disrupt this step due to physics/constraints, grounded in the scene. Start with 'What if ...?'. This field is ONLY about a counterfactual disruption; do NOT mix in non-counterfactual failure analysis. Do NOT mention frames/images/timestamps.",
+            "expected_challenge_outcome": "Predicted physical outcome if that counterfactual challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).",
+            "failure_reflecting": {{
+                "reason": "Most plausible real (non-counterfactual) failure mode for this step (physical/interaction reason), grounded in what is visible and the mechanism (avoid invisible/unknown causes).",
+                "recovery_strategy": "A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects)."
+            }},
+            "critical_frames": [
                 {{
-                "relation": "Short, concrete, visually verifiable token describing what is true at/just before this moment (contacts, containment, support, alignment, open/closed, etc.).",
-                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-                "truth": true
-                }}
-            ],
-            "causal_precondition_on_affordance": [
+                    "action_state_change_description": "Key moment 1 (earlier in time than Key moment 2; NOT limited to initiation/completion): describe the micro-action at this moment and the key state that begins changing, with discriminative contacts/spatial relations/orientation/open-closed cues; objective and grounded in visual evidence; no frame/time references.",
+                    "causal_chain": {{
+                        "causal_precondition_on_spatial": "A single JSON string listing DETAILED spatial preconditions TRUE AT this key moment as numbered points. Formatting rules: numbered '1. ', '2. ', ...; separate points using escaped '\\n' inside the string; each numbered line may contain multiple sentences but MUST end with '.' (mandatory); each line must be complete, objective, and tightly tied to this key moment.",
+                        "causal_precondition_on_affordance": "A single JSON string listing DETAILED affordance/state preconditions REQUIRED AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+                        "causal_effect_on_spatial": "A single JSON string listing PREDICTED immediate, local spatial effects right AFTER the micro-action implied by action_state_change_description completes (short-term/local post-action prediction; not necessarily currently visible). Formatting rules: numbered lines; separated by escaped '\\n' inside the string; each numbered line may contain multiple sentences but MUST end with '.' (mandatory); each line must be physically grounded and tightly tied to this micro-action.",
+                        "causal_effect_on_affordance": "A single JSON string listing PREDICTED immediate, local affordance/state effects right AFTER that micro-action completes (short-term/local post-action prediction; not necessarily currently visible). Formatting rules: numbered lines; separated by escaped '\\n' inside the string; each numbered line may contain multiple sentences but MUST end with '.' (mandatory); each line must be physically grounded and tightly tied to this micro-action."
+                    }},
+                    "interaction": {{
+                        "description": "Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded. NOTE: Do NOT output tools/materials/hotspot; interaction MUST contain ONLY description/affordance_type/mechanism.",
+                        "affordance_type": "One snake_case token describing this region's functional role (e.g., grasp_point, pressing_surface, contact_surface).",
+                        "mechanism": "Brief physical mechanism: how interaction at this region achieves the micro-action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
+                    }}
+                }},
                 {{
-                "object_name": "snake_case_entity",
-                "affordance_types": ["snake_case_affordance_or_state_token"],
-                "reasons": "Grounded justification referencing visible cues + why this affordance/state is required at/just before this moment (no speculation)."
-                }}
-            ],
-            "causal_effect_on_spatial": [
-                {{
-                "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
-                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-                "truth": true
-                }}
-            ],
-            "causal_effect_on_affordance": [
-                {{
-                "object_name": "snake_case_entity",
-                "affordance_types": ["snake_case_affordance_or_state_token"],
-                "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
+                    "action_state_change_description": "Key moment 2 (later in time than Key moment 1; NOT limited to initiation/completion): describe the micro-action at this moment and the key state that begins changing, with discriminative contacts/spatial relations/orientation/open-closed cues; objective and grounded in visual evidence; no frame/time references.",
+                    "causal_chain": {{
+                        "causal_precondition_on_spatial": "A single JSON string listing DETAILED spatial preconditions TRUE AT this key moment as numbered points. Formatting rules: numbered '1. ', '2. ', ...; separate points using escaped '\\n' inside the string; each numbered line may contain multiple sentences but MUST end with '.' (mandatory); each line must be complete, objective, and tightly tied to this key moment.",
+                        "causal_precondition_on_affordance": "A single JSON string listing DETAILED affordance/state preconditions REQUIRED AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+                        "causal_effect_on_spatial": "A single JSON string listing PREDICTED immediate, local spatial effects right AFTER the micro-action implied by action_state_change_description completes (short-term/local post-action prediction; not necessarily currently visible). Formatting rules: numbered lines; separated by escaped '\\n' inside the string; each numbered line may contain multiple sentences but MUST end with '.' (mandatory); each line must be physically grounded and tightly tied to this micro-action.",
+                        "causal_effect_on_affordance": "A single JSON string listing PREDICTED immediate, local affordance/state effects right AFTER that micro-action completes (short-term/local post-action prediction; not necessarily currently visible). Formatting rules: numbered lines; separated by escaped '\\n' inside the string; each numbered line may contain multiple sentences but MUST end with '.' (mandatory); each line must be physically grounded and tightly tied to this micro-action."
+                    }},
+                    "interaction": {{
+                        "description": "Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded. NOTE: Do NOT output tools/materials/hotspot; interaction MUST contain ONLY description/affordance_type/mechanism.",
+                        "affordance_type": "One snake_case token describing this region's functional role (e.g., grasp_point, pressing_surface, contact_surface).",
+                        "mechanism": "Brief physical mechanism: how interaction at this region achieves the micro-action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
+                    }}
                 }}
             ]
-            }},
-            "interaction": {{
-            "tools": ["hands"],
-            "materials": ["snake_case_patient_object"],
-            "hotspot": {{
-                "description": "Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded.",
-                "affordance_type": "One snake_case token describing the hotspot's functional role (e.g., grasp_point, cutting_edge, pour_spout).",
-                "mechanism": "Brief physical mechanism: how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
-            }}
-            }}
-        }},
-        {{
-                "action_state_change_description": "Completion: describe the achieved visible state change at the end of the step (what is now true/false; resulting contacts/containment/alignment/open-closed changes), grounded and concrete; stick to visible evidence; no frame/time references.",
-            "causal_chain": {{
-            "agent": "MUST match the step-level causal_chain.agent exactly (copy verbatim).",
-            "action": "MUST match the step-level causal_chain.action exactly (copy verbatim).",
-            "patient": "MUST match the step-level causal_chain.patient exactly (copy verbatim).",
-            "causal_precondition_on_spatial": [
-                {{
-                "relation": "Short, concrete, visually verifiable token describing what is true at/just before this moment (contacts, containment, support, alignment, open/closed, etc.).",
-                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-                "truth": true
-                }}
-            ],
-            "causal_precondition_on_affordance": [
-                {{
-                "object_name": "snake_case_entity",
-                "affordance_types": ["snake_case_affordance_or_state_token"],
-                "reasons": "Grounded justification referencing visible cues + why this affordance/state is required at/just before this moment (no speculation)."
-                }}
-            ],
-            "causal_effect_on_spatial": [
-                {{
-                "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
-                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-                "truth": true
-                }}
-            ],
-            "causal_effect_on_affordance": [
-                {{
-                "object_name": "snake_case_entity",
-                "affordance_types": ["snake_case_affordance_or_state_token"],
-                "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
-                }}
-            ]
-            }},
-            "interaction": {{
-            "tools": ["hands"],
-            "materials": ["snake_case_patient_object"],
-            "hotspot": {{
-                "description": "Specific functional region involved (e.g., edge, handle, rim, hinge); keep it concrete and visually grounded.",
-                "affordance_type": "One snake_case token describing the hotspot's functional role (e.g., contact_surface, grasp_point, pressing_surface).",
-                "mechanism": "Brief physical mechanism: how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
-            }}
-            }}
         }}
-        ]
-    }}
     ]
 }}
 
@@ -641,18 +545,19 @@ Your response MUST be a single, syntactically flawless JSON object. No extra tex
 
 1.  **Extreme Detail and Objectivity:** Every description must be highly detailed, objective, and grounded in visual evidence.
 2.  **Scientific Causal Reasoning:** All fields within `causal_chain` MUST be plausible and consistent with the principles of physics and dynamics.
-3.  **Focus on the Critical Frame:** In each `critical_frames[*]`, `causal_chain.causal_precondition_on_spatial` and `causal_chain.causal_precondition_on_affordance` MUST comprehensively describe the state of the world **in that specific frame**. Preconditions must be highly detailed and mechanistic (contact type, alignment/pose, support, containment, relative positioning, occlusion, reachability/hand-object coupling).
-4.  **Principle of Pivotal Moments & Each Step with Multiple Critical Frames:** Each `step` MUST contain exactly 2 `critical_frames` (initiation → completion) that represent meaningful temporal progression.
+3.  **Focus on the Key Moment:** In each `critical_frames[*]`, `causal_chain.causal_precondition_on_spatial` and `causal_chain.causal_precondition_on_affordance` MUST comprehensively describe the state of the world TRUE AT that specific key moment. In each `critical_frames[*]`, `causal_chain.causal_effect_on_spatial` and `causal_chain.causal_effect_on_affordance` MUST describe the PREDICTED immediate, local post-action effects right after the micro-action implied by `action_state_change_description` completes (short-term/local; not necessarily currently visible).
+4.  **Key Moments & Exactly Two Critical Frames:** Each `step` MUST contain exactly 2 `critical_frames`, ordered in time (Key moment 1 earlier than Key moment 2). These are the two most causally important, visually anchorable, representative moments within the step (NOT limited to initiation/completion).
 5.  **Infer Dynamics from a Snapshot:** Your descriptions must infer motion, force, and consequence from a single, static key frame.
 6.  **Complete All Fields:** Ensure every single textual field in the schema is filled with a meaningful and accurate value (except `critical_frames[*].frame_index`, which is selected in Stage 2).
-7.  **Critical Frames :** In this Stage 1 planning phase, DO NOT include any image references or frame indices in the JSON. In particular, OMIT `critical_frames[*].frame_index` and do NOT output `keyframe_image_path` anywhere. Only provide the textual fields for each `critical_frames[*]` entry (`action_state_change_description`, `causal_chain`, `interaction`). Frame selection happens later.
+7.  **Critical Frames :** In this Stage 1 planning phase, DO NOT include any image references or frame indices in the JSON. In particular, OMIT `critical_frames[*].frame_index` and do NOT output `keyframe_image_path` anywhere. Only provide the textual fields for each `critical_frames[*]` entry (`action_state_change_description`, `causal_chain`, `interaction`). Frame selection happens later in Stage 2, where `frame_index` is 1-based in [1, {num_frames}].
 8.  **Grounding & Non‑Hallucination:** Base all facts strictly on what is visible in the provided frames. Do not invent objects, brands, or states that are not visually supported. If uncertain, use generic terms (e.g., "container", "bottle").
 9.  **Consistency Requirement:** Use consistent object names across steps and frames (e.g., do not switch between "pan" and "tray" unless you are sure they are different). Prefer a stable canonical name.
-10. **JSON Structure is Paramount:** Adhere strictly to the schema. In each `critical_frames[*]`, `interaction` is a sibling of `causal_chain`, and `interaction.hotspot` is inside `interaction` (NOT inside `causal_chain`).
-11. **High requirements for planning:** The overall plan must be detailed and comprehensive, representing all events implied by the frames. Each sub-step must be specific and detailed.
-12. **Step with fine granularity:** If a frame implies multiple micro-events, split them into separate sub-steps. Each step should be precise, not a broad summary.
-13. **The completeness of the plan and the detail of the sub-plans:** It is essential to ensure that the planning and labeling is a comprehensive plan encompassing all provided images. The sub-steps should be detailed, thorough, and logically structured, so that when combined, they present a complete plan comprised of all images.
-14. **Principle of Visual Anchorability:** While you are not selecting frames now, every critical_frame you describe must correspond to a visually distinct and unambiguous moment. Your descriptions should be "anchor-able" to a plausible visual snapshot. Do not describe events that are inherently invisible or highly ambiguous from a third-person perspective.
+10. **JSON Structure is Paramount:** Adhere strictly to the schema. In each `critical_frames[*]`, `interaction` is a sibling of `causal_chain`. `interaction` MUST contain ONLY `description`, `affordance_type`, and `mechanism` (do NOT output tools/materials/hotspot and do NOT nest a `hotspot` object). In each `critical_frames[*]`, `causal_chain` MUST contain ONLY the 4 textual fields (`causal_precondition_on_spatial`, `causal_precondition_on_affordance`, `causal_effect_on_spatial`, `causal_effect_on_affordance`) and MUST NOT include `agent`/`action`/`patient`.
+11. **Causal Text Formatting is Mandatory:** For every `causal_*` field (both step-level and frame-level), output a single JSON string with numbered points using `1. ...`, `2. ...`, etc. Separate points inside the string using the escaped sequence `\\n` (no raw newlines inside a JSON string). Each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory). Avoid overly short or generic fragments; each line must be a complete, objective statement tightly tied to the current step or key moment.
+12. **High requirements for planning:** The overall plan must be detailed and comprehensive, representing all events implied by the frames. Each sub-step must be specific and detailed.
+13. **Step with fine granularity:** If a frame implies multiple micro-events, split them into separate sub-steps. Each step should be precise, not a broad summary.
+14. **The completeness of the plan and the detail of the sub-plans:** It is essential to ensure that the planning and labeling is a comprehensive plan encompassing all provided images. The sub-steps should be detailed, thorough, and logically structured, so that when combined, they present a complete plan comprised of all images.
+15. **Principle of Visual Anchorability:** While you are not selecting frames now, every critical_frame you describe must correspond to a visually distinct and unambiguous moment. Your descriptions should be "anchor-able" to a plausible visual snapshot. Do not describe events that are inherently invisible or highly ambiguous from a third-person perspective.
 ---
 
 TEMPORAL ALIGNMENT REQUIREMENTS (DO NOT IGNORE):
@@ -666,6 +571,355 @@ Now, based on the uniformly sampled frames I have provided from a continuous vid
 # ==============================================================================
 # === 5. MAIN EXECUTION LOGIC ==================================================
 # ==============================================================================
+
+def _coerce_json_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        s = value.strip().lower()
+        if s in ("true", "t", "yes", "y", "1"):
+            return True
+        if s in ("false", "f", "no", "n", "0", ""):
+            return False
+    return False
+
+
+_LEADING_LIST_MARKER_RE = re.compile(r"^\s*(?:[-*•]|\\u2022)\s+")
+_LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[\.\)、]\s*")
+
+
+def _normalize_numbered_statement_block(text: str) -> str:
+    """Normalize a multi-line text block into '1. ...' numbered statements.
+
+    - Each statement occupies one line.
+    - Lines are re-numbered sequentially starting from 1.
+    - Each numbered line MUST end with '.'.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+
+    # If a model output included literal "\\n" sequences, convert them into real newlines.
+    raw = raw.replace("\\n", "\n")
+
+    lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+    if not lines:
+        lines = [raw]
+
+    normalized: List[str] = []
+    for i, line in enumerate(lines, start=1):
+        line = _LEADING_LIST_MARKER_RE.sub("", line)
+        line = _LEADING_NUMBER_RE.sub("", line)
+        line = line.strip()
+        if not line:
+            continue
+        if not line.endswith("."):
+            line = f"{line}."
+        normalized.append(f"{i}. {line}")
+    return "\n".join(normalized)
+
+
+def _spatial_item_to_statement(item: Any) -> str:
+    if isinstance(item, str):
+        return item.strip()
+    if isinstance(item, dict):
+        relation = str(item.get("relation", "")).strip()
+        objects = item.get("objects", [])
+        if not isinstance(objects, list):
+            objects = []
+        objects = [str(o).strip() for o in objects if str(o).strip()]
+        truth = _coerce_json_bool(item.get("truth", True))
+        rel = relation or "unspecified_relation"
+        if objects:
+            objs = ", ".join(objects)
+            return f"Relation '{rel}' {'holds' if truth else 'does not hold'} between {objs}."
+        return f"Relation '{rel}' {'holds' if truth else 'does not hold'}."
+    return _coerce_str(item).strip()
+
+
+def _affordance_item_to_statement(item: Any) -> str:
+    if isinstance(item, str):
+        return item.strip()
+    if isinstance(item, dict):
+        object_name = str(item.get("object_name", "")).strip()
+        affordance_types = item.get("affordance_types", [])
+        if not isinstance(affordance_types, list):
+            affordance_types = []
+        affordance_types = [str(a).strip() for a in affordance_types if str(a).strip()]
+        reasons = str(item.get("reasons", "")).strip()
+
+        obj = object_name or "unspecified_object"
+        aff = ", ".join(affordance_types) if affordance_types else "unspecified_affordance"
+        if reasons:
+            return f"The object {obj} has affordance/state {aff}. {reasons}"
+        return f"The object {obj} has affordance/state {aff}."
+    return _coerce_str(item).strip()
+
+
+def _normalize_causal_text(value: Any, *, kind: str) -> str:
+    """Normalize a causal_* field into a numbered statement block string.
+
+    Supports:
+    - New schema: a single string with numbered points.
+    - Legacy schema: a list of structured dicts for spatial/affordance.
+    """
+    if isinstance(value, list):
+        if kind == "spatial":
+            statements = [_spatial_item_to_statement(v) for v in value]
+        else:
+            statements = [_affordance_item_to_statement(v) for v in value]
+        # Join as lines, then normalize numbering/periods.
+        return _normalize_numbered_statement_block("\n".join(s for s in statements if s))
+
+    if isinstance(value, dict):
+        if kind == "spatial":
+            stmt = _spatial_item_to_statement(value)
+        else:
+            stmt = _affordance_item_to_statement(value)
+        return _normalize_numbered_statement_block(stmt)
+
+    return _normalize_numbered_statement_block(_coerce_str(value))
+
+
+def _normalize_interaction(interaction: Any) -> Dict[str, str]:
+    """Normalize keyframe interaction into flattened schema with 3 keys."""
+    if not isinstance(interaction, dict):
+        interaction = {}
+    hotspot = interaction.get("hotspot", {}) if isinstance(interaction.get("hotspot"), dict) else {}
+    description = interaction.get("description") or hotspot.get("description") or ""
+    affordance_type = interaction.get("affordance_type") or hotspot.get("affordance_type") or ""
+    mechanism = interaction.get("mechanism") or hotspot.get("mechanism") or ""
+    return {
+        "description": str(description),
+        "affordance_type": str(affordance_type),
+        "mechanism": str(mechanism),
+    }
+
+
+def _normalize_step_causal_chain(causal_chain: Any) -> Dict[str, Any]:
+    if not isinstance(causal_chain, dict):
+        causal_chain = {}
+    return {
+        "agent": str(causal_chain.get("agent", "")),
+        "action": str(causal_chain.get("action", "")),
+        "patient": str(causal_chain.get("patient", "")),
+        "causal_precondition_on_spatial": _normalize_causal_text(
+            causal_chain.get("causal_precondition_on_spatial"), kind="spatial"
+        ),
+        "causal_precondition_on_affordance": _normalize_causal_text(
+            causal_chain.get("causal_precondition_on_affordance"), kind="affordance"
+        ),
+        "causal_effect_on_spatial": _normalize_causal_text(causal_chain.get("causal_effect_on_spatial"), kind="spatial"),
+        "causal_effect_on_affordance": _normalize_causal_text(
+            causal_chain.get("causal_effect_on_affordance"), kind="affordance"
+        ),
+    }
+
+
+def _normalize_frame_causal_chain(causal_chain: Any) -> Dict[str, Any]:
+    if not isinstance(causal_chain, dict):
+        causal_chain = {}
+    # Remove prohibited keys if present (legacy outputs).
+    causal_chain = {k: v for k, v in causal_chain.items() if k not in ("agent", "action", "patient")}
+    return {
+        "causal_precondition_on_spatial": _normalize_causal_text(
+            causal_chain.get("causal_precondition_on_spatial"), kind="spatial"
+        ),
+        "causal_precondition_on_affordance": _normalize_causal_text(
+            causal_chain.get("causal_precondition_on_affordance"), kind="affordance"
+        ),
+        "causal_effect_on_spatial": _normalize_causal_text(causal_chain.get("causal_effect_on_spatial"), kind="spatial"),
+        "causal_effect_on_affordance": _normalize_causal_text(
+            causal_chain.get("causal_effect_on_affordance"), kind="affordance"
+        ),
+    }
+
+
+def _normalize_plan_schema(plan: Any) -> Dict[str, Any]:
+    """Normalize a plan dict into the latest schema while preserving semantics.
+
+    This makes Stage 2 robust to legacy/partially-noncompliant Stage 1 outputs and
+    enforces key schema invariants to protect final dataset quality.
+    """
+    if not isinstance(plan, dict):
+        raise ValueError("Plan must be a JSON object.")
+
+    high_level_goal = str(plan.get("high_level_goal", "")).strip()
+    if not high_level_goal:
+        raise ValueError("Missing or empty 'high_level_goal'.")
+    _assert_no_disallowed_refs(high_level_goal, label="high_level_goal")
+
+    steps = plan.get("steps", [])
+    if not isinstance(steps, list):
+        raise ValueError("'steps' must be a list.")
+
+    normalized_steps: List[Dict[str, Any]] = []
+    seen_step_ids: set[int] = set()
+    for raw_step in steps:
+        if not isinstance(raw_step, dict):
+            continue
+
+        raw_step_id = raw_step.get("step_id", 0)
+        try:
+            step_id = int(raw_step_id)
+        except Exception:
+            step_id = 0
+        if step_id <= 0:
+            raise ValueError(f"Invalid step_id={raw_step_id!r}. step_id must be a positive integer (>= 1).")
+        if step_id in seen_step_ids:
+            raise ValueError(f"Duplicate step_id detected: {step_id}. step_id values must be unique.")
+        seen_step_ids.add(step_id)
+
+        step_goal = str(raw_step.get("step_goal", "")).strip()
+        rationale = str(raw_step.get("rationale", "")).strip()
+        counterfactual_q = str(raw_step.get("counterfactual_challenge_question", "")).strip()
+        expected_outcome = str(raw_step.get("expected_challenge_outcome", "")).strip()
+
+        failure_reflecting = raw_step.get("failure_reflecting", {})
+        if not isinstance(failure_reflecting, dict):
+            failure_reflecting = {}
+        failure_reason = str(failure_reflecting.get("reason", "")).strip()
+        recovery_strategy = str(failure_reflecting.get("recovery_strategy", "")).strip()
+
+        cfs = raw_step.get("critical_frames", [])
+        if not isinstance(cfs, list):
+            raise ValueError(f"step_id={step_id} critical_frames must be a list.")
+        if len(cfs) != 2:
+            raise ValueError(f"step_id={step_id} must contain exactly 2 critical_frames, got {len(cfs)}.")
+
+        normalized_cfs: List[Dict[str, Any]] = []
+        for cf in cfs:
+            if not isinstance(cf, dict):
+                cf = {}
+            normalized_cfs.append(
+                {
+                    "action_state_change_description": str(cf.get("action_state_change_description", "")).strip(),
+                    "causal_chain": _normalize_frame_causal_chain(cf.get("causal_chain", {})),
+                    "interaction": _normalize_interaction(cf.get("interaction", {})),
+                }
+            )
+
+        normalized_step = {
+            "step_id": step_id,
+            "step_goal": step_goal,
+            "rationale": rationale,
+            "causal_chain": _normalize_step_causal_chain(raw_step.get("causal_chain", {})),
+            "counterfactual_challenge_question": counterfactual_q,
+            "expected_challenge_outcome": expected_outcome,
+            "failure_reflecting": {
+                "reason": failure_reason,
+                "recovery_strategy": recovery_strategy,
+            },
+            "critical_frames": normalized_cfs,
+        }
+
+        # Enforce required textual fields are present (quality gate).
+        required_str_fields = [
+            ("step_goal", normalized_step["step_goal"]),
+            ("rationale", normalized_step["rationale"]),
+            ("counterfactual_challenge_question", normalized_step["counterfactual_challenge_question"]),
+            ("expected_challenge_outcome", normalized_step["expected_challenge_outcome"]),
+            ("failure_reflecting.reason", normalized_step["failure_reflecting"]["reason"]),
+            ("failure_reflecting.recovery_strategy", normalized_step["failure_reflecting"]["recovery_strategy"]),
+            ("causal_chain.agent", normalized_step["causal_chain"]["agent"]),
+            ("causal_chain.action", normalized_step["causal_chain"]["action"]),
+            ("causal_chain.patient", normalized_step["causal_chain"]["patient"]),
+            ("causal_chain.causal_precondition_on_spatial", normalized_step["causal_chain"]["causal_precondition_on_spatial"]),
+            (
+                "causal_chain.causal_precondition_on_affordance",
+                normalized_step["causal_chain"]["causal_precondition_on_affordance"],
+            ),
+            ("causal_chain.causal_effect_on_spatial", normalized_step["causal_chain"]["causal_effect_on_spatial"]),
+            ("causal_chain.causal_effect_on_affordance", normalized_step["causal_chain"]["causal_effect_on_affordance"]),
+        ]
+        for name, value in required_str_fields:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"step_id={step_id} missing or empty required field: {name}")
+        if not normalized_step["counterfactual_challenge_question"].lstrip().lower().startswith("what if"):
+            raise ValueError(
+                f"step_id={step_id} counterfactual_challenge_question must start with 'What if ...?'."
+            )
+
+        _assert_no_disallowed_refs(normalized_step["step_goal"], label=f"step_id={step_id} step_goal")
+        _assert_no_disallowed_refs(normalized_step["rationale"], label=f"step_id={step_id} rationale")
+        _assert_no_disallowed_refs(
+            normalized_step["counterfactual_challenge_question"],
+            label=f"step_id={step_id} counterfactual_challenge_question",
+        )
+        _assert_no_disallowed_refs(
+            normalized_step["expected_challenge_outcome"],
+            label=f"step_id={step_id} expected_challenge_outcome",
+        )
+        _assert_no_disallowed_refs(
+            normalized_step["failure_reflecting"]["reason"],
+            label=f"step_id={step_id} failure_reflecting.reason",
+        )
+        _assert_no_disallowed_refs(
+            normalized_step["failure_reflecting"]["recovery_strategy"],
+            label=f"step_id={step_id} failure_reflecting.recovery_strategy",
+        )
+
+        step_cc = normalized_step["causal_chain"]
+        _assert_no_disallowed_refs(step_cc["agent"], label=f"step_id={step_id} causal_chain.agent")
+        _assert_no_disallowed_refs(step_cc["action"], label=f"step_id={step_id} causal_chain.action")
+        _assert_no_disallowed_refs(step_cc["patient"], label=f"step_id={step_id} causal_chain.patient")
+        _assert_no_disallowed_refs(
+            step_cc["causal_precondition_on_spatial"],
+            label=f"step_id={step_id} causal_chain.causal_precondition_on_spatial",
+        )
+        _assert_no_disallowed_refs(
+            step_cc["causal_precondition_on_affordance"],
+            label=f"step_id={step_id} causal_chain.causal_precondition_on_affordance",
+        )
+        _assert_no_disallowed_refs(
+            step_cc["causal_effect_on_spatial"],
+            label=f"step_id={step_id} causal_chain.causal_effect_on_spatial",
+        )
+        _assert_no_disallowed_refs(
+            step_cc["causal_effect_on_affordance"],
+            label=f"step_id={step_id} causal_chain.causal_effect_on_affordance",
+        )
+
+        for i, cf in enumerate(normalized_step["critical_frames"], start=1):
+            if not cf.get("action_state_change_description"):
+                raise ValueError(f"step_id={step_id} critical_frames[{i}] missing action_state_change_description.")
+            _assert_no_disallowed_refs(
+                cf.get("action_state_change_description", ""),
+                label=f"step_id={step_id} critical_frames[{i}].action_state_change_description",
+            )
+            intr = cf.get("interaction", {})
+            if not isinstance(intr, dict):
+                raise ValueError(f"step_id={step_id} critical_frames[{i}] interaction must be an object.")
+            for k in ("description", "affordance_type", "mechanism"):
+                if not str(intr.get(k, "")).strip():
+                    raise ValueError(f"step_id={step_id} critical_frames[{i}] interaction.{k} is empty.")
+                _assert_no_disallowed_refs(
+                    intr.get(k, ""),
+                    label=f"step_id={step_id} critical_frames[{i}].interaction.{k}",
+                )
+            chain = cf.get("causal_chain", {})
+            for k in (
+                "causal_precondition_on_spatial",
+                "causal_precondition_on_affordance",
+                "causal_effect_on_spatial",
+                "causal_effect_on_affordance",
+            ):
+                if not str(chain.get(k, "")).strip():
+                    raise ValueError(f"step_id={step_id} critical_frames[{i}] causal_chain.{k} is empty.")
+                _assert_no_disallowed_refs(
+                    chain.get(k, ""),
+                    label=f"step_id={step_id} critical_frames[{i}].causal_chain.{k}",
+                )
+
+        normalized_steps.append(normalized_step)
+
+    if not normalized_steps:
+        raise ValueError("No valid steps found in plan.")
+
+    return {"high_level_goal": high_level_goal, "steps": normalized_steps}
+
 
 def _filter_plan_remove_keyframe_fields(plan: Dict[str, Any]) -> Dict[str, Any]:
     """Return a deep-copied plan with keyframe-specific fields removed.
@@ -699,22 +953,27 @@ You are an expert vision-time alignment assistant. Your task is to select, with 
 Treat the frames as the ONLY source of truth. If the plan text conflicts with visual evidence, still select the closest plausible frame, but never select indices that contradict the image (missing required objects/contact) when an alternative exists.
 
 Match Criteria (apply all rigorously):
-- Treat each critical frame's fields as conjunctive constraints: action_state_change_description, causal_chain (including spatial/affordance relations), and interaction (tools/materials/hotspot) must all be simultaneously consistent with the chosen image.
-- Prefer frames that visually satisfy the full conjunction of relations (objects present, contacts, relative positions, open/closed states), not just partial matches.
-- If multiple frames plausibly match, choose the one with the strongest overall alignment. If ties remain, choose the earliest index.
-- Within a step containing multiple critical frames, enforce non-decreasing indices that reflect micro-temporal progression (e.g., grasp -> lift -> insert).
+- Treat each critical frame's fields as conjunctive constraints:
+  - `action_state_change_description` must match the visible micro-action and discriminative contacts/orientation/open-closed cues in the image.
+  - `critical_frames[*].causal_chain.causal_precondition_on_spatial` and `critical_frames[*].causal_chain.causal_precondition_on_affordance` contain numbered natural-language points; each point is a required precondition that MUST be visually consistent with the chosen image.
+  - `critical_frames[*].interaction` contains ONLY `description` / `affordance_type` / `mechanism`; the chosen image should match the described functional region and the implied physical mechanism.
+- `critical_frames[*].causal_chain.causal_effect_on_spatial` and `critical_frames[*].causal_chain.causal_effect_on_affordance` are predicted immediate/local post-action effects after the micro-action completes; they may NOT be visible yet. Use them only as a plausibility and temporal-consistency check, not as a hard visual constraint.
+- Prefer frames that best satisfy the preconditions AND most clearly depict the micro-action itself (clear contact, pose, alignment, and intent).
+- If multiple frames plausibly match, choose the one with the strongest overall alignment. If ties remain, choose the earliest index that does not violate any other constraint.
+- Within a step containing multiple critical frames, enforce STRICTLY increasing indices (Key moment 1 frame_index < Key moment 2 frame_index). The two selected frames MUST be different.
 - Across steps, respect macro-temporal order: earlier steps should correspond to earlier indices when plausible.
 
 Required Procedure (do not skip):
 1) Systematically scan all {num_frames} images to identify candidate indices per critical frame.
-2) For each candidate, check every listed relation and affordance implication for visual plausibility.
-3) Select the index with maximal constraint satisfaction; break ties by earliest index.
+2) For each candidate, check every listed precondition point for visual plausibility, and verify the micro-action cues and interaction region are consistent.
+3) Use the predicted post-action effects only as a plausibility check to break ties (e.g., whether the next immediate state change is physically consistent with the scene).
+4) Select the index with maximal constraint satisfaction; break ties by earliest index.
 
 Internal QA (proofreading) — perform silently before output:
 - Pre-filter: Disqualify frames missing required objects or blatant contradictions (e.g., door must be open/closed, contact required but absent).
-- Constraint checklist: For each remaining candidate, tick off each spatial relation (above, inside, contact, orientation) and affordance implication (support surface, graspable, openable) as satisfied/unsatisfied.
-- Causal alignment: Verify dynamic cues consistent with the causal_chain (e.g., grasp vs. lift vs. insert) using posture, relative motion hints, and context.
-- Consistency pass: Ensure indices within a step are non-decreasing; across steps, prefer earlier indices for earlier steps. If a violation is detected, re-evaluate candidates to restore temporal consistency.
+- Constraint checklist: For each remaining candidate, tick off each numbered precondition point (spatial + affordance/state) as satisfied/unsatisfied, and check interaction region/mechanism plausibility.
+- Causal alignment: Verify dynamic cues consistent with the micro-action described in `action_state_change_description` (e.g., grasp vs. lift vs. insert) using posture, relative motion hints, and context.
+- Consistency pass: Ensure indices within a step are strictly increasing (Key moment 1 < Key moment 2); across steps, prefer earlier indices for earlier steps. If a violation is detected, re-evaluate candidates to restore temporal consistency.
 - Final sanity pass: If two candidates are near-equal, prefer the one satisfying more constraints; if still tied, choose the earliest index.
 
 Strictness:
@@ -806,8 +1065,8 @@ def _parse_stage2_selections(sel_data: Any, steps_data: List[Dict[str, Any]], nu
                     f"Stage 2 step_id={expected_sid} frame_index out of range: {idx} (expected 1..{num_frames})."
                 )
         for i in range(1, len(idxs)):
-            if idxs[i] < idxs[i - 1]:
-                raise ValueError(f"Stage 2 step_id={expected_sid} indices must be non-decreasing: {idxs}.")
+            if idxs[i] <= idxs[i - 1]:
+                raise ValueError(f"Stage 2 step_id={expected_sid} indices must be strictly increasing: {idxs}.")
 
         selections[expected_sid] = idxs
 
@@ -879,8 +1138,14 @@ def process_single_video(video_file_path: str):
         print("\n>>> [INFO] Building API request payload (Stage 1: plan only)...")
         try:
             user_prompt = create_planning_user_prompt(len(sampled_frames), original_dims)
-            # Build content with an index manifest and 1-based per-image markers
-            user_content = [{"type": "text", "text": user_prompt}] + build_api_content(sampled_frames, getattr(PLANNING_CONFIG, 'EMBED_INDEX_ON_API_IMAGES', True))
+            # Stage 1 should avoid any frame index/timestamp artifacts in inputs to reduce the chance
+            # of the model echoing them in text fields (which is forbidden by schema).
+            user_content = [{"type": "text", "text": user_prompt}] + build_api_content(
+                sampled_frames,
+                embed_index=False,
+                include_manifest=False,
+                include_frame_labels=False,
+            )
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content}
@@ -890,94 +1155,123 @@ def process_single_video(video_file_path: str):
             print(f"!!! [FATAL] Failed to build API request: {e}")
             return
 
-        try:
-            print(f"\n>>> [INFO] Sending request to model '{PLANNING_CONFIG.MODEL_NAME}' (Stage 1)...")
-            start_time = time.time()
-            response = planning_client.chat.completions.create(model=PLANNING_CONFIG.MODEL_NAME, messages=messages, max_tokens=30000)
-            end_time = time.time()
+        stage1_retries = int(os.environ.get("STAGE1_RETRIES", "3"))
+        stage1_base_delay = float(os.environ.get("STAGE1_RETRY_DELAY_SEC", "3"))
+        stage1_max_tokens = int(os.environ.get("STAGE1_MAX_TOKENS", "30000"))
+        raw_stage1_path = os.path.join(video_output_folder, "stage1_raw_response.txt")
+        last_err: Optional[Exception] = None
+        last_content: str = ""
 
-            if not (response and response.choices and len(response.choices) > 0):
-                print("!!! [ERROR] API response is invalid or does not contain any 'choices'.")
-                if response:
-                    print(">>> [DEBUG] Full invalid response object:", response)
-                return
-            first_choice = response.choices[0]
-            if not hasattr(first_choice, 'message') or not hasattr(first_choice.message, 'content'):
-                print("!!! [ERROR] The first choice object is missing 'message' or 'content' attributes.")
-                print(">>> [DEBUG] First choice object:", first_choice)
-                return
-            response_content = first_choice.message.content
-            if PLANNING_CONFIG.VERBOSE_LOGGING and response_content:
-                print("\n>>> [DEBUG] Raw API Response Content (Stage 1):")
-                print(response_content)
-            print(f">>> [SUCCESS] Stage 1 API call in {end_time - start_time:.2f}s.")
-        except Exception as e:
-            print(f"\n!!! [FATAL] API call error (Stage 1): {e}")
-            import traceback
-            traceback.print_exc()
-            return
+        for attempt in range(1, stage1_retries + 1):
+            try:
+                print(
+                    f"\n>>> [INFO] Sending request to model '{PLANNING_CONFIG.MODEL_NAME}' (Stage 1) "
+                    f"attempt {attempt}/{stage1_retries}..."
+                )
+                start_time = time.time()
+                response = planning_client.chat.completions.create(
+                    model=PLANNING_CONFIG.MODEL_NAME,
+                    messages=messages,
+                    max_tokens=stage1_max_tokens,
+                )
+                end_time = time.time()
 
-        if not response_content:
-            print("\n!!! [ERROR] No content extracted from API response (Stage 1).")
-            return
+                if not (response and response.choices and len(response.choices) > 0):
+                    raise RuntimeError("API response is invalid or does not contain any 'choices'.")
+                first_choice = response.choices[0]
+                if not hasattr(first_choice, 'message') or not hasattr(first_choice.message, 'content'):
+                    raise RuntimeError("The first choice object is missing 'message' or 'content' attributes.")
 
-        # Parse and save plan without keyframe images and indices
-        try:
-            print("\n>>> [INFO] Parsing JSON response (Stage 1)...")
-            clean_json_string = extract_json_from_response(response_content)
-            plan_data = json.loads(clean_json_string)
+                response_content = first_choice.message.content
+                last_content = str(response_content or "")
+                try:
+                    with open(raw_stage1_path, "w", encoding="utf-8") as f:
+                        f.write(last_content)
+                except Exception:
+                    pass
 
-            high_level_goal = plan_data.get('high_level_goal', 'No Goal Provided')
-            steps_data = plan_data.get('steps', [])
-            print(f">>> [SUCCESS] JSON parsed. High-Level Goal: {high_level_goal}")
+                if PLANNING_CONFIG.VERBOSE_LOGGING and last_content:
+                    print("\n>>> [DEBUG] Raw API Response Content (Stage 1):")
+                    print(last_content)
+                print(f">>> [SUCCESS] Stage 1 API call in {end_time - start_time:.2f}s.")
 
-            print(f">>> [IO] Output folder: {video_output_folder}")
+                if not last_content:
+                    raise RuntimeError("No content extracted from API response (Stage 1).")
 
-            # Save plan without keyframe fields
-            final_plan_to_save = {
-                "high_level_goal": high_level_goal,
-                "steps": steps_data
-            }
-            filtered_plan = _filter_plan_remove_keyframe_fields(final_plan_to_save)
-            plan_json_path = os.path.join(video_output_folder, "causal_plan.json")
-            with open(plan_json_path, 'w', encoding='utf-8') as f:
-                json.dump(filtered_plan, f, indent=4, ensure_ascii=False)
-            print(f"\n>>> [SUCCESS] Stage 1 plan saved (no keyframe images/paths/indices) to: {plan_json_path}")
+                print("\n>>> [INFO] Parsing JSON response (Stage 1)...")
+                clean_json_string = extract_json_from_response(last_content)
+                plan_data = json.loads(clean_json_string)
 
-            run_summary = {
-                "source_video": os.path.basename(PLANNING_CONFIG.VIDEO_PATH),
-                "processing_timestamp_utc": datetime.utcnow().isoformat() + "Z",
-                "models_used": {
-                    "planning": PLANNING_CONFIG.MODEL_NAME,
-                    "selection": SELECTION_CONFIG.MODEL_NAME
-                },
-                "config_planning": asdict(PLANNING_CONFIG),
-                "config_selection": asdict(SELECTION_CONFIG),
-                "stages": ["plan_only", "frame_selection"]
-            }
-            summary_json_path = os.path.join(video_output_folder, "run_summary.json")
-            with open(summary_json_path, 'w', encoding='utf-8') as f:
-                json.dump(run_summary, f, indent=4, ensure_ascii=False)
-            print(f">>> [SUCCESS] Run summary saved to: {summary_json_path}")
+                normalized_plan = _normalize_plan_schema(
+                    {"high_level_goal": plan_data.get("high_level_goal"), "steps": plan_data.get("steps")}
+                )
+                high_level_goal = normalized_plan.get("high_level_goal", "No Goal Provided")
+                steps_data = normalized_plan.get("steps", [])
+                print(f">>> [SUCCESS] JSON parsed & normalized. High-Level Goal: {high_level_goal}")
 
-        except (json.JSONDecodeError, ValueError) as e:
-            print(f"\n!!! [FATAL] JSON Parsing Error: {e}")
-            error_log_path = os.path.join(PLANNING_CONFIG.OUTPUT_BASE_FOLDER, f"error_response_{video_filename_base}.txt")
+                print(f">>> [IO] Output folder: {video_output_folder}")
+
+                filtered_plan = _filter_plan_remove_keyframe_fields(normalized_plan)
+                plan_json_path = os.path.join(video_output_folder, "causal_plan.json")
+                with open(plan_json_path, 'w', encoding='utf-8') as f:
+                    json.dump(filtered_plan, f, indent=4, ensure_ascii=False)
+                print(f"\n>>> [SUCCESS] Stage 1 plan saved (no keyframe images/paths/indices) to: {plan_json_path}")
+
+                run_summary = {
+                    "source_video": os.path.basename(PLANNING_CONFIG.VIDEO_PATH),
+                    "processing_timestamp_utc": datetime.utcnow().isoformat() + "Z",
+                    "models_used": {
+                        "planning": PLANNING_CONFIG.MODEL_NAME,
+                        "selection": SELECTION_CONFIG.MODEL_NAME
+                    },
+                    "config_planning": asdict(PLANNING_CONFIG),
+                    "config_selection": asdict(SELECTION_CONFIG),
+                    "stages": ["plan_only", "frame_selection"]
+                }
+                summary_json_path = os.path.join(video_output_folder, "run_summary.json")
+                with open(summary_json_path, 'w', encoding='utf-8') as f:
+                    json.dump(run_summary, f, indent=4, ensure_ascii=False)
+                print(f">>> [SUCCESS] Run summary saved to: {summary_json_path}")
+                last_err = None
+                break
+            except (json.JSONDecodeError, ValueError, RuntimeError) as e:
+                last_err = e
+                if attempt >= stage1_retries:
+                    break
+                delay = stage1_base_delay * (2 ** (attempt - 1))
+                print(f"!!! [WARNING] Stage 1 failed (attempt {attempt}/{stage1_retries}): {e}")
+                print(f">>> [INFO] Retrying Stage 1 in {delay:.1f}s ...")
+                time.sleep(delay)
+            except Exception as e:
+                last_err = e
+                if attempt >= stage1_retries:
+                    break
+                delay = stage1_base_delay * (2 ** (attempt - 1))
+                print(f"!!! [WARNING] Stage 1 unexpected error (attempt {attempt}/{stage1_retries}): {e}")
+                print(f">>> [INFO] Retrying Stage 1 in {delay:.1f}s ...")
+                time.sleep(delay)
+
+        if last_err is not None or not filtered_plan:
+            print(f"\n!!! [FATAL] Stage 1 failed after {stage1_retries} attempts: {last_err}")
+            error_log_path = os.path.join(
+                PLANNING_CONFIG.OUTPUT_BASE_FOLDER, f"error_response_{video_filename_base}.txt"
+            )
             os.makedirs(PLANNING_CONFIG.OUTPUT_BASE_FOLDER, exist_ok=True)
-            with open(error_log_path, 'w', encoding='utf-8') as f:
-                if response_content:
-                    f.write(response_content)
-                else:
-                    f.write("Response content was empty or None.")
-            print(f">>> [INFO] Problematic response saved to: {error_log_path}")
+            try:
+                with open(error_log_path, 'w', encoding='utf-8') as f:
+                    f.write(last_content if last_content else str(last_err))
+                print(f">>> [INFO] Problematic response saved to: {error_log_path}")
+            except Exception as e:
+                print(f"!!! [WARNING] Failed to write error log: {e}")
             return
     else:
         # Resume Stage 2 using existing causal_plan.json
         try:
             with open(stage1_path, 'r', encoding='utf-8') as f:
                 filtered_plan = json.load(f)
-            high_level_goal = filtered_plan.get('high_level_goal', 'No Goal Provided')
-            steps_data = filtered_plan.get('steps', [])
+            filtered_plan = _normalize_plan_schema(filtered_plan)
+            high_level_goal = filtered_plan.get("high_level_goal", "No Goal Provided")
+            steps_data = filtered_plan.get("steps", [])
             print(f"\n>>> [INFO] Resume mode: Loaded existing Stage 1 plan from: {stage1_path}")
         except Exception as e:
             print(f"\n!!! [FATAL] Failed to load existing plan for resume: {e}")
@@ -988,8 +1282,12 @@ def process_single_video(video_file_path: str):
         print(">>> [INFO] Stage 2: Selecting frames based on saved plan...")
         plan_json_text = json.dumps(filtered_plan, ensure_ascii=False)
         sel_user_prompt = _create_frame_selection_prompt(plan_json_text, len(sampled_frames))
+        embed_index = bool(getattr(SELECTION_CONFIG, "EMBED_INDEX_ON_API_IMAGES", True))
         stage2_frames_content = build_api_content(
-            sampled_frames, getattr(SELECTION_CONFIG, "EMBED_INDEX_ON_API_IMAGES", True)
+            sampled_frames,
+            embed_index=embed_index,
+            include_manifest=True,
+            include_frame_labels=not embed_index,
         )
 
         selection_client = initialize_api_client(SELECTION_CONFIG)
@@ -1097,7 +1395,7 @@ def process_single_video(video_file_path: str):
                 critical_frame_annotations.append(
                     CriticalFrameAnnotation(
                         frame_index=chosen_idx1,
-                        causal_chain=_parse_causal_chain(frame.get('causal_chain', {})),
+                        causal_chain=_parse_frame_causal_chain(frame.get('causal_chain', {})),
                         interaction=_parse_interaction(frame.get('interaction', {})),
                         action_state_change_description=frame.get('action_state_change_description', '')
                     )
@@ -1121,7 +1419,7 @@ def process_single_video(video_file_path: str):
                 step_id=step_id,
                 step_goal=step_json.get('step_goal', ''),
                 rationale=step_json.get('rationale', ''),
-                causal_chain=_parse_causal_chain(step_json.get('causal_chain', {})),
+                causal_chain=_parse_step_causal_chain(step_json.get('causal_chain', {})),
                 counterfactual_challenge_question=step_json.get('counterfactual_challenge_question', ''),
                 expected_challenge_outcome=step_json.get('expected_challenge_outcome', ''),
                 failure_reflecting=failure_reflecting_obj,
