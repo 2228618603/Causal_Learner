@@ -1,7 +1,0 @@
-# Large generated media (do not commit)
-**/sampled_frames/**
-**/step_clips/**
-
-# Keep folder structure in git
-!**/sampled_frames/.gitkeep
-!**/step_clips/.gitkeep
