@@ -494,148 +494,148 @@ Treat the frames as the ONLY source of truth. Use conservative language when unc
 
 Your response MUST be a single, syntactically flawless JSON object. No extra text, no apologies, no explanations outside of the JSON structure. The JSON validity is a critical, non-negotiable part of the task.
 
-		**Detailed JSON Schema to Follow (output strict JSON; keep keys exactly; Stage 1 MUST omit `critical_frames[*].frame_index` and Stage 2 will add it):**
-		{{
-		  "high_level_goal": "One comprehensive English sentence describing the overall goal and intended final outcome of the entire video (final world state; do NOT list steps; do NOT mention frames/images/timestamps).",
-		  "steps": [
-		    {{
-		      "step_id": 1,
-		      "step_goal": "One concise English sentence describing the intended outcome of this step as a single atomic action (avoid 'and/then'; no multi-action conjunctions; no frame/time references).",
-		      "rationale": "1–2 grounded sentences explaining WHY this step is necessary: (a) what physical/spatial/affordance preconditions it assumes, and (b) what effects it establishes that enable later steps. Do NOT just restate step_goal.",
-		      "causal_chain": {{
-			        "agent": "Primary force/controller for the whole step (prefer body part like 'hands'/'left_hand'/'right_hand'; use tool part only if it is clearly the direct force applicator). Use one stable identifier, reuse it verbatim in the keyframes, and include it in `interaction.tools`.",
-		        "action": "Concise physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.",
-			        "patient": "Primary acted-on object identifier in snake_case. Keep naming consistent across all fields (do not rename the same object) and include it in `interaction.materials`.",
-		        "causal_precondition_on_spatial": [
-		          {{
-		            "relation": "Short, concrete, visually verifiable token (prefer mechanistic relations like 'holding', 'contacting', 'inside', 'on_top_of', 'aligned_with', 'open', 'closed'; avoid full sentences).",
-		            "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-		            "truth": true
-		          }}
-		        ],
-		        "causal_precondition_on_affordance": [
-		          {{
-		            "object_name": "snake_case_entity",
-		            "affordance_types": ["snake_case_affordance_or_state_token"],
-		            "reasons": "Grounded justification referencing visible cues + physical constraints/mechanism explaining why this affordance/state is required (no speculation)."
-		          }}
-		        ],
-		        "causal_effect_on_spatial": [
-		          {{
-		            "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
-		            "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-		            "truth": true
-		          }}
-		        ],
-		        "causal_effect_on_affordance": [
-		          {{
-		            "object_name": "snake_case_entity",
-		            "affordance_types": ["snake_case_affordance_or_state_token"],
-		            "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
-		          }}
-		        ]
-		      }},
-		      "counterfactual_challenge_question": "One realistic what-if question that could disrupt this step due to physics/constraints, grounded in the scene. Start with 'What if ...?'. Do NOT mention frames/images/timestamps.",
-		      "expected_challenge_outcome": "Predicted physical outcome if that challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).",
-		      "failure_reflecting": {{
-		        "reason": "Most plausible failure mode for this step (physical/interaction reason), grounded in what is visible (avoid invisible/unknown causes).",
-		        "recovery_strategy": "A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects)."
-		      }},
-		      "critical_frames": [
-		        {{
-			          "action_state_change_description": "Initiation: describe the visible onset of the action and the key state that begins changing (name objects; include discriminative contacts/spatial relations/orientation/open-closed cues; stick to visible evidence; no frame/time references).",
-		          "causal_chain": {{
-		            "agent": "MUST match the step-level causal_chain.agent exactly (copy verbatim).",
-		            "action": "MUST match the step-level causal_chain.action exactly (copy verbatim).",
-		            "patient": "MUST match the step-level causal_chain.patient exactly (copy verbatim).",
-		            "causal_precondition_on_spatial": [
-		              {{
-		                "relation": "Short, concrete, visually verifiable token describing what is true at/just before this moment (contacts, containment, support, alignment, open/closed, etc.).",
-		                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-		                "truth": true
-		              }}
-		            ],
-		            "causal_precondition_on_affordance": [
-		              {{
-		                "object_name": "snake_case_entity",
-		                "affordance_types": ["snake_case_affordance_or_state_token"],
-		                "reasons": "Grounded justification referencing visible cues + why this affordance/state is required at/just before this moment (no speculation)."
-		              }}
-		            ],
-		            "causal_effect_on_spatial": [
-		              {{
-		                "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
-		                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-		                "truth": true
-		              }}
-		            ],
-		            "causal_effect_on_affordance": [
-		              {{
-		                "object_name": "snake_case_entity",
-		                "affordance_types": ["snake_case_affordance_or_state_token"],
-		                "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
-		              }}
-		            ]
-		          }},
-		          "interaction": {{
-		            "tools": ["hands"],
-		            "materials": ["snake_case_patient_object"],
-		            "hotspot": {{
-		              "description": "Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded.",
-		              "affordance_type": "One snake_case token describing the hotspot's functional role (e.g., grasp_point, cutting_edge, pour_spout).",
-		              "mechanism": "Brief physical mechanism: how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
-		            }}
-		          }}
-		        }},
-		        {{
-			          "action_state_change_description": "Completion: describe the achieved visible state change at the end of the step (what is now true/false; resulting contacts/containment/alignment/open-closed changes), grounded and concrete; stick to visible evidence; no frame/time references.",
-		          "causal_chain": {{
-		            "agent": "MUST match the step-level causal_chain.agent exactly (copy verbatim).",
-		            "action": "MUST match the step-level causal_chain.action exactly (copy verbatim).",
-		            "patient": "MUST match the step-level causal_chain.patient exactly (copy verbatim).",
-		            "causal_precondition_on_spatial": [
-		              {{
-		                "relation": "Short, concrete, visually verifiable token describing what is true at/just before this moment (contacts, containment, support, alignment, open/closed, etc.).",
-		                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-		                "truth": true
-		              }}
-		            ],
-		            "causal_precondition_on_affordance": [
-		              {{
-		                "object_name": "snake_case_entity",
-		                "affordance_types": ["snake_case_affordance_or_state_token"],
-		                "reasons": "Grounded justification referencing visible cues + why this affordance/state is required at/just before this moment (no speculation)."
-		              }}
-		            ],
-		            "causal_effect_on_spatial": [
-		              {{
-		                "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
-		                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
-		                "truth": true
-		              }}
-		            ],
-		            "causal_effect_on_affordance": [
-		              {{
-		                "object_name": "snake_case_entity",
-		                "affordance_types": ["snake_case_affordance_or_state_token"],
-		                "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
-		              }}
-		            ]
-		          }},
-		          "interaction": {{
-		            "tools": ["hands"],
-		            "materials": ["snake_case_patient_object"],
-		            "hotspot": {{
-		              "description": "Specific functional region involved (e.g., edge, handle, rim, hinge); keep it concrete and visually grounded.",
-		              "affordance_type": "One snake_case token describing the hotspot's functional role (e.g., contact_surface, grasp_point, pressing_surface).",
-		              "mechanism": "Brief physical mechanism: how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
-		            }}
-		          }}
-		        }}
-		      ]
-		    }}
-		  ]
-		}}
+**Detailed JSON Schema to Follow (output strict JSON; keep keys exactly; Stage 1 MUST omit `critical_frames[*].frame_index` and Stage 2 will add it):**
+{{
+    "high_level_goal": "One comprehensive English sentence describing the overall goal and intended final outcome of the entire video (final world state; do NOT list steps; do NOT mention frames/images/timestamps).",
+    "steps": [
+    {{
+        "step_id": 1,
+        "step_goal": "One concise English sentence describing the intended outcome of this step as a single atomic action (avoid 'and/then'; no multi-action conjunctions; no frame/time references).",
+        "rationale": "1–2 grounded sentences explaining WHY this step is necessary: (a) what physical/spatial/affordance preconditions it assumes, and (b) what effects it establishes that enable later steps. Do NOT just restate step_goal.",
+        "causal_chain": {{
+            "agent": "Primary force/controller for the whole step (prefer body part like 'hands'/'left_hand'/'right_hand'; use tool part only if it is clearly the direct force applicator). Use one stable identifier, reuse it verbatim in the keyframes, and include it in `interaction.tools`.",
+        "action": "Concise physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.",
+            "patient": "Primary acted-on object identifier in snake_case. Keep naming consistent across all fields (do not rename the same object) and include it in `interaction.materials`.",
+        "causal_precondition_on_spatial": [
+            {{
+            "relation": "Short, concrete, visually verifiable token (prefer mechanistic relations like 'holding', 'contacting', 'inside', 'on_top_of', 'aligned_with', 'open', 'closed'; avoid full sentences).",
+            "objects": ["snake_case_entity_1", "snake_case_entity_2"],
+            "truth": true
+            }}
+        ],
+        "causal_precondition_on_affordance": [
+            {{
+            "object_name": "snake_case_entity",
+            "affordance_types": ["snake_case_affordance_or_state_token"],
+            "reasons": "Grounded justification referencing visible cues + physical constraints/mechanism explaining why this affordance/state is required (no speculation)."
+            }}
+        ],
+        "causal_effect_on_spatial": [
+            {{
+            "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
+            "objects": ["snake_case_entity_1", "snake_case_entity_2"],
+            "truth": true
+            }}
+        ],
+        "causal_effect_on_affordance": [
+            {{
+            "object_name": "snake_case_entity",
+            "affordance_types": ["snake_case_affordance_or_state_token"],
+            "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
+            }}
+        ]
+        }},
+        "counterfactual_challenge_question": "One realistic what-if question that could disrupt this step due to physics/constraints, grounded in the scene. Start with 'What if ...?'. Do NOT mention frames/images/timestamps.",
+        "expected_challenge_outcome": "Predicted physical outcome if that challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).",
+        "failure_reflecting": {{
+        "reason": "Most plausible failure mode for this step (physical/interaction reason), grounded in what is visible (avoid invisible/unknown causes).",
+        "recovery_strategy": "A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects)."
+        }},
+        "critical_frames": [
+        {{
+                "action_state_change_description": "Initiation: describe the visible onset of the action and the key state that begins changing (name objects; include discriminative contacts/spatial relations/orientation/open-closed cues; stick to visible evidence; no frame/time references).",
+            "causal_chain": {{
+            "agent": "MUST match the step-level causal_chain.agent exactly (copy verbatim).",
+            "action": "MUST match the step-level causal_chain.action exactly (copy verbatim).",
+            "patient": "MUST match the step-level causal_chain.patient exactly (copy verbatim).",
+            "causal_precondition_on_spatial": [
+                {{
+                "relation": "Short, concrete, visually verifiable token describing what is true at/just before this moment (contacts, containment, support, alignment, open/closed, etc.).",
+                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
+                "truth": true
+                }}
+            ],
+            "causal_precondition_on_affordance": [
+                {{
+                "object_name": "snake_case_entity",
+                "affordance_types": ["snake_case_affordance_or_state_token"],
+                "reasons": "Grounded justification referencing visible cues + why this affordance/state is required at/just before this moment (no speculation)."
+                }}
+            ],
+            "causal_effect_on_spatial": [
+                {{
+                "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
+                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
+                "truth": true
+                }}
+            ],
+            "causal_effect_on_affordance": [
+                {{
+                "object_name": "snake_case_entity",
+                "affordance_types": ["snake_case_affordance_or_state_token"],
+                "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
+                }}
+            ]
+            }},
+            "interaction": {{
+            "tools": ["hands"],
+            "materials": ["snake_case_patient_object"],
+            "hotspot": {{
+                "description": "Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded.",
+                "affordance_type": "One snake_case token describing the hotspot's functional role (e.g., grasp_point, cutting_edge, pour_spout).",
+                "mechanism": "Brief physical mechanism: how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
+            }}
+            }}
+        }},
+        {{
+                "action_state_change_description": "Completion: describe the achieved visible state change at the end of the step (what is now true/false; resulting contacts/containment/alignment/open-closed changes), grounded and concrete; stick to visible evidence; no frame/time references.",
+            "causal_chain": {{
+            "agent": "MUST match the step-level causal_chain.agent exactly (copy verbatim).",
+            "action": "MUST match the step-level causal_chain.action exactly (copy verbatim).",
+            "patient": "MUST match the step-level causal_chain.patient exactly (copy verbatim).",
+            "causal_precondition_on_spatial": [
+                {{
+                "relation": "Short, concrete, visually verifiable token describing what is true at/just before this moment (contacts, containment, support, alignment, open/closed, etc.).",
+                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
+                "truth": true
+                }}
+            ],
+            "causal_precondition_on_affordance": [
+                {{
+                "object_name": "snake_case_entity",
+                "affordance_types": ["snake_case_affordance_or_state_token"],
+                "reasons": "Grounded justification referencing visible cues + why this affordance/state is required at/just before this moment (no speculation)."
+                }}
+            ],
+            "causal_effect_on_spatial": [
+                {{
+                "relation": "Short, concrete, visually verifiable token describing the POST-step relation (may be newly established or broken).",
+                "objects": ["snake_case_entity_1", "snake_case_entity_2"],
+                "truth": true
+                }}
+            ],
+            "causal_effect_on_affordance": [
+                {{
+                "object_name": "snake_case_entity",
+                "affordance_types": ["snake_case_affordance_or_state_token"],
+                "reasons": "Grounded justification of how completing this step causes this affordance/state change (reference visible state changes; no speculation)."
+                }}
+            ]
+            }},
+            "interaction": {{
+            "tools": ["hands"],
+            "materials": ["snake_case_patient_object"],
+            "hotspot": {{
+                "description": "Specific functional region involved (e.g., edge, handle, rim, hinge); keep it concrete and visually grounded.",
+                "affordance_type": "One snake_case token describing the hotspot's functional role (e.g., contact_surface, grasp_point, pressing_surface).",
+                "mechanism": "Brief physical mechanism: how interaction at the hotspot achieves the action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
+            }}
+            }}
+        }}
+        ]
+    }}
+    ]
+}}
 
 **CRITICAL INSTRUCTIONS TO FOLLOW AT ALL COSTS:**
 
