@@ -1,6 +1,6 @@
-# CoT 标注/生成（Task_28–Task_42）
+# CoT 标注/生成（Task_17–Task_27）
 
-本目录汇总 **CoT（Chain-of-Thought）标注/生成** 相关脚本与文档，用于把 `ECCV/three_stage/` 三阶段产物（`causal_plan_with_keyframes.json`）通过 OpenAI-compatible API 生成 CoT(JSONL) 数据集（Task_28–Task_42）。
+本目录汇总 **CoT（Chain-of-Thought）标注/生成** 相关脚本与文档，用于把 `ECCV/three_stage/` 三阶段产物（`causal_plan_with_keyframes.json`）通过 OpenAI-compatible API 生成 **planning-only** 的 CoT(JSONL) 数据集（Task_17–Task_27）。
 
 ## 文档
 
@@ -26,9 +26,9 @@
 
 ```bash
 python3 ECCV/cot/generate_cot_dataset_api.py \
-  --input-root ECCV/three_stage/causal_spafa_plan_dataset_long \
-  --output-dir ECCV/cot/cot_dataset_out \
-  --tasks Task_28_Inter_Step_Dependency_Analysis,Task_29_Next_Action_Prediction \
+  --input-root /abs/path/to/three_stage_output_root \
+  --output-dir /abs/path/to/cot_dataset_out \
+  --tasks Task_17_Inter_Step_Dependency_Analysis,Task_18_Next_Step_Goal_Prediction_From_Prefix \
   --post-validate
 ```
 
@@ -36,8 +36,8 @@ python3 ECCV/cot/generate_cot_dataset_api.py \
 
 ```bash
 python3 ECCV/cot/validate_cot_dataset.py \
-  --input-root ECCV/three_stage/causal_spafa_plan_dataset_long \
-  --cot-root ECCV/cot/cot_dataset_out \
+  --input-root /abs/path/to/three_stage_output_root \
+  --cot-root /abs/path/to/cot_dataset_out \
   --strict
 ```
 

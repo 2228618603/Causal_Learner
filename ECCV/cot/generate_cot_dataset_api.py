@@ -29,38 +29,30 @@ from common import (  # noqa: E402
 )
 
 
-TASK_28 = "Task_28_Inter_Step_Dependency_Analysis"
-TASK_29 = "Task_29_Next_Action_Prediction"
-TASK_30 = "Task_30_Next_Step_Goal_Prediction_From_Prefix"
-TASK_31 = "Task_31_Prefix_Completed_Steps_MultiSelect"
-TASK_32 = "Task_32_Middle_Steps_Infill_From_Head_Tail"
-TASK_33 = "Task_33_Next_K_Steps_MultiSelect_From_Prefix"
-TASK_34 = "Task_34_Next_K_Steps_Reordering_From_Prefix"
-TASK_35 = "Task_35_Failed_Planning_Flaw_Pointing"
-TASK_36 = "Task_36_Plan_Repair_From_Flaw"
-TASK_37 = "Task_37_Counterfactual_Prediction"
-TASK_38 = "Task_38_Counterfactual_Outcome_MCQ"
-TASK_39 = "Task_39_Failure_Recovery_Protocol"
-TASK_40 = "Task_40_Recovery_Strategy_MCQ"
-TASK_41 = "Task_41_Recovery_then_Retry_or_Continue"
-TASK_42 = "Task_42_Next_Step_After_Recovery"
+TASK_17 = "Task_17_Inter_Step_Dependency_Analysis"
+TASK_18 = "Task_18_Next_Step_Goal_Prediction_From_Prefix"
+TASK_19 = "Task_19_Middle_Steps_Infill_From_Head_Tail"
+TASK_20 = "Task_20_Next_K_Steps_Prediction_From_Prefix_QA"
+TASK_21 = "Task_21_Next_K_Steps_Reordering_From_Prefix"
+TASK_22 = "Task_22_Failed_Planning_Flaw_Pointing"
+TASK_23 = "Task_23_Plan_Repair_From_Flaw"
+TASK_24 = "Task_24_Counterfactual_Prediction"
+TASK_25 = "Task_25_Counterfactual_Outcome_QA"
+TASK_26 = "Task_26_Failure_Recovery_Protocol"
+TASK_27 = "Task_27_Next_Step_After_Recovery_QA"
 
 ALL_TASKS = (
-    TASK_28,
-    TASK_29,
-    TASK_30,
-    TASK_31,
-    TASK_32,
-    TASK_33,
-    TASK_34,
-    TASK_35,
-    TASK_36,
-    TASK_37,
-    TASK_38,
-    TASK_39,
-    TASK_40,
-    TASK_41,
-    TASK_42,
+    TASK_17,
+    TASK_18,
+    TASK_19,
+    TASK_20,
+    TASK_21,
+    TASK_22,
+    TASK_23,
+    TASK_24,
+    TASK_25,
+    TASK_26,
+    TASK_27,
 )
 
 ALLOWED_FLAW_TYPES = (
@@ -79,6 +71,8 @@ FRAME_LEAK_PATTERNS = [
     re.compile(r"\.(jpg|jpeg|png|mp4)\b", re.IGNORECASE),
     re.compile(r"\b(frame|image)\s*\d+\b", re.IGNORECASE),
 ]
+
+MIN_CROSS_STEP_SUPPORT_SCORE = 0.06
 
 
 SYSTEM_PROMPT_API_COT = """
@@ -198,8 +192,8 @@ def _validate_three_stage_plan_minimal(plan: Dict[str, Any]) -> List[str]:
             "causal_effect_on_affordance",
         ):
             v = cc.get(k)
-            if not isinstance(v, list) or not v:
-                errors.append(f"steps[{i}].causal_chain.{k} missing/empty list.")
+            if not isinstance(v, str) or not v.strip():
+                errors.append(f"steps[{i}].causal_chain.{k} missing/empty string.")
         fr = st.get("failure_reflecting") if isinstance(st.get("failure_reflecting"), dict) else {}
         if not str(fr.get("reason", "")).strip():
             errors.append(f"steps[{i}].failure_reflecting.reason is empty.")
@@ -223,6 +217,16 @@ def _validate_three_stage_plan_minimal(plan: Dict[str, Any]) -> List[str]:
                 fi = None
             if fi is None or fi <= 0:
                 errors.append(f"steps[{i}].critical_frames[{j}].frame_index missing/non-positive int.")
+            ccf = cf.get("causal_chain") if isinstance(cf.get("causal_chain"), dict) else {}
+            for k in (
+                "causal_precondition_on_spatial",
+                "causal_precondition_on_affordance",
+                "causal_effect_on_spatial",
+                "causal_effect_on_affordance",
+            ):
+                v = ccf.get(k)
+                if not isinstance(v, str) or not v.strip():
+                    errors.append(f"steps[{i}].critical_frames[{j}].causal_chain.{k} missing/empty string.")
     return errors
 
 
@@ -318,6 +322,103 @@ def _sample_scene_images(video_dir: str, num_images: int = 4) -> List[str]:
     return _sample_evenly(rels, int(num_images))
 
 
+def _load_stage1_frame_paths(video_dir: str) -> List[str]:
+    """Return ordered stage1 sampled frame paths (relative to video_dir)."""
+    manifest_path = os.path.join(video_dir, "stage1", "frame_manifest.json")
+    if os.path.exists(manifest_path):
+        try:
+            manifest = read_json(manifest_path)
+        except Exception:
+            manifest = None
+        if isinstance(manifest, dict):
+            frames = manifest.get("frames", [])
+            if isinstance(frames, list) and frames:
+                out: List[str] = []
+                for fr in frames:
+                    if not isinstance(fr, dict):
+                        continue
+                    rel = fr.get("image_relpath")
+                    if not isinstance(rel, str) or not rel.strip():
+                        continue
+                    rel = rel.strip().lstrip("./")
+                    if rel.startswith("stage1/"):
+                        out.append(rel)
+                    else:
+                        out.append(os.path.join("stage1", rel))
+                seen: set[str] = set()
+                uniq: List[str] = []
+                for p in out:
+                    if p not in seen:
+                        seen.add(p)
+                        uniq.append(p)
+                return uniq
+
+    frames_dir = _resolve_scene_frames_dir(video_dir)
+    if not frames_dir:
+        return []
+    names = sorted([n for n in os.listdir(frames_dir) if n.lower().endswith(".jpg")])
+    return [os.path.relpath(os.path.join(frames_dir, n), video_dir) for n in names]
+
+
+def _load_stage2_segments_map(video_dir: str) -> Dict[int, Dict[str, Any]]:
+    seg_path = os.path.join(video_dir, "stage2", "step_segments.json")
+    if not os.path.exists(seg_path):
+        return {}
+    try:
+        data = read_json(seg_path)
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    segs = data.get("segments", [])
+    if not isinstance(segs, list):
+        return {}
+    by_id: Dict[int, Dict[str, Any]] = {}
+    for seg in segs:
+        if not isinstance(seg, dict):
+            continue
+        try:
+            sid = int(seg.get("step_id"))
+        except Exception:
+            continue
+        if sid > 0 and sid not in by_id:
+            by_id[sid] = seg
+    return by_id
+
+
+def _select_stage1_head_tail_images(
+    frame_paths: Sequence[str],
+    *,
+    head_anchor_idx_1based: int,
+    tail_anchor_idx_1based: int,
+    head_k: int = 4,
+    tail_k: int = 4,
+) -> List[str]:
+    """Select head/tail glimpses from stage1 frame pool around two anchor indices."""
+    n = len(frame_paths)
+    if n <= 0:
+        return []
+    head_anchor = max(1, min(int(head_anchor_idx_1based), n))
+    tail_anchor = max(1, min(int(tail_anchor_idx_1based), n))
+    if head_anchor > tail_anchor:
+        head_anchor, tail_anchor = tail_anchor, head_anchor
+
+    head_start = max(1, head_anchor - int(head_k) + 1)
+    head_indices = list(range(head_start, head_anchor + 1))
+
+    tail_end = min(n, tail_anchor + int(tail_k) - 1)
+    tail_indices = list(range(tail_anchor, tail_end + 1))
+
+    idxs = head_indices + tail_indices
+    seen: set[int] = set()
+    uniq: List[int] = []
+    for i in idxs:
+        if i not in seen:
+            seen.add(i)
+            uniq.append(i)
+    return [frame_paths[i - 1] for i in uniq if 1 <= i <= n]
+
+
 def _resolve_video_prefix_relpath(video_dir: str, step_id: int) -> Optional[str]:
     if step_id <= 0:
         return None
@@ -331,125 +432,42 @@ def _resolve_video_prefix_relpath(video_dir: str, step_id: int) -> Optional[str]
     return None
 
 
-def _spatial_fact_key(item: Dict[str, Any]) -> Optional[Tuple[str, Tuple[str, ...], bool]]:
-    rel = str(item.get("relation", "")).strip()
-    objs = item.get("objects", [])
-    truth = item.get("truth")
-    if not rel or not isinstance(objs, list) or not objs or not isinstance(truth, bool):
-        return None
-    obj_tuple = tuple(str(o).strip() for o in objs if str(o).strip())
-    if not obj_tuple:
-        return None
-    return rel, obj_tuple, truth
+_NUMBERED_POINT_RE = re.compile(r"^\s*\d+\s*[\.\)]\s*(.+?)\s*$")
 
 
-def _spatial_fact_str(item: Dict[str, Any]) -> str:
-    rel = str(item.get("relation", "")).strip()
-    objs = item.get("objects", [])
-    truth = item.get("truth")
-    obj_str = ", ".join(str(o).strip() for o in objs) if isinstance(objs, list) else str(objs).strip()
-    return f"{rel}({obj_str}) => {truth}"
-
-
-def _humanize_token(token: str) -> str:
-    return re.sub(r"_+", " ", str(token or "")).strip()
-
-
-def _pick_first_spatial_fact(items: Any) -> Optional[Tuple[str, List[str], bool]]:
-    if not isinstance(items, list):
-        return None
-    for it in items:
-        if not isinstance(it, dict):
+def _parse_numbered_points(text: Any) -> List[str]:
+    if not isinstance(text, str):
+        return []
+    out: List[str] = []
+    for raw in str(text).splitlines():
+        ln = str(raw).strip()
+        if not ln:
             continue
-        rel = str(it.get("relation", "")).strip()
-        objs = it.get("objects", [])
-        truth = it.get("truth")
-        if not rel or not isinstance(objs, list) or not objs or not isinstance(truth, bool):
-            continue
-        obj_list = [str(o).strip() for o in objs if str(o).strip()]
-        if not obj_list:
-            continue
-        return rel, obj_list, truth
-    return None
+        m = _NUMBERED_POINT_RE.match(ln)
+        item = m.group(1).strip() if m else ln
+        item = re.sub(r"\s+", " ", item).strip()
+        if item:
+            out.append(item)
+    return out
 
 
-def _pick_first_affordance_pair(items: Any) -> Optional[Tuple[str, str]]:
-    if not isinstance(items, list):
-        return None
-    for it in items:
-        if not isinstance(it, dict):
-            continue
-        obj = str(it.get("object_name", "")).strip()
-        affs = it.get("affordance_types", [])
-        if not obj or not isinstance(affs, list) or not affs:
-            continue
-        for a in affs:
-            a = str(a).strip()
-            if a:
-                return obj, a
-    return None
+def _first_numbered_point(text: Any) -> str:
+    pts = _parse_numbered_points(text)
+    return pts[0] if pts else ""
 
 
-def _spatial_precondition_sentence(rel: str, objs: Sequence[str], truth: bool) -> str:
-    rel_words = _humanize_token(rel)
-    obj_words = [_humanize_token(o) for o in objs]
-    obj_words = [o for o in obj_words if o]
-    if not rel_words or not obj_words:
+def _lowercase_first_char(text: str) -> str:
+    s = str(text or "").strip()
+    if not s:
         return ""
-    if len(obj_words) == 1:
-        return f"Spatially, the {obj_words[0]} must be {rel_words}." if truth else f"Spatially, the {obj_words[0]} must not be {rel_words}."
-    if len(obj_words) == 2:
-        subj, obj2 = obj_words
-        return (
-            f"Spatially, the {subj} must be {rel_words} the {obj2}."
-            if truth
-            else f"Spatially, the {subj} must not be {rel_words} the {obj2}."
-        )
-    obj_list = ", ".join([f"the {o}" for o in obj_words])
-    if truth:
-        return f"Spatially, the relation {rel_words} must hold among {obj_list}."
-    return f"Spatially, the relation {rel_words} must not hold among {obj_list}."
+    return s[0].lower() + s[1:] if s[0].isalpha() else s
 
 
-def _spatial_effect_sentence(rel: str, objs: Sequence[str], truth: bool) -> str:
-    rel_words = _humanize_token(rel)
-    obj_words = [_humanize_token(o) for o in objs]
-    obj_words = [o for o in obj_words if o]
-    if not rel_words or not obj_words:
+def _ensure_end_punct(text: str) -> str:
+    s = str(text or "").strip()
+    if not s:
         return ""
-    if len(obj_words) == 1:
-        return (
-            f"After the action, spatially, the {obj_words[0]} will be {rel_words}."
-            if truth
-            else f"After the action, spatially, the {obj_words[0]} will not be {rel_words}."
-        )
-    if len(obj_words) == 2:
-        subj, obj2 = obj_words
-        return (
-            f"After the action, spatially, the {subj} will be {rel_words} the {obj2}."
-            if truth
-            else f"After the action, spatially, the {subj} will not be {rel_words} the {obj2}."
-        )
-    obj_list = ", ".join([f"the {o}" for o in obj_words])
-    if truth:
-        return f"After the action, spatially, the relation {rel_words} will hold among {obj_list}."
-    return f"After the action, spatially, the relation {rel_words} will not hold among {obj_list}."
-
-
-def _affordance_precondition_sentence(obj: str, aff: str) -> str:
-    obj_words = _humanize_token(obj)
-    aff_words = _humanize_token(aff)
-    if not obj_words or not aff_words:
-        return ""
-    return f"Functionally, the {obj_words} must be {aff_words}."
-
-
-def _affordance_effect_sentence(obj: str, aff: str) -> str:
-    obj_words = _humanize_token(obj)
-    aff_words = _humanize_token(aff)
-    if not obj_words or not aff_words:
-        return ""
-    return f"After the action, functionally, the {obj_words} will be {aff_words}."
+    return s if s.endswith((".", "!", "?")) else s + "."
 
 
 def _build_required_anchors(
@@ -463,29 +481,21 @@ def _build_required_anchors(
     cc_pre = pre_step.get("causal_chain") if isinstance(pre_step.get("causal_chain"), dict) else {}
     cc_eff = eff_step.get("causal_chain") if isinstance(eff_step.get("causal_chain"), dict) else {}
 
-    sp_pre = _pick_first_spatial_fact(cc_pre.get("causal_precondition_on_spatial", []))
+    sp_pre = _first_numbered_point(cc_pre.get("causal_precondition_on_spatial"))
     if sp_pre:
-        sent = _spatial_precondition_sentence(sp_pre[0], sp_pre[1], sp_pre[2])
-        if sent:
-            out.append(sent)
+        out.append(_ensure_end_punct(f"Spatially, {_lowercase_first_char(sp_pre)}"))
 
-    ap_pre = _pick_first_affordance_pair(cc_pre.get("causal_precondition_on_affordance", []))
+    ap_pre = _first_numbered_point(cc_pre.get("causal_precondition_on_affordance"))
     if ap_pre:
-        sent = _affordance_precondition_sentence(ap_pre[0], ap_pre[1])
-        if sent:
-            out.append(sent)
+        out.append(_ensure_end_punct(f"Functionally, {_lowercase_first_char(ap_pre)}"))
 
-    sp_eff = _pick_first_spatial_fact(cc_eff.get("causal_effect_on_spatial", []))
+    sp_eff = _first_numbered_point(cc_eff.get("causal_effect_on_spatial"))
     if sp_eff:
-        sent = _spatial_effect_sentence(sp_eff[0], sp_eff[1], sp_eff[2])
-        if sent:
-            out.append(sent)
+        out.append(_ensure_end_punct(f"After the action, spatially, {_lowercase_first_char(sp_eff)}"))
 
-    ap_eff = _pick_first_affordance_pair(cc_eff.get("causal_effect_on_affordance", []))
+    ap_eff = _first_numbered_point(cc_eff.get("causal_effect_on_affordance"))
     if ap_eff:
-        sent = _affordance_effect_sentence(ap_eff[0], ap_eff[1])
-        if sent:
-            out.append(sent)
+        out.append(_ensure_end_punct(f"After the action, functionally, {_lowercase_first_char(ap_eff)}"))
 
     fr = failure_step.get("failure_reflecting") if isinstance(failure_step.get("failure_reflecting"), dict) else {}
     failure_reason = str(fr.get("reason", "")).strip()
@@ -501,71 +511,86 @@ def _build_required_anchors(
     return out
 
 
-def _match_first_cross_step_support(step_i: Dict[str, Any], step_next: Dict[str, Any]) -> Tuple[str, str]:
+def _match_first_cross_step_support(step_i: Dict[str, Any], step_next: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     cc_i = step_i.get("causal_chain") if isinstance(step_i.get("causal_chain"), dict) else {}
     cc_n = step_next.get("causal_chain") if isinstance(step_next.get("causal_chain"), dict) else {}
 
-    effects_sp = cc_i.get("causal_effect_on_spatial", [])
-    pre_sp = cc_n.get("causal_precondition_on_spatial", [])
-    eff_keys: Dict[Tuple[str, Tuple[str, ...], bool], Dict[str, Any]] = {}
-    if isinstance(effects_sp, list):
-        for it in effects_sp:
-            if not isinstance(it, dict):
-                continue
-            k = _spatial_fact_key(it)
-            if k is not None and k not in eff_keys:
-                eff_keys[k] = it
-    if isinstance(pre_sp, list):
-        for it in pre_sp:
-            if not isinstance(it, dict):
-                continue
-            k = _spatial_fact_key(it)
-            if k is not None and k in eff_keys:
-                return _spatial_fact_str(it), ""
+    sp_eff = _parse_numbered_points(cc_i.get("causal_effect_on_spatial"))
+    sp_pre = _parse_numbered_points(cc_n.get("causal_precondition_on_spatial"))
+    af_eff = _parse_numbered_points(cc_i.get("causal_effect_on_affordance"))
+    af_pre = _parse_numbered_points(cc_n.get("causal_precondition_on_affordance"))
 
-    effects_aff = cc_i.get("causal_effect_on_affordance", [])
-    pre_aff = cc_n.get("causal_precondition_on_affordance", [])
-    eff_pairs: set[Tuple[str, str]] = set()
-    if isinstance(effects_aff, list):
-        for it in effects_aff:
-            if not isinstance(it, dict):
-                continue
-            obj = str(it.get("object_name", "")).strip()
-            affs = it.get("affordance_types", [])
-            if not obj or not isinstance(affs, list):
-                continue
-            for a in affs:
-                a = str(a).strip()
-                if a:
-                    eff_pairs.add((obj, a))
-    if isinstance(pre_aff, list):
-        for it in pre_aff:
-            if not isinstance(it, dict):
-                continue
-            obj = str(it.get("object_name", "")).strip()
-            affs = it.get("affordance_types", [])
-            if not obj or not isinstance(affs, list):
-                continue
-            for a in affs:
-                a = str(a).strip()
-                if a and (obj, a) in eff_pairs:
-                    return "", f"{obj}: {a}"
+    stop = {
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "to",
+        "of",
+        "in",
+        "on",
+        "into",
+        "with",
+        "for",
+        "from",
+        "by",
+        "as",
+        "is",
+        "are",
+        "be",
+        "been",
+        "being",
+        "it",
+        "this",
+        "that",
+        "these",
+        "those",
+    }
 
-    return "", ""
+    def tokset(text: str) -> set[str]:
+        words = [w.lower() for w in re.findall(r"[a-zA-Z]+", str(text or ""))]
+        return {w for w in words if w and w not in stop}
 
+    def best_pair(effects: List[str], preconds: List[str]) -> Tuple[str, str, float]:
+        if not effects or not preconds:
+            return "", "", -1.0
+        best_e = ""
+        best_p = ""
+        best_s = -1.0
+        for e in effects[: min(6, len(effects))]:
+            te = tokset(e)
+            for p in preconds[: min(6, len(preconds))]:
+                tp = tokset(p)
+                if not te or not tp:
+                    continue
+                inter = te & tp
+                if not inter:
+                    continue
+                s = len(inter) / max(1, len(te | tp))
+                if s > best_s:
+                    best_s = s
+                    best_e = e
+                    best_p = p
+        return best_e, best_p, best_s
 
-def _build_mc_options(rng: random.Random, correct: str, distractor_pool: Sequence[str], num_options: int = 4) -> Tuple[List[str], str]:
-    pool = [s for s in distractor_pool if s and s != correct]
-    if len({correct, *pool}) < num_options:
-        return [], ""
-    rng.shuffle(pool)
-    distractors = pool[: max(0, num_options - 1)]
-    options = [correct] + distractors
-    if len(options) != num_options:
-        return [], ""
-    rng.shuffle(options)
-    label = "ABCD"[options.index(correct)]
-    return options, label
+    sp_e, sp_p, sp_s = best_pair(sp_eff, sp_pre)
+    af_e, af_p, af_s = best_pair(af_eff, af_pre)
+
+    cand: List[Tuple[str, str, str, float]] = []
+    if sp_e and sp_p:
+        cand.append(("spatial", sp_e, sp_p, float(sp_s)))
+    if af_e and af_p:
+        cand.append(("affordance", af_e, af_p, float(af_s)))
+    if not cand:
+        return None
+
+    # Prefer higher similarity; tie-break with spatial.
+    cand.sort(key=lambda x: (x[3], 1 if x[0] == "spatial" else 0), reverse=True)
+    support_type, effect, precondition, score = cand[0]
+    if score < MIN_CROSS_STEP_SUPPORT_SCORE:
+        return None
+    return {"type": support_type, "effect": effect, "precondition": precondition, "score": score}
 
 
 _CONTINUE_KEYWORDS = ("continue", "proceed", "move on", "go on", "resume", "next step")
@@ -654,112 +679,98 @@ def _to_single_line(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "").strip())
 
 
-def _prompt_task_29(high_level_goal: str, current_step_goal: str) -> str:
-    _ = high_level_goal
-    _ = current_step_goal
-    return "What is the next planned action?"
+def _format_plan_steps_inline(steps: Sequence[str], *, quote: bool) -> str:
+    parts: List[str] = []
+    for i, s in enumerate(steps, start=1):
+        item = _to_single_line(s)
+        if quote:
+            item = f'"{item}"'
+        parts.append(f"{i}) {item}")
+    return " ".join(parts)
 
 
-def _prompt_task_30(high_level_goal: str, prefix_end_step_goal: str) -> str:
-    _ = high_level_goal
-    _ = prefix_end_step_goal
-    return "What is the next step goal?"
-
-
-def _prompt_task_31(high_level_goal: str, plan_steps: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = plan_steps
-    return "Up to which step_id has the plan been completed in this prefix?"
-
-
-def _prompt_task_32(high_level_goal: str, head_step_goal: str, tail_step_goal: str, num_missing: int) -> str:
-    _ = high_level_goal
-    _ = head_step_goal
-    _ = tail_step_goal
-    _ = num_missing
-    return "Based on the beginning/end glimpses of the video, infer the missing middle steps in order."
-
-
-def _prompt_task_33(high_level_goal: str, completed_prefix_step_goal: str, k: int, options: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = completed_prefix_step_goal
-    _ = options
-    return f"Select all steps that will occur in the next {int(k)} steps (order not required)."
-
-
-def _prompt_task_34(high_level_goal: str, completed_prefix_step_goal: str, presented_steps: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = completed_prefix_step_goal
-    _ = presented_steps
-    return "Reorder the shuffled candidate steps into the most plausible next-step sequence."
-
-
-def _prompt_task_35(high_level_goal: str, completed_prefix_step_goal: str, bad_plan_steps: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = completed_prefix_step_goal
-    _ = bad_plan_steps
-    return "Identify the flaw in the bad plan."
-
-
-def _prompt_task_36(high_level_goal: str, completed_prefix_step_goal: str, bad_plan_steps: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = completed_prefix_step_goal
-    return f"Repair the plan by outputting the corrected {len(bad_plan_steps)}-step sequence."
-
-
-def _prompt_task_37(high_level_goal: str, step_goal: str, counterfactual_q: str) -> str:
-    _ = high_level_goal
-    _ = step_goal
-    return _to_single_line(counterfactual_q)
-
-
-def _prompt_task_38(high_level_goal: str, step_goal: str, counterfactual_q: str, options: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = step_goal
-    _ = options
-    q = _to_single_line(counterfactual_q)
-    m = re.match(r"^\s*what\s+if\s+(.+?)\s*\??\s*$", q, re.IGNORECASE)
-    cond = (m.group(1) if m else q).rstrip("?").strip()
-    return f"What is the most likely outcome if {cond}?"
-
-
-def _prompt_task_39(failure_reason: str) -> str:
-    reason = _to_single_line(failure_reason)
-    return f"If the step fails because {reason}, what is a plausible recovery strategy?"
-
-
-def _prompt_task_40(high_level_goal: str, step_goal: str, failure_reason: str, options: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = step_goal
-    _ = options
-    reason = _to_single_line(failure_reason)
-    return (
-        f"Which recovery strategy best resolves the failure where {reason}?"
+def _prompt_task_17(high_level_goal: str, previous_step_goal: str, next_step_goal: str) -> str:
+    return _to_single_line(
+        f'Context: High-level goal: "{high_level_goal}" Previous step goal: "{previous_step_goal}" '
+        f'Next step goal: "{next_step_goal}" How does the outcome of the previous step satisfy the preconditions for the next step?'
     )
 
 
-def _prompt_task_41(
-    *,
-    high_level_goal: str,
-    current_step_goal: str,
-    next_step_goal: str,
-    failure_reason: str,
-    recovery_strategy: str,
-) -> str:
-    _ = high_level_goal
-    _ = current_step_goal
-    _ = next_step_goal
-    _ = failure_reason
-    _ = recovery_strategy
-    return "After applying the recovery strategy, should we retry the current step or continue to the next step?"
+def _prompt_task_18(high_level_goal: str, prefix_end_step_goal: str) -> str:
+    return _to_single_line(
+        f'Context: High-level goal: "{high_level_goal}" Last completed step (in this prefix): "{prefix_end_step_goal}" '
+        "What is the next step goal?"
+    )
 
 
-def _prompt_task_42(high_level_goal: str, failure_reason: str, recovery_strategy: str, options: Sequence[str]) -> str:
-    _ = high_level_goal
-    _ = failure_reason
-    _ = recovery_strategy
-    _ = options
-    return "After applying the recovery strategy, what is the most appropriate next step?"
+def _prompt_task_19(high_level_goal: str) -> str:
+    return _to_single_line(
+        f'High-level goal: "{high_level_goal}" Based on the beginning/end glimpses of the video, infer the missing middle steps in order.'
+    )
+
+
+def _prompt_task_20(high_level_goal: str, prefix_end_step_goal: str, k: int) -> str:
+    return _to_single_line(
+        f'Context: High-level goal: "{high_level_goal}" Last completed step (in this prefix): "{prefix_end_step_goal}" '
+        f"Based on this prefix, predict the next K={int(k)} step goals in order."
+    )
+
+
+def _prompt_task_21(high_level_goal: str, prefix_end_step_goal: str, presented_steps: Sequence[str]) -> str:
+    cand = json.dumps(list(presented_steps), ensure_ascii=False)
+    return _to_single_line(
+        f'Context: High-level goal: "{high_level_goal}" Last completed step (in this prefix): "{prefix_end_step_goal}" '
+        f"Reorder the shuffled candidate steps {cand} into the most plausible next-step sequence."
+    )
+
+
+def _prompt_task_22(high_level_goal: str, prefix_end_step_goal: str, bad_plan_steps: Sequence[str]) -> str:
+    bad_str = _format_plan_steps_inline(bad_plan_steps, quote=True)
+    return _to_single_line(
+        f'Context: High-level goal: "{high_level_goal}" Last completed step (in this prefix): "{prefix_end_step_goal}" '
+        f"Based on this prefix, the following bad_plan_steps are proposed as the next steps: {bad_str} Identify the flaw in the bad plan."
+    )
+
+
+def _prompt_task_23(high_level_goal: str, prefix_end_step_goal: str, bad_plan_steps: Sequence[str]) -> str:
+    bad_str = _format_plan_steps_inline(bad_plan_steps, quote=True)
+    return _to_single_line(
+        f'Context: High-level goal: "{high_level_goal}" Last completed step (in this prefix): "{prefix_end_step_goal}" '
+        f"Based on this prefix, bad_plan_steps are proposed as the next steps: {bad_str} "
+        f"Repair the plan by outputting the corrected {len(bad_plan_steps)}-step sequence."
+    )
+
+
+def _prompt_task_24(step_goal: str, counterfactual_q: str) -> str:
+    return _to_single_line(
+        f'Context: Step goal: "{step_goal}" Counterfactual: {_to_single_line(counterfactual_q)} '
+        "From a spatial & affordance perspective, what would likely happen? Only predict the outcome; do not propose any recovery actions."
+    )
+
+
+def _prompt_task_25(step_goal: str, counterfactual_q: str) -> str:
+    q = _to_single_line(counterfactual_q)
+    m = re.match(r"^\s*what\s+if\s+(.+?)\s*\??\s*$", q, re.IGNORECASE)
+    cond = (m.group(1) if m else q).rstrip("?").strip()
+    return _to_single_line(
+        f'Context: Step goal: "{step_goal}" What is the most likely outcome if {cond}? '
+        "Answer with a short outcome prediction grounded in spatial setup and affordance, and do not propose any recovery actions."
+    )
+
+
+def _prompt_task_26(step_goal: str, failure_reason: str) -> str:
+    return _to_single_line(
+        f'Context: Step goal: "{step_goal}" Failure reason: "{_to_single_line(failure_reason)}" '
+        "What is a plausible recovery strategy? Explain briefly using spatial stability and affordance/mechanism."
+    )
+
+
+def _prompt_task_27(high_level_goal: str, failure_reason: str, recovery_strategy: str) -> str:
+    return _to_single_line(
+        f'Context: High-level goal: "{high_level_goal}" Failure reason: "{_to_single_line(failure_reason)}" '
+        f'Recovery strategy: "{_to_single_line(recovery_strategy)}" '
+        "After applying the recovery strategy, what is the most appropriate next step? Answer as a single step_goal."
+    )
 
 
 def _validate_api_payload(payload: Any, *, answer_block: Optional[str], required_anchors: Sequence[str]) -> List[str]:
@@ -956,137 +967,116 @@ def generate_base_samples_for_video(
 
     step_folder_by_id = _discover_step_folders(video_dir)
     scene_images = _sample_scene_images(video_dir, num_images=4)
-    all_step_goals = [str(s.get("step_goal", "")).strip() for s in steps if isinstance(s, dict)]
-    all_recovery_strategies: List[str] = []
-    all_expected_outcomes: List[str] = []
-    for st in steps:
-        if not isinstance(st, dict):
-            continue
-        fr = st.get("failure_reflecting", {}) if isinstance(st.get("failure_reflecting"), dict) else {}
-        rec = str(fr.get("recovery_strategy", "")).strip()
-        if rec:
-            all_recovery_strategies.append(rec)
-        outc = str(st.get("expected_challenge_outcome", "")).strip()
-        if outc:
-            all_expected_outcomes.append(outc)
+    stage1_frame_paths = _load_stage1_frame_paths(video_dir)
+    stage2_segments_by_id = _load_stage2_segments_map(video_dir)
 
-    # Task 28: inter-step dependency analysis (adjacent steps).
-    if TASK_28 in tasks:
+    def strip_tail_punct(s: str) -> str:
+        return re.sub(r"[\s\.\!\?]+$", "", str(s or "").strip())
+
+    # Task 17: inter-step dependency analysis (adjacent steps).
+    if TASK_17 in tasks:
         for idx in range(len(steps) - 1):
-            step_i = steps[idx]
-            step_n = steps[idx + 1]
-            if not isinstance(step_i, dict) or not isinstance(step_n, dict):
+            previous_step = steps[idx]
+            next_step = steps[idx + 1]
+            if not isinstance(previous_step, dict) or not isinstance(next_step, dict):
                 continue
-            step_i_goal = str(step_i.get("step_goal", "")).strip()
-            step_n_goal = str(step_n.get("step_goal", "")).strip()
-            if not step_i_goal or not step_n_goal:
+            previous_goal = str(previous_step.get("step_goal", "")).strip()
+            next_goal = str(next_step.get("step_goal", "")).strip()
+            if not previous_goal or not next_goal:
                 continue
-            spatial_support, affordance_support = _match_first_cross_step_support(step_i, step_n)
-            if not spatial_support and not affordance_support:
+
+            support = _match_first_cross_step_support(previous_step, next_step)
+            if not support:
                 continue
-            _init_i, end_i = _extract_step_keyframes(video_dir, step_folder_by_id, step_i)
-            init_n, _end_n = _extract_step_keyframes(video_dir, step_folder_by_id, step_n)
-            if not end_i:
+            support_type = str(support.get("type", "")).strip()
+            effect_raw = str(support.get("effect", "")).strip()
+            precond_raw = str(support.get("precondition", "")).strip()
+            effect = _lowercase_first_char(strip_tail_punct(effect_raw))
+            precond = _lowercase_first_char(strip_tail_punct(precond_raw))
+            if support_type not in {"spatial", "affordance"} or not effect or not precond:
                 continue
-            imgs = [end_i] + ([init_n] if init_n else [])
+
+            try:
+                previous_step_id = int(previous_step.get("step_id", idx + 1))
+            except Exception:
+                previous_step_id = idx + 1
+
+            _init_prev, end_prev = _extract_step_keyframes(video_dir, step_folder_by_id, previous_step)
+            init_next, _end_next = _extract_step_keyframes(video_dir, step_folder_by_id, next_step)
+            if not end_prev:
+                continue
+            imgs = [end_prev] + ([init_next] if init_next else [])
             evidence = Evidence(evidence_type="keyframe_single", image=imgs)
-            human_q = "How does the outcome of the previous step satisfy the preconditions for the next step?"
-            support_bits = [s for s in (spatial_support, affordance_support) if s]
-            support_text = " and ".join(support_bits)
+            human_q = _prompt_task_17(high_level_goal, previous_goal, next_goal)
             answer_block = (
-                f'Completing "{step_i_goal}" establishes {support_text}, which directly supports executing "{step_n_goal}" '
-                "by satisfying its corresponding preconditions."
+                f'Completing "{previous_goal}" yields the {support_type} effect that {effect}, '
+                f'which satisfies the precondition that {precond} needed for "{next_goal}".'
             )
             out.append(
                 BaseSample(
-                    task_name=TASK_28,
+                    task_name=TASK_17,
                     human_q=human_q,
                     evidence=evidence,
-                    step_index=int(step_i.get("step_id", idx + 1)),
+                    step_index=previous_step_id,
                     fields={
                         "high_level_goal": high_level_goal,
-                        "step_n_goal": step_i_goal,
-                        "step_next_goal": step_n_goal,
-                        "dependency_support": {"spatial": spatial_support, "affordance": affordance_support},
+                        "previous_step_goal": previous_goal,
+                        "next_step_goal": next_goal,
+                        "dependency_support": {
+                            "type": support_type,
+                            "effect": effect_raw,
+                            "precondition": precond_raw,
+                            "score": float(support.get("score", 0.0) or 0.0),
+                        },
                     },
                     context={
                         "high_level_goal": high_level_goal,
-                        "step_i": {
-                            "step_id": step_i.get("step_id"),
-                            "step_goal": step_i_goal,
-                            "causal_chain": step_i.get("causal_chain", {}),
+                        "previous_step": {
+                            "step_id": previous_step.get("step_id"),
+                            "step_goal": previous_goal,
+                            "causal_chain": previous_step.get("causal_chain", {}),
                         },
-                        "step_i_plus_1": {
-                            "step_id": step_n.get("step_id"),
-                            "step_goal": step_n_goal,
-                            "causal_chain": step_n.get("causal_chain", {}),
-                            "failure_reflecting": step_n.get("failure_reflecting", {}),
-                            "counterfactual_challenge_question": step_n.get("counterfactual_challenge_question", ""),
-                            "expected_challenge_outcome": step_n.get("expected_challenge_outcome", ""),
+                        "next_step": {
+                            "step_id": next_step.get("step_id"),
+                            "step_goal": next_goal,
+                            "causal_chain": next_step.get("causal_chain", {}),
+                            "failure_reflecting": next_step.get("failure_reflecting", {}),
+                            "counterfactual_challenge_question": next_step.get("counterfactual_challenge_question", ""),
+                            "expected_challenge_outcome": next_step.get("expected_challenge_outcome", ""),
                         },
-                        "dependency_support": {"spatial": spatial_support, "affordance": affordance_support},
+                        "dependency_support": {
+                            "type": support_type,
+                            "effect": effect_raw,
+                            "precondition": precond_raw,
+                            "score": float(support.get("score", 0.0) or 0.0),
+                        },
                     },
                     answer_block=answer_block,
-                    required_anchors=_build_required_anchors(pre_step=step_n, eff_step=step_i, failure_step=step_n),
+                    required_anchors=_build_required_anchors(pre_step=next_step, eff_step=previous_step, failure_step=next_step),
                 )
             )
 
-    # Task 29/30/31: next-step prediction + prefix tracking.
-    for idx in range(len(steps) - 1):
-        current_step = steps[idx]
-        next_step = steps[idx + 1]
-        if not isinstance(current_step, dict) or not isinstance(next_step, dict):
-            continue
-        current_goal = str(current_step.get("step_goal", "")).strip()
-        next_goal = str(next_step.get("step_goal", "")).strip()
-        if not current_goal or not next_goal:
-            continue
-        try:
-            current_step_id = int(current_step.get("step_id", idx + 1))
-        except Exception:
-            current_step_id = idx + 1
-
-        init_img, end_img = _extract_step_keyframes(video_dir, step_folder_by_id, current_step)
-        prefix_video = _resolve_video_prefix_relpath(video_dir, current_step_id)
-
-        if TASK_29 in tasks:
-            if not end_img:
+    # Task 18: next step goal prediction from prefix.
+    if TASK_18 in tasks:
+        for idx in range(len(steps) - 1):
+            current_step = steps[idx]
+            next_step = steps[idx + 1]
+            if not isinstance(current_step, dict) or not isinstance(next_step, dict):
                 continue
-            evidence = Evidence(evidence_type="keyframe_single", image=[end_img])
-            human_q = _prompt_task_29(high_level_goal, current_goal)
-            out.append(
-                BaseSample(
-                    task_name=TASK_29,
-                    human_q=human_q,
-                    evidence=evidence,
-                    step_index=current_step_id,
-                    fields={
-                        "high_level_goal": high_level_goal,
-                        "current_step_goal": current_goal,
-                        "next_step_goal": next_goal,
-                    },
-                    context={
-                        "high_level_goal": high_level_goal,
-                        "current_step": {
-                            "step_id": current_step_id,
-                            "step_goal": current_goal,
-                            "causal_chain": current_step.get("causal_chain", {}),
-                        },
-                        "next_step": {
-                            "step_id": next_step.get("step_id"),
-                            "step_goal": next_goal,
-                            "causal_chain": next_step.get("causal_chain", {}),
-                            "failure_reflecting": next_step.get("failure_reflecting", {}),
-                        },
-                    },
-                    answer_block=next_goal,
-                    required_anchors=_build_required_anchors(pre_step=next_step, eff_step=next_step, failure_step=next_step),
-                )
-            )
+            current_goal = str(current_step.get("step_goal", "")).strip()
+            next_goal = str(next_step.get("step_goal", "")).strip()
+            if not current_goal or not next_goal:
+                continue
+            try:
+                current_step_id = int(current_step.get("step_id", idx + 1))
+            except Exception:
+                current_step_id = idx + 1
 
-        if TASK_30 in tasks:
+            _init_img, end_img = _extract_step_keyframes(video_dir, step_folder_by_id, current_step)
+            prefix_video = _resolve_video_prefix_relpath(video_dir, current_step_id)
             if require_video_prefix and not prefix_video:
                 continue
+
             imgs: List[str] = []
             if end_img:
                 imgs.append(end_img)
@@ -1097,94 +1087,48 @@ def generate_base_samples_for_video(
                     break
             if not imgs:
                 continue
-            evidence = Evidence(
-                evidence_type="video_prefix" if prefix_video else ("images_uniform_scene" if len(imgs) > 1 else "keyframe_single"),
-                image=imgs,
-                video=prefix_video,
-            )
-            human_q = _prompt_task_30(high_level_goal, current_goal)
-            out.append(
-                BaseSample(
-                    task_name=TASK_30,
-                    human_q=human_q,
-                    evidence=evidence,
-                    step_index=current_step_id,
-                    fields={
-                        "high_level_goal": high_level_goal,
-                        "current_step_goal": current_goal,
-                        "next_step_goal": next_goal,
-                        "prefix_end_step": current_step_id,
-                    },
-                    context={
-                        "high_level_goal": high_level_goal,
-                        "prefix_end_step": current_step_id,
-                        "current_step": {
-                            "step_id": current_step_id,
-                            "step_goal": current_goal,
-                            "causal_chain": current_step.get("causal_chain", {}),
-                        },
-                        "next_step": {
-                            "step_id": next_step.get("step_id"),
-                            "step_goal": next_goal,
-                            "causal_chain": next_step.get("causal_chain", {}),
-                            "failure_reflecting": next_step.get("failure_reflecting", {}),
-                        },
-                    },
-                    answer_block=next_goal,
-                    required_anchors=_build_required_anchors(pre_step=next_step, eff_step=next_step, failure_step=next_step),
-                )
-            )
 
-        if TASK_31 in tasks:
-            if require_video_prefix and not prefix_video:
-                continue
-            imgs: List[str] = []
-            if end_img:
-                imgs.append(end_img)
-            for p in scene_images:
-                if p not in imgs:
-                    imgs.append(p)
-                if len(imgs) >= 4:
-                    break
-            if not imgs:
-                continue
             evidence = Evidence(
                 evidence_type="video_prefix" if prefix_video else ("images_uniform_scene" if len(imgs) > 1 else "keyframe_single"),
                 image=imgs,
                 video=prefix_video,
             )
-            human_q = _prompt_task_31(high_level_goal, all_step_goals)
+            human_q = _prompt_task_18(high_level_goal, current_goal)
             out.append(
                 BaseSample(
-                    task_name=TASK_31,
+                    task_name=TASK_18,
                     human_q=human_q,
                     evidence=evidence,
                     step_index=current_step_id,
                     fields={
                         "high_level_goal": high_level_goal,
-                        "all_steps": all_step_goals,
                         "prefix_end_step": current_step_id,
-                        "label": current_step_id,
-                    },
-                    context={
-                        "high_level_goal": high_level_goal,
-                        "prefix_end_step": current_step_id,
-                        "all_steps": all_step_goals,
                         "prefix_end_step_goal": current_goal,
-                        "prefix_end_step_detail": {
+                        "next_step_goal": next_goal,
+                    },
+                    context={
+                        "high_level_goal": high_level_goal,
+                        "prefix_end_step": current_step_id,
+                        "prefix_end_step_goal": current_goal,
+                        "current_step": {
                             "step_id": current_step_id,
                             "step_goal": current_goal,
                             "causal_chain": current_step.get("causal_chain", {}),
-                            "failure_reflecting": current_step.get("failure_reflecting", {}),
+                        },
+                        "next_step": {
+                            "step_id": next_step.get("step_id"),
+                            "step_goal": next_goal,
+                            "causal_chain": next_step.get("causal_chain", {}),
+                            "failure_reflecting": next_step.get("failure_reflecting", {}),
                         },
                     },
-                    answer_block=str(current_step_id),
-                    required_anchors=_build_required_anchors(pre_step=current_step, eff_step=current_step, failure_step=current_step),
+                    answer_block=next_goal,
+                    required_anchors=_build_required_anchors(pre_step=next_step, eff_step=next_step, failure_step=next_step),
                 )
             )
 
-    # Task 32: infill missing middle steps given head/tail anchors.
-    if TASK_32 in tasks:
+    # Task 19: infill missing middle steps given head/tail anchors.
+    if TASK_19 in tasks:
         candidates: List[Tuple[int, int]] = []
         for head_idx in range(0, len(steps) - 2):
             for tail_idx in range(head_idx + 2, len(steps)):
@@ -1206,26 +1150,67 @@ def generate_base_samples_for_video(
             if any(not g for g in middle_goals):
                 continue
 
-            _hi, head_end = _extract_step_keyframes(video_dir, step_folder_by_id, head_step)
-            _ti, tail_end = _extract_step_keyframes(video_dir, step_folder_by_id, tail_step)
             imgs: List[str] = []
-            if head_end:
-                imgs.append(head_end)
-            if tail_end and tail_end not in imgs:
-                imgs.append(tail_end)
-            for p in scene_images:
-                if p not in imgs:
-                    imgs.append(p)
-                if len(imgs) >= 6:
-                    break
+            if stage1_frame_paths:
+                # Prefer true head/tail glimpses from stage1 frame pool, aligned by Stage2 localization if available.
+                n_frames = len(stage1_frame_paths)
+                head_anchor: Optional[int] = None
+                tail_anchor: Optional[int] = None
+                try:
+                    head_sid = int(head_step.get("step_id"))
+                    tail_sid = int(tail_step.get("step_id"))
+                except Exception:
+                    head_sid = None
+                    tail_sid = None
+                if head_sid and tail_sid:
+                    head_seg = stage2_segments_by_id.get(head_sid)
+                    tail_seg = stage2_segments_by_id.get(tail_sid)
+                    if isinstance(head_seg, dict) and isinstance(tail_seg, dict):
+                        try:
+                            head_end_idx = int(head_seg.get("end_frame_index"))
+                            head_anchor = max(1, min(int(head_end_idx), n_frames))
+                        except Exception:
+                            head_anchor = None
+                        try:
+                            tail_start_idx = int(tail_seg.get("start_frame_index"))
+                            tail_anchor = max(1, min(int(tail_start_idx), n_frames))
+                        except Exception:
+                            tail_anchor = None
+                if head_anchor is None or tail_anchor is None:
+                    # Fallback: approximate by step order when Stage2 metadata is unavailable.
+                    num_steps = max(1, len(steps))
+                    head_anchor = max(1, min(n_frames, int(round((head_idx + 1) * n_frames / num_steps))))
+                    tail_anchor = max(1, min(n_frames, int(round((tail_idx + 1) * n_frames / num_steps))))
+                imgs = _select_stage1_head_tail_images(
+                    stage1_frame_paths,
+                    head_anchor_idx_1based=int(head_anchor),
+                    tail_anchor_idx_1based=int(tail_anchor),
+                    head_k=4,
+                    tail_k=4,
+                )
+
             if not imgs:
+                # Legacy fallback: use step keyframes + a few uniform scene frames.
+                _hi, head_end = _extract_step_keyframes(video_dir, step_folder_by_id, head_step)
+                _ti, tail_end = _extract_step_keyframes(video_dir, step_folder_by_id, tail_step)
+                if head_end:
+                    imgs.append(head_end)
+                if tail_end and tail_end not in imgs:
+                    imgs.append(tail_end)
+                for p in scene_images:
+                    if p not in imgs:
+                        imgs.append(p)
+                    if len(imgs) >= 6:
+                        break
+
+            if len(imgs) < 2:
                 continue
-            evidence = Evidence(evidence_type="images_uniform_scene" if len(imgs) > 1 else "keyframe_single", image=imgs)
-            human_q = _prompt_task_32(high_level_goal, head_goal, tail_goal, num_missing=len(middle_goals))
+            evidence = Evidence(evidence_type="images_uniform_scene", image=imgs)
+            human_q = _prompt_task_19(high_level_goal)
             answer_lines = "\n".join([f"{i}) {g}" for i, g in enumerate(middle_goals, start=1)])
             out.append(
                 BaseSample(
-                    task_name=TASK_32,
+                    task_name=TASK_19,
                     human_q=human_q,
                     evidence=evidence,
                     step_index=int(head_step.get("step_id", head_idx + 1)),
@@ -1252,10 +1237,10 @@ def generate_base_samples_for_video(
                 )
             )
 
-    # Task 33/34: next-K steps multi-select + reordering (prefix-based).
+    # Task 20/21/22/23: prefix-based planning (predict/reorder/diagnose/repair).
     min_k = 3
     max_k_global = 6
-    if TASK_33 in tasks or TASK_34 in tasks:
+    if TASK_20 in tasks or TASK_21 in tasks or TASK_22 in tasks or TASK_23 in tasks:
         for prefix_end_idx in range(0, len(steps) - min_k):
             completed_prefix_step = steps[prefix_end_idx]
             if not isinstance(completed_prefix_step, dict):
@@ -1300,45 +1285,29 @@ def generate_base_samples_for_video(
                 video=prefix_video,
             )
 
-            if TASK_33 in tasks:
-                option_pool = [g for g in all_step_goals if g and g not in gold_goals]
-                rng.shuffle(option_pool)
-                options = list(gold_goals)
-                target_n = min(8, len(set([*options, *option_pool])))
-                for cand in option_pool:
-                    if cand not in options:
-                        options.append(cand)
-                    if len(options) >= target_n:
-                        break
-                if len(options) < len(gold_goals) + 2:
-                    continue
-                rng.shuffle(options)
-                letters = [chr(ord("A") + i) for i in range(len(options))]
-                gold_letters_list = [letters[options.index(g)] for g in gold_goals if g in options]
-                gold_letters = ",".join(sorted(set(gold_letters_list)))
-                human_q = _prompt_task_33(high_level_goal, completed_prefix_goal, k, options)
+            if TASK_20 in tasks:
+                human_q = _prompt_task_20(high_level_goal, completed_prefix_goal, k)
+                answer_lines = "\n".join([f"{i}) {g}" for i, g in enumerate(gold_goals, start=1)])
                 anchor_step = gold_steps[0]
                 out.append(
                     BaseSample(
-                        task_name=TASK_33,
+                        task_name=TASK_20,
                         human_q=human_q,
                         evidence=evidence,
                         step_index=completed_step_id,
                         fields={
                             "high_level_goal": high_level_goal,
                             "prefix_end_step": completed_step_id,
+                            "prefix_end_step_goal": completed_prefix_goal,
                             "K": k,
-                            "options": options,
-                            "label_set": gold_letters,
-                            "gold_next_k_step_goals": gold_goals,
+                            "next_k_step_goals": gold_goals,
                         },
                         context={
                             "high_level_goal": high_level_goal,
                             "prefix_end_step": completed_step_id,
                             "prefix_end_step_goal": completed_prefix_goal,
                             "K": k,
-                            "options": options,
-                            "gold_next_k_step_goals": gold_goals,
+                            "next_k_step_goals": gold_goals,
                             "next_step_detail": {
                                 "step_id": anchor_step.get("step_id"),
                                 "step_goal": str(anchor_step.get("step_goal", "")).strip(),
@@ -1346,22 +1315,22 @@ def generate_base_samples_for_video(
                                 "failure_reflecting": anchor_step.get("failure_reflecting", {}),
                             },
                         },
-                        answer_block=gold_letters,
+                        answer_block=answer_lines,
                         required_anchors=_build_required_anchors(pre_step=anchor_step, eff_step=anchor_step, failure_step=anchor_step),
                     )
                 )
 
-            if TASK_34 in tasks:
+            if TASK_21 in tasks:
                 presented = list(gold_goals)
                 rng.shuffle(presented)
                 if presented == gold_goals:
                     rng.shuffle(presented)
-                human_q = _prompt_task_34(high_level_goal, completed_prefix_goal, presented)
+                human_q = _prompt_task_21(high_level_goal, completed_prefix_goal, presented)
                 answer_lines = "\n".join([f"{i}) {g}" for i, g in enumerate(gold_goals, start=1)])
                 anchor_step = gold_steps[0]
                 out.append(
                     BaseSample(
-                        task_name=TASK_34,
+                        task_name=TASK_21,
                         human_q=human_q,
                         evidence=evidence,
                         step_index=completed_step_id,
@@ -1392,21 +1361,29 @@ def generate_base_samples_for_video(
                     )
                 )
 
-            # Task 35/36: flawed plan + repair.
-            if TASK_35 in tasks or TASK_36 in tasks:
+            # Task 22/23: flawed plan + repair.
+            if TASK_22 in tasks or TASK_23 in tasks:
                 if k < 3:
                     continue
-                swap_idx: Optional[int] = None
-                dep_support = ""
+                best_swap_idx: Optional[int] = None
+                best_support: Optional[Dict[str, Any]] = None
+                best_score = -1.0
                 for j in range(len(gold_steps) - 1):
-                    sp_supp, aff_supp = _match_first_cross_step_support(gold_steps[j], gold_steps[j + 1])
-                    supp = sp_supp or aff_supp
-                    if supp:
-                        swap_idx = j
-                        dep_support = supp
-                        break
-                if swap_idx is None:
+                    support = _match_first_cross_step_support(gold_steps[j], gold_steps[j + 1])
+                    if not support:
+                        continue
+                    try:
+                        score = float(support.get("score", -1.0))
+                    except Exception:
+                        score = -1.0
+                    if score > best_score:
+                        best_score = score
+                        best_swap_idx = j
+                        best_support = support
+                if best_swap_idx is None or not best_support:
                     continue
+                swap_idx = best_swap_idx
+                dep_support = best_support
 
                 prereq_step = gold_steps[swap_idx]
                 flawed_step = gold_steps[swap_idx + 1]
@@ -1416,25 +1393,30 @@ def generate_base_samples_for_video(
 
                 flaw_step_pos = swap_idx + 1  # 1-based index in bad_plan_steps
                 flaw_type = "precondition_missing"
-                reason = f'It requires "{dep_support}" as a causal precondition, but this bad plan only establishes it later.'
+                dep_precond = _lowercase_first_char(strip_tail_punct(str(dep_support.get("precondition", "")).strip()))
+                flawed_goal = bad_goals[swap_idx]
+                prereq_goal = bad_goals[swap_idx + 1]
+                reason = f'You cannot "{flawed_goal}" before "{prereq_goal}" because it requires the precondition that {dep_precond}.'
                 label_str = f"FlawStep={flaw_step_pos}; FlawType={flaw_type}; Reason={reason}"
 
-                if TASK_35 in tasks:
-                    human_q = _prompt_task_35(high_level_goal, completed_prefix_goal, bad_goals)
+                if TASK_22 in tasks:
+                    human_q = _prompt_task_22(high_level_goal, completed_prefix_goal, bad_goals)
                     out.append(
                         BaseSample(
-                            task_name=TASK_35,
+                            task_name=TASK_22,
                             human_q=human_q,
                             evidence=evidence,
                             step_index=completed_step_id,
                             fields={
                                 "high_level_goal": high_level_goal,
                                 "prefix_end_step": completed_step_id,
+                                "prefix_end_step_goal": completed_prefix_goal,
                                 "K": k,
                                 "bad_plan_steps": bad_goals,
                                 "gold_plan_steps": gold_goals,
                                 "flaw_step": flaw_step_pos,
                                 "flaw_type": flaw_type,
+                                "dependency_support": dep_support,
                                 "label": label_str,
                             },
                             context={
@@ -1463,21 +1445,23 @@ def generate_base_samples_for_video(
                         )
                     )
 
-                if TASK_36 in tasks:
-                    human_q = _prompt_task_36(high_level_goal, completed_prefix_goal, bad_goals)
-                    answer_lines = "\n".join([f"{i}) {g}" for i, g in enumerate(gold_goals, start=1)])
+                if TASK_23 in tasks:
+                    human_q = _prompt_task_23(high_level_goal, completed_prefix_goal, bad_goals)
+                    answer_lines = "\n".join([f'{i}) "{g}"' for i, g in enumerate(gold_goals, start=1)])
                     out.append(
                         BaseSample(
-                            task_name=TASK_36,
+                            task_name=TASK_23,
                             human_q=human_q,
                             evidence=evidence,
                             step_index=completed_step_id,
                             fields={
                                 "high_level_goal": high_level_goal,
                                 "prefix_end_step": completed_step_id,
+                                "prefix_end_step_goal": completed_prefix_goal,
                                 "K": k,
                                 "bad_plan_steps": bad_goals,
                                 "gold_plan_steps": gold_goals,
+                                "dependency_support": dep_support,
                                 "label": gold_goals,
                             },
                             context={
@@ -1488,6 +1472,12 @@ def generate_base_samples_for_video(
                                 "gold_plan_steps": gold_goals,
                                 "dependency_support": dep_support,
                                 "flaw": {"flaw_step_pos": flaw_step_pos, "flaw_type": flaw_type, "reason": reason},
+                                "flawed_step_detail": {
+                                    "step_id": flawed_step.get("step_id"),
+                                    "step_goal": str(flawed_step.get("step_goal", "")).strip(),
+                                    "causal_chain": flawed_step.get("causal_chain", {}),
+                                    "failure_reflecting": flawed_step.get("failure_reflecting", {}),
+                                },
                                 "prerequisite_step_detail": {
                                     "step_id": prereq_step.get("step_id"),
                                     "step_goal": str(prereq_step.get("step_goal", "")).strip(),
@@ -1496,11 +1486,15 @@ def generate_base_samples_for_video(
                                 },
                             },
                             answer_block=answer_lines,
-                            required_anchors=_build_required_anchors(pre_step=prereq_step, eff_step=prereq_step, failure_step=prereq_step),
+                            required_anchors=_build_required_anchors(
+                                pre_step=flawed_step,
+                                eff_step=prereq_step,
+                                failure_step=flawed_step,
+                            ),
                         )
                     )
 
-    # Task 37/38/39/40: counterfactual + failure recovery (per step).
+    # Task 24/25/26: counterfactual + failure recovery (per step).
     for idx, step in enumerate(steps, start=1):
         if not isinstance(step, dict):
             continue
@@ -1523,11 +1517,11 @@ def generate_base_samples_for_video(
         cf_q = str(step.get("counterfactual_challenge_question", "")).strip()
         cf_out = str(step.get("expected_challenge_outcome", "")).strip()
 
-        if TASK_37 in tasks and cf_q and cf_out:
-            human_q = _prompt_task_37(high_level_goal, step_goal, cf_q)
+        if TASK_24 in tasks and cf_q and cf_out:
+            human_q = _prompt_task_24(step_goal, cf_q)
             out.append(
                 BaseSample(
-                    task_name=TASK_37,
+                    task_name=TASK_24,
                     human_q=human_q,
                     evidence=evidence,
                     step_index=step_id,
@@ -1549,54 +1543,50 @@ def generate_base_samples_for_video(
                 )
             )
 
-        if TASK_38 in tasks and cf_q and cf_out:
-            options, label = _build_mc_options(rng, correct=cf_out, distractor_pool=all_expected_outcomes, num_options=4)
-            if options and label:
-                human_q = _prompt_task_38(high_level_goal, step_goal, cf_q, options)
-                out.append(
-                    BaseSample(
-                        task_name=TASK_38,
-                        human_q=human_q,
-                        evidence=evidence,
-                        step_index=step_id,
-                        fields={
-                            "high_level_goal": high_level_goal,
-                            "step_goal": step_goal,
-                            "counterfactual_challenge_question": cf_q,
-                            "options": options,
-                            "label": label,
-                            "expected_challenge_outcome": cf_out,
-                        },
-                        context={
-                            "high_level_goal": high_level_goal,
-                            "step": {"step_id": step_id, "step_goal": step_goal, "causal_chain": step.get("causal_chain", {})},
-                            "counterfactual_challenge_question": cf_q,
-                            "options": options,
-                            "expected_challenge_outcome": cf_out,
-                            "failure_reflecting": fr,
-                        },
-                        answer_block=label,
-                        required_anchors=_build_required_anchors(pre_step=step, eff_step=step, failure_step=step),
-                    )
-                )
-
-        if TASK_39 in tasks and fr_reason and fr_recovery:
-            human_q = _prompt_task_39(fr_reason)
+        if TASK_25 in tasks and cf_q and cf_out:
+            human_q = _prompt_task_25(step_goal, cf_q)
             out.append(
                 BaseSample(
-                    task_name=TASK_39,
+                    task_name=TASK_25,
                     human_q=human_q,
                     evidence=evidence,
                     step_index=step_id,
                     fields={
                         "high_level_goal": high_level_goal,
                         "step_goal": step_goal,
-                        "reason": fr_reason,
+                        "counterfactual_challenge_question": cf_q,
+                        "expected_challenge_outcome": cf_out,
+                    },
+                    context={
+                        "high_level_goal": high_level_goal,
+                        "step": {"step_id": step_id, "step_goal": step_goal, "causal_chain": step.get("causal_chain", {})},
+                        "counterfactual_challenge_question": cf_q,
+                        "expected_challenge_outcome": cf_out,
+                        "failure_reflecting": fr,
+                    },
+                    answer_block=cf_out,
+                    required_anchors=_build_required_anchors(pre_step=step, eff_step=step, failure_step=step),
+                )
+            )
+
+        if TASK_26 in tasks and fr_reason and fr_recovery:
+            human_q = _prompt_task_26(step_goal, fr_reason)
+            out.append(
+                BaseSample(
+                    task_name=TASK_26,
+                    human_q=human_q,
+                    evidence=evidence,
+                    step_index=step_id,
+                    fields={
+                        "high_level_goal": high_level_goal,
+                        "step_goal": step_goal,
+                        "failure_reason": fr_reason,
                         "recovery_strategy": fr_recovery,
                     },
                     context={
                         "high_level_goal": high_level_goal,
                         "step": {"step_id": step_id, "step_goal": step_goal, "causal_chain": step.get("causal_chain", {})},
+                        "failure_reason": fr_reason,
                         "failure_reflecting": fr,
                     },
                     answer_block=fr_recovery,
@@ -1604,145 +1594,70 @@ def generate_base_samples_for_video(
                 )
             )
 
-        if TASK_40 in tasks and fr_reason and fr_recovery:
-            options, label = _build_mc_options(rng, correct=fr_recovery, distractor_pool=all_recovery_strategies, num_options=4)
-            if options and label:
-                human_q = _prompt_task_40(high_level_goal, step_goal, fr_reason, options)
-                out.append(
-                    BaseSample(
-                        task_name=TASK_40,
-                        human_q=human_q,
-                        evidence=evidence,
-                        step_index=step_id,
-                        fields={
-                            "high_level_goal": high_level_goal,
-                            "step_goal": step_goal,
-                            "failure_reason": fr_reason,
-                            "options": options,
-                            "label": label,
-                            "gold_recovery_strategy": fr_recovery,
-                        },
-                        context={
-                            "high_level_goal": high_level_goal,
-                            "step": {"step_id": step_id, "step_goal": step_goal, "causal_chain": step.get("causal_chain", {})},
-                            "failure_reason": fr_reason,
-                            "options": options,
-                            "gold_recovery_strategy": fr_recovery,
-                        },
-                        answer_block=label,
-                        required_anchors=_build_required_anchors(pre_step=step, eff_step=step, failure_step=step),
-                    )
-                )
+    # Task 27: failure-driven replanning (next step after recovery).
+    if TASK_27 in tasks:
+        for idx in range(len(steps) - 1):
+            current_step = steps[idx]
+            next_step = steps[idx + 1]
+            if not isinstance(current_step, dict) or not isinstance(next_step, dict):
+                continue
+            current_goal = str(current_step.get("step_goal", "")).strip()
+            next_goal = str(next_step.get("step_goal", "")).strip()
+            if not current_goal or not next_goal:
+                continue
 
-    # Task 41/42: recovery then retry/continue (binary + MC).
-    for idx in range(len(steps) - 1):
-        current_step = steps[idx]
-        next_step = steps[idx + 1]
-        if not isinstance(current_step, dict) or not isinstance(next_step, dict):
-            continue
-        current_goal = str(current_step.get("step_goal", "")).strip()
-        next_goal = str(next_step.get("step_goal", "")).strip()
-        if not current_goal or not next_goal:
-            continue
-        fr = current_step.get("failure_reflecting", {}) if isinstance(current_step.get("failure_reflecting"), dict) else {}
-        fr_reason = str(fr.get("reason", "")).strip()
-        fr_recovery = str(fr.get("recovery_strategy", "")).strip()
-        if not fr_reason or not fr_recovery:
-            continue
-        try:
-            current_step_id = int(current_step.get("step_id", idx + 1))
-        except Exception:
-            current_step_id = idx + 1
-        prefix_video = _resolve_video_prefix_relpath(video_dir, current_step_id)
-        if require_video_prefix and not prefix_video:
-            continue
-        init_img, _end_img = _extract_step_keyframes(video_dir, step_folder_by_id, current_step)
-        imgs: List[str] = []
-        if init_img:
-            imgs.append(init_img)
-        for p in scene_images:
-            if p not in imgs:
-                imgs.append(p)
-            if len(imgs) >= 4:
-                break
-        if not imgs:
-            continue
-        evidence = Evidence(
-            evidence_type="video_prefix" if prefix_video else ("images_uniform_scene" if len(imgs) > 1 else "keyframe_single"),
-            image=imgs,
-            video=prefix_video,
-        )
+            fr = current_step.get("failure_reflecting", {}) if isinstance(current_step.get("failure_reflecting"), dict) else {}
+            fr_reason = str(fr.get("reason", "")).strip()
+            fr_recovery = str(fr.get("recovery_strategy", "")).strip()
+            if not fr_reason or not fr_recovery:
+                continue
 
-        if TASK_41 in tasks:
-            label = _infer_retry_or_continue_label(current_step)
-            human_q = _prompt_task_41(
-                high_level_goal=high_level_goal,
-                current_step_goal=current_goal,
-                next_step_goal=next_goal,
-                failure_reason=fr_reason,
-                recovery_strategy=fr_recovery,
-            )
-            out.append(
-                BaseSample(
-                    task_name=TASK_41,
-                    human_q=human_q,
-                    evidence=evidence,
-                    step_index=current_step_id,
-                    fields={
-                        "high_level_goal": high_level_goal,
-                        "current_step_goal": current_goal,
-                        "next_step_goal": next_goal,
-                        "failure_reason": fr_reason,
-                        "recovery_strategy": fr_recovery,
-                        "label": label,
-                    },
-                    context={
-                        "high_level_goal": high_level_goal,
-                        "current_step": {
-                            "step_id": current_step_id,
-                            "step_goal": current_goal,
-                            "causal_chain": current_step.get("causal_chain", {}),
-                            "failure_reflecting": current_step.get("failure_reflecting", {}),
-                        },
-                        "next_step": {
-                            "step_id": next_step.get("step_id"),
-                            "step_goal": next_goal,
-                            "causal_chain": next_step.get("causal_chain", {}),
-                            "failure_reflecting": next_step.get("failure_reflecting", {}),
-                        },
-                        "failure_reason": fr_reason,
-                        "recovery_strategy": fr_recovery,
-                    },
-                    answer_block=label,
-                    required_anchors=_build_required_anchors(pre_step=current_step, eff_step=current_step, failure_step=current_step),
-                )
+            try:
+                current_step_id = int(current_step.get("step_id", idx + 1))
+            except Exception:
+                current_step_id = idx + 1
+
+            prefix_video = _resolve_video_prefix_relpath(video_dir, current_step_id)
+            if require_video_prefix and not prefix_video:
+                continue
+
+            init_img, _end_img = _extract_step_keyframes(video_dir, step_folder_by_id, current_step)
+            imgs: List[str] = []
+            if init_img:
+                imgs.append(init_img)
+            for p in scene_images:
+                if p not in imgs:
+                    imgs.append(p)
+                if len(imgs) >= 4:
+                    break
+            if not imgs:
+                continue
+
+            evidence = Evidence(
+                evidence_type="video_prefix" if prefix_video else ("images_uniform_scene" if len(imgs) > 1 else "keyframe_single"),
+                image=imgs,
+                video=prefix_video,
             )
 
-        if TASK_42 in tasks:
             decision = _infer_retry_or_continue_label(current_step)
             target_goal = current_goal if decision == "retry_current_step" else next_goal
-            options = [current_goal, next_goal]
-            pool = [g for g in all_step_goals if g and g not in options]
-            rng.shuffle(pool)
-            options.extend(pool[:2])
-            if len(options) != 4 or len(set(options)) != 4 or target_goal not in options:
-                continue
-            rng.shuffle(options)
-            label = "ABCD"[options.index(target_goal)]
-            human_q = _prompt_task_42(high_level_goal, fr_reason, fr_recovery, options)
+
+            human_q = _prompt_task_27(high_level_goal, fr_reason, fr_recovery)
             out.append(
                 BaseSample(
-                    task_name=TASK_42,
+                    task_name=TASK_27,
                     human_q=human_q,
                     evidence=evidence,
                     step_index=current_step_id,
                     fields={
                         "high_level_goal": high_level_goal,
+                        "prefix_end_step": current_step_id,
+                        "prefix_end_step_goal": current_goal,
                         "failure_reason": fr_reason,
                         "recovery_strategy": fr_recovery,
-                        "prefix_end_step": current_step_id,
-                        "options": options,
-                        "label": label,
+                        "current_step_goal": current_goal,
+                        "next_step_goal": next_goal,
+                        "decision": decision,
                         "gold_next_step_goal": target_goal,
                     },
                     context={
@@ -1762,10 +1677,9 @@ def generate_base_samples_for_video(
                         },
                         "failure_reason": fr_reason,
                         "recovery_strategy": fr_recovery,
-                        "options": options,
                         "gold_next_step_goal": target_goal,
                     },
-                    answer_block=label,
+                    answer_block=target_goal,
                     required_anchors=_build_required_anchors(pre_step=current_step, eff_step=current_step, failure_step=current_step),
                 )
             )
@@ -1774,11 +1688,11 @@ def generate_base_samples_for_video(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="API-only CoT generator for three-stage outputs (Task_28–Task_42).")
+    parser = argparse.ArgumentParser(description="API-only CoT generator for three-stage outputs (Task_17–Task_27; planning-only).")
     parser.add_argument("--input-root", required=True, help="Three-stage output root containing multiple <video_id>/ folders.")
     parser.add_argument("--output-dir", required=True, help="Output directory to write <task_name>/data.jsonl.")
     parser.add_argument("--tasks", default=",".join(ALL_TASKS), help="Comma-separated task names to generate.")
-    parser.add_argument("--seed", type=int, default=0, help="Random seed for sampling distractors/options.")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed for sampling K and plan variants.")
     parser.add_argument("--abs-paths", action="store_true", help="Write absolute paths in image/video/source_path.")
     parser.add_argument("--require-video-prefix", action="store_true", help="Skip prefix-based samples when prefix mp4 is missing.")
 
@@ -1802,6 +1716,9 @@ def main() -> None:
     tasks = normalize_task_names([t.strip() for t in str(args.tasks).split(",") if t.strip()])
     if not tasks:
         raise SystemExit("No tasks selected.")
+    unknown = [t for t in tasks if t not in ALL_TASKS]
+    if unknown:
+        raise SystemExit(f"Unknown/unsupported tasks: {unknown}. Supported tasks: {list(ALL_TASKS)}")
 
     api_cfg = ApiConfig(
         api_key=str(args.api_key),

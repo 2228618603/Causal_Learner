@@ -20,38 +20,30 @@ FRAME_LEAK_PATTERNS = [
 ]
 
 
-TASK_28 = "Task_28_Inter_Step_Dependency_Analysis"
-TASK_29 = "Task_29_Next_Action_Prediction"
-TASK_30 = "Task_30_Next_Step_Goal_Prediction_From_Prefix"
-TASK_31 = "Task_31_Prefix_Completed_Steps_MultiSelect"
-TASK_32 = "Task_32_Middle_Steps_Infill_From_Head_Tail"
-TASK_33 = "Task_33_Next_K_Steps_MultiSelect_From_Prefix"
-TASK_34 = "Task_34_Next_K_Steps_Reordering_From_Prefix"
-TASK_35 = "Task_35_Failed_Planning_Flaw_Pointing"
-TASK_36 = "Task_36_Plan_Repair_From_Flaw"
-TASK_37 = "Task_37_Counterfactual_Prediction"
-TASK_38 = "Task_38_Counterfactual_Outcome_MCQ"
-TASK_39 = "Task_39_Failure_Recovery_Protocol"
-TASK_40 = "Task_40_Recovery_Strategy_MCQ"
-TASK_41 = "Task_41_Recovery_then_Retry_or_Continue"
-TASK_42 = "Task_42_Next_Step_After_Recovery"
+TASK_17 = "Task_17_Inter_Step_Dependency_Analysis"
+TASK_18 = "Task_18_Next_Step_Goal_Prediction_From_Prefix"
+TASK_19 = "Task_19_Middle_Steps_Infill_From_Head_Tail"
+TASK_20 = "Task_20_Next_K_Steps_Prediction_From_Prefix_QA"
+TASK_21 = "Task_21_Next_K_Steps_Reordering_From_Prefix"
+TASK_22 = "Task_22_Failed_Planning_Flaw_Pointing"
+TASK_23 = "Task_23_Plan_Repair_From_Flaw"
+TASK_24 = "Task_24_Counterfactual_Prediction"
+TASK_25 = "Task_25_Counterfactual_Outcome_QA"
+TASK_26 = "Task_26_Failure_Recovery_Protocol"
+TASK_27 = "Task_27_Next_Step_After_Recovery_QA"
 
 KNOWN_TASKS = {
-    TASK_28,
-    TASK_29,
-    TASK_30,
-    TASK_31,
-    TASK_32,
-    TASK_33,
-    TASK_34,
-    TASK_35,
-    TASK_36,
-    TASK_37,
-    TASK_38,
-    TASK_39,
-    TASK_40,
-    TASK_41,
-    TASK_42,
+    TASK_17,
+    TASK_18,
+    TASK_19,
+    TASK_20,
+    TASK_21,
+    TASK_22,
+    TASK_23,
+    TASK_24,
+    TASK_25,
+    TASK_26,
+    TASK_27,
 }
 
 
@@ -124,39 +116,9 @@ def _split_think_and_answer(assistant_text: str) -> Tuple[Optional[str], Optiona
         return None, None, "Answer text after </think> is empty."
     return reasoning, answer, ""
 
-
-def _parse_answer_letter(answer_text: str) -> Optional[str]:
-    s = str(answer_text or "").strip()
-    return s if s in {"A", "B", "C", "D"} else None
-
-
-def _parse_answer_binary(answer_text: str) -> Optional[str]:
-    s = str(answer_text or "").strip()
-    return s if s in {"retry_current_step", "continue_next_step"} else None
-
-
-def _parse_answer_int(answer_text: str) -> Optional[int]:
-    s = str(answer_text or "").strip()
-    try:
-        return int(s)
-    except Exception:
-        return None
-
-
 def _parse_answer_text(answer_text: str) -> Optional[str]:
     s = str(answer_text or "").strip()
     return s if s else None
-
-
-def _parse_multiselect_letters(answer_text: str) -> Optional[str]:
-    raw = str(answer_text or "").strip()
-    if not raw:
-        return None
-    parts = [p.strip() for p in re.split(r"[,\s]+", raw) if p.strip()]
-    if not parts or any(not re.fullmatch(r"[A-Z]", p) for p in parts):
-        return None
-    uniq = sorted(set(parts))
-    return ",".join(uniq)
 
 
 def _parse_numbered_step_list(answer_text: str) -> List[str]:
@@ -165,26 +127,31 @@ def _parse_numbered_step_list(answer_text: str) -> List[str]:
     for ln in lines:
         m = re.match(r"^\s*\d+\)\s*(.+?)\s*$", ln)
         if m:
-            out.append(str(m.group(1)).strip())
+            s = str(m.group(1)).strip()
+            if len(s) >= 2 and ((s[0] == s[-1] == '"') or (s[0] == s[-1] == "'")):
+                s = s[1:-1].strip()
+            out.append(s)
     return out
 
 
-def _expected_task28_answer(fields: Dict[str, Any]) -> Optional[str]:
-    step_i = str(fields.get("step_n_goal", "")).strip()
-    step_n = str(fields.get("step_next_goal", "")).strip()
+def _expected_task17_answer(fields: Dict[str, Any]) -> Optional[str]:
+    prev_goal = str(fields.get("previous_step_goal", "")).strip()
+    next_goal = str(fields.get("next_step_goal", "")).strip()
     dep = fields.get("dependency_support", {})
-    spatial = ""
-    affordance = ""
-    if isinstance(dep, dict):
-        spatial = str(dep.get("spatial", "")).strip()
-        affordance = str(dep.get("affordance", "")).strip()
-    support_bits = [s for s in (spatial, affordance) if s]
-    if not step_i or not step_n or not support_bits:
+    if not isinstance(dep, dict):
         return None
-    support_text = " and ".join(support_bits)
+    dep_type = str(dep.get("type", "")).strip()
+    effect = re.sub(r"[\s\.\!\?]+$", "", str(dep.get("effect", "")).strip())
+    precond = re.sub(r"[\s\.\!\?]+$", "", str(dep.get("precondition", "")).strip())
+    if effect and effect[0].isalpha():
+        effect = effect[0].lower() + effect[1:]
+    if precond and precond[0].isalpha():
+        precond = precond[0].lower() + precond[1:]
+    if not prev_goal or not next_goal or dep_type not in {"spatial", "affordance"} or not effect or not precond:
+        return None
     return (
-        f'Completing "{step_i}" establishes {support_text}, which directly supports executing "{step_n}" '
-        "by satisfying its corresponding preconditions."
+        f'Completing "{prev_goal}" yields the {dep_type} effect that {effect}, '
+        f'which satisfies the precondition that {precond} needed for "{next_goal}".'
     )
 
 
@@ -256,6 +223,26 @@ def validate_entry(
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "CoT reasoning inside <think> must be non-empty."))
         if "\n" in reasoning_text or "\r" in reasoning_text:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "CoT reasoning must be one paragraph (no newlines)."))
+        template_markers = (
+            "Spatially,",
+            "Functionally,",
+            "After the action, spatially,",
+            "After the action, functionally,",
+            "A likely failure is that",
+            "If that happens,",
+        )
+        missing = [m for m in template_markers if m not in reasoning_text]
+        if missing:
+            issues.append(
+                Issue(
+                    "ERROR",
+                    task_dir_name,
+                    jsonl_path,
+                    line_no,
+                    entry_id,
+                    f"CoT reasoning missing required style markers: {missing}",
+                )
+            )
 
     meta = entry.get("meta")
     if not isinstance(meta, dict):
@@ -298,15 +285,15 @@ def validate_entry(
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, f"Missing source_path file: {sp}"))
 
     # Task-specific Answer checks (internal consistency against meta.fields).
-    if task_dir_name == TASK_28:
-        exp = _expected_task28_answer(fields)
+    if task_dir_name == TASK_17:
+        exp = _expected_task17_answer(fields)
         got = _parse_answer_text(answer_text)
         if not got:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer must be non-empty text."))
         elif exp and got != exp:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields dependency_support."))
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.dependency_support."))
 
-    if task_dir_name in (TASK_29, TASK_30):
+    if task_dir_name == TASK_18:
         exp = str(fields.get("next_step_goal", "")).strip()
         got = _parse_answer_text(answer_text)
         if not exp or not got:
@@ -314,15 +301,7 @@ def validate_entry(
         elif got != exp:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.next_step_goal."))
 
-    if task_dir_name == TASK_31:
-        exp = fields.get("label")
-        got = _parse_answer_int(answer_text)
-        if not isinstance(exp, int) or got is None:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer must be int and meta.fields.label must be int."))
-        elif got != exp:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.label."))
-
-    if task_dir_name == TASK_32:
+    if task_dir_name == TASK_19:
         exp = fields.get("middle_steps")
         got = _parse_numbered_step_list(answer_text)
         if not isinstance(exp, list) or not exp or any(not isinstance(x, str) or not x.strip() for x in exp):
@@ -330,26 +309,25 @@ def validate_entry(
         elif got != [str(x).strip() for x in exp]:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer list mismatch vs meta.fields.middle_steps."))
 
-    if task_dir_name == TASK_33:
-        options = fields.get("options")
-        label_set = str(fields.get("label_set", "")).strip()
-        got = _parse_multiselect_letters(answer_text)
-        if not isinstance(options, list) or len(options) < 5:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "meta.fields.options must be list[str] length>=5."))
-        if not label_set or not got:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer must be comma-separated letters and label_set must be non-empty."))
-        elif got != label_set:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.label_set."))
+    if task_dir_name == TASK_20:
+        exp = fields.get("next_k_step_goals")
+        got = _parse_numbered_step_list(answer_text)
+        if not isinstance(exp, list) or not exp or any(not isinstance(x, str) or not x.strip() for x in exp):
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "meta.fields.next_k_step_goals must be list[str]."))
+        elif got != [str(x).strip() for x in exp]:
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer list mismatch vs meta.fields.next_k_step_goals."))
 
-    if task_dir_name in (TASK_34, TASK_36):
+    if task_dir_name == TASK_21:
         exp = fields.get("label")
+        if not isinstance(exp, list):
+            exp = fields.get("gold_next_k_step_goals")
         got = _parse_numbered_step_list(answer_text)
         if not isinstance(exp, list) or not exp or any(not isinstance(x, str) or not x.strip() for x in exp):
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "meta.fields.label must be list[str]."))
         elif got != [str(x).strip() for x in exp]:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer list mismatch vs meta.fields.label."))
 
-    if task_dir_name == TASK_35:
+    if task_dir_name == TASK_22:
         exp = str(fields.get("label", "")).strip()
         got = _parse_answer_text(answer_text)
         if not exp or not got:
@@ -357,7 +335,15 @@ def validate_entry(
         elif got != exp:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.label."))
 
-    if task_dir_name == TASK_37:
+    if task_dir_name == TASK_23:
+        exp = fields.get("label")
+        got = _parse_numbered_step_list(answer_text)
+        if not isinstance(exp, list) or not exp or any(not isinstance(x, str) or not x.strip() for x in exp):
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "meta.fields.label must be list[str]."))
+        elif got != [str(x).strip() for x in exp]:
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer list mismatch vs meta.fields.label."))
+
+    if task_dir_name in (TASK_24, TASK_25):
         exp = str(fields.get("expected_challenge_outcome", "")).strip()
         got = _parse_answer_text(answer_text)
         if not exp or not got:
@@ -365,43 +351,27 @@ def validate_entry(
         elif got != exp:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.expected_challenge_outcome."))
 
-    if task_dir_name in (TASK_38, TASK_40, TASK_42):
-        options = fields.get("options")
-        label = str(fields.get("label", "")).strip()
-        got = _parse_answer_letter(answer_text)
-        if not isinstance(options, list) or len(options) != 4 or any(not isinstance(x, str) or not x.strip() for x in options):
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "meta.fields.options must be list[str] length==4."))
-        if label not in {"A", "B", "C", "D"}:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "meta.fields.label must be one of A/B/C/D."))
-        if not got:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer must be one of A/B/C/D."))
-        elif label and got != label:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, f"Answer letter mismatch: meta={label} text={got}."))
-
-    if task_dir_name == TASK_39:
-        reason = str(fields.get("reason", "")).strip()
-        recovery = str(fields.get("recovery_strategy", "")).strip()
+    if task_dir_name == TASK_26:
+        exp = str(fields.get("recovery_strategy", "")).strip()
         got = _parse_answer_text(answer_text)
-        if not reason or not recovery or not got:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Missing reason/recovery_strategy or invalid Answer."))
-        elif got != recovery:
+        if not exp or not got:
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Missing recovery_strategy or invalid Answer."))
+        elif got != exp:
             issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.recovery_strategy."))
 
-    if task_dir_name == TASK_41:
-        exp = str(fields.get("label", "")).strip()
-        got = _parse_answer_binary(answer_text)
-        if exp not in {"retry_current_step", "continue_next_step"}:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "meta.fields.label must be retry_current_step|continue_next_step."))
-        if not got:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer must be retry_current_step|continue_next_step."))
-        elif exp and got != exp:
-            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.label."))
+    if task_dir_name == TASK_27:
+        exp = str(fields.get("gold_next_step_goal", "")).strip()
+        got = _parse_answer_text(answer_text)
+        if not exp or not got:
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Missing gold_next_step_goal or invalid Answer."))
+        elif got != exp:
+            issues.append(Issue("ERROR", task_dir_name, jsonl_path, line_no, entry_id, "Answer mismatch vs meta.fields.gold_next_step_goal."))
 
     return issues
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate CoT(JSONL) outputs generated from three-stage items.")
+    parser = argparse.ArgumentParser(description="Validate CoT(JSONL) outputs generated from three-stage items (Task_17–Task_27; planning-only).")
     parser.add_argument("--input-root", required=True, help="Root dir containing multiple <video_id>/ folders.")
     parser.add_argument("--cot-root", required=True, help="Root dir containing <task_name>/data.jsonl.")
     parser.add_argument("--strict", action="store_true", help="Check file existence for evidence/source_path.")
