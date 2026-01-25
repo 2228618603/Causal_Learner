@@ -29,7 +29,7 @@ Language & grounding:
 - Do not hallucinate hidden states or off-screen objects.
 - Keep the plan at a granularity that is realistic to localize with {num_frames} sampled frames (prefer 4-7 steps; keep within 3-8).
 - Use consistent object naming across all steps (do not rename the same object with different synonyms).
-- Prefer `snake_case` for object identifiers in lists/fields (e.g., `objects`, `object_name`, `agent`, `patient`).
+- Prefer `snake_case` for object identifiers (`agent`, `patient`, and object names mentioned inside `causal_*` statements).
 - Avoid placeholders like "unknown", "N/A", "..." — fill every field with grounded, specific content.
 
 Output format (strict JSON only; no extra text):
@@ -38,46 +38,22 @@ Output format (strict JSON only; no extra text):
   "steps": [
     {{
       "step_id": 1,
-      "step_goal": "A specific, action-oriented sub-goal for this step (unique across steps; chronological; no frame/time references).",
-      "rationale": "Causal justification: why this step is necessary and what it enables for later steps (mechanistic, not narration).",
+      "step_goal": "One concise English sentence describing the intended outcome of this step as a single atomic action (avoid 'and/then'; no multi-action conjunctions; chronological; no frame/time references).",
+      "rationale": "1–2 grounded sentences explaining WHY this step is necessary: (a) what MACRO physical/spatial/affordance preconditions it assumes across the ENTIRE step, and (b) what MACRO effects it establishes across the ENTIRE step that enable later steps. Do NOT just restate step_goal.",
       "causal_chain": {{
         "agent": "Primary force/controller for the WHOLE step (prefer body part like 'hands'/'right_hand'; use a tool part only if it is clearly the direct force applicator).",
         "action": "Concise verb phrase summarizing the core physical action for the WHOLE step (include the physical mechanism when helpful; e.g., 'apply torque to loosen', 'tilt to pour').",
         "patient": "Primary entity being acted upon in this step (`snake_case`; reuse the same identifier across all steps and lists).",
-        "causal_precondition_on_spatial": [
-          {{
-            "relation": "Short, mechanistic, visually verifiable spatial/physical relation token that MUST hold immediately before and throughout this step (prefer contact/support/grasp/containment/alignment/open/closed over vague text). `objects` must list the involved entities (`snake_case`), and `truth` indicates whether the relation holds. Examples: 'holding', 'contacting', 'on_top_of', 'inside', 'inserted_into', 'aligned_with', 'open', 'closed'.",
-            "objects": ["object_a", "object_b"],
-            "truth": true
-          }}
-        ],
-        "causal_precondition_on_affordance": [
-          {{
-            "object_name": "Object whose functional affordance/state MUST already be true to execute this step (`snake_case`; grounded in visible evidence). `affordance_types` must be a non-empty list of short `snake_case` tokens, and `reasons` must justify them.",
-            "affordance_types": ["affordance_a"],
-            "reasons": "Grounded justification citing visible cues and why this affordance/state is required (no speculation)."
-          }}
-        ],
-        "causal_effect_on_spatial": [
-          {{
-            "relation": "Short, concrete spatial/physical relation token that becomes true or false as a RESULT of this step (visually verifiable). Set `truth` to the post-step truth value (true = established, false = broken).",
-            "objects": ["object_a", "object_b"],
-            "truth": true
-          }}
-        ],
-        "causal_effect_on_affordance": [
-          {{
-            "object_name": "Object whose functional affordance/state changes as a RESULT of this step (`snake_case`; grounded in visible evidence). `affordance_types` must be a non-empty list of short `snake_case` tokens, and `reasons` must justify them.",
-            "affordance_types": ["affordance_a"],
-            "reasons": "Grounded justification citing visible cues and the causal mechanism for the state change (no speculation)."
-          }}
-        ]
+        "causal_precondition_on_spatial": "A single JSON string listing MACRO spatial preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
+        "causal_precondition_on_affordance": "A single JSON string listing MACRO affordance/state preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
+        "causal_effect_on_spatial": "A single JSON string listing MACRO spatial effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting contacts/containment/support/alignment/orientation/open-closed changes; avoid short, generic fragments).",
+        "causal_effect_on_affordance": "A single JSON string listing MACRO affordance/state effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting functional/state changes; avoid short, generic fragments)."
       }},
-      "counterfactual_challenge_question": "A realistic what-if question that perturbs a physical precondition of this step (do NOT mention frame numbers).",
-      "expected_challenge_outcome": "Predicted physical outcome (and why) for the challenge question.",
+      "counterfactual_challenge_question": "One realistic counterfactual what-if question that could disrupt this step due to physics/constraints, grounded in the scene. MUST start with 'What if ...?'. This field is ONLY about a counterfactual disruption; do NOT mix in non-counterfactual failure analysis. Do NOT mention frames/images/timestamps.",
+      "expected_challenge_outcome": "Predicted physical outcome if that counterfactual challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).",
       "failure_reflecting": {{
-        "reason": "A plausible failure mode for this step (physical/procedural; grounded).",
-        "recovery_strategy": "A concrete, actionable recovery strategy to still accomplish the step."
+        "reason": "Most plausible real (non-counterfactual) failure mode for this step (physical/interaction reason), grounded in what is visible and the mechanism (avoid invisible/unknown causes).",
+        "recovery_strategy": "A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects)."
       }}
     }}
   ]
@@ -89,9 +65,13 @@ Additional constraints:
 - Each `step_goal` must be non-empty, specific, and not duplicated across steps.
 - Keep each `step_goal` concise and focused on a single sub-goal (prefer <= 12 words).
 - `causal_chain.agent/action/patient` MUST be non-empty strings.
-- `causal_chain.causal_precondition_on_spatial`, `causal_chain.causal_precondition_on_affordance`, `causal_chain.causal_effect_on_spatial`, `causal_chain.causal_effect_on_affordance` MUST be non-empty lists.
-- `causal_chain.causal_precondition_on_affordance[*].reasons` and `causal_chain.causal_effect_on_affordance[*].reasons` MUST be non-empty grounded explanations.
+- `causal_chain.causal_precondition_on_spatial`, `causal_chain.causal_precondition_on_affordance`, `causal_chain.causal_effect_on_spatial`, `causal_chain.causal_effect_on_affordance` MUST be non-empty JSON strings formatted as numbered points:
+  - Use lines numbered '1. ', '2. ', ...
+  - Do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string.
+  - The last character of EACH numbered line MUST be '.' (mandatory).
+  - Each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).
 - `counterfactual_challenge_question` and `expected_challenge_outcome` MUST be non-empty strings.
+- `counterfactual_challenge_question` MUST start with 'What if ...?'.
 - `failure_reflecting.reason` and `failure_reflecting.recovery_strategy` MUST be non-empty strings.
 - Ensure cross-step causal consistency: Step i `causal_effect_on_*` should make Step i+1 `causal_precondition_on_*` plausible (avoid contradictions).
 - Do NOT add any extra keys beyond the schema above.
@@ -100,8 +80,8 @@ Additional constraints:
 Silent self-check before you output:
 - Strict valid JSON only (double quotes, no trailing commas, no markdown fences).
 - No frame/image index references anywhere.
-- All `truth` fields are JSON booleans (`true`/`false`), not strings.
-- All list-typed fields (`steps`, `objects`, `affordance_types`, etc.) are JSON arrays (not single strings).
+- All `causal_chain.causal_*` fields are non-empty strings in numbered-point format separated by '\\n'.
+- `counterfactual_challenge_question` starts with 'What if'.
 - Step count within 3-8 (preferred 4-7).
 - No empty lists/strings for required fields; no placeholder values.
 - No forbidden keys (`critical_frames`, `frame_index`, `interaction`, `keyframe_image_path`) anywhere.
@@ -273,31 +253,31 @@ Output JSON template (fill with real values; keep keys exactly; `critical_frames
 {{
   "step_id": 1,
   "step_goal": "Exactly equal to the draft step_goal (do not change).",
-  "rationale": "1–2 grounded sentences explaining why this step is necessary and what it enables.",
+  "rationale": "1–2 grounded sentences explaining why this step is necessary and what macro preconditions/effects it connects (mechanistic, not narration; do NOT mention frames/images/timestamps).",
   "causal_chain": {{
-    "agent": "hands",
-    "action": "rotate to loosen",
-    "patient": "snake_case_patient_object",
-    "causal_precondition_on_spatial": "1. ...\\n2. ...",
-    "causal_precondition_on_affordance": "1. ...\\n2. ...",
-    "causal_effect_on_spatial": "1. ...\\n2. ...",
-    "causal_effect_on_affordance": "1. ...\\n2. ..."
+    "agent": "Primary force/controller for the whole step (prefer body part like 'hands'/'left_hand'/'right_hand'; use a tool part only if it is clearly the direct force applicator). Use one stable identifier.",
+    "action": "Concise physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.",
+    "patient": "Primary acted-on object identifier in snake_case. Keep naming consistent across all fields (do not rename the same object).",
+    "causal_precondition_on_spatial": "A single JSON string listing MACRO spatial preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
+    "causal_precondition_on_affordance": "A single JSON string listing MACRO affordance/state preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
+    "causal_effect_on_spatial": "A single JSON string listing MACRO spatial effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting contacts/containment/support/alignment/orientation/open-closed changes; avoid short, generic fragments).",
+    "causal_effect_on_affordance": "A single JSON string listing MACRO affordance/state effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting functional/state changes; avoid short, generic fragments)."
   }},
-  "counterfactual_challenge_question": "What if ...?",
-  "expected_challenge_outcome": "One concise sentence describing the predicted outcome.",
+  "counterfactual_challenge_question": "One realistic counterfactual what-if question that could disrupt this step due to physics/constraints, grounded in the scene. MUST start with 'What if ...?'. This field is ONLY about a counterfactual disruption; do NOT mix in non-counterfactual failure analysis. Do NOT mention frames/images/timestamps.",
+  "expected_challenge_outcome": "Predicted physical outcome if that counterfactual challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).",
   "failure_reflecting": {{
-    "reason": "A plausible failure mode for this step.",
-    "recovery_strategy": "A concise recovery strategy."
+    "reason": "Most plausible real (non-counterfactual) failure mode for this step (physical/interaction reason), grounded in what is visible and the mechanism (avoid invisible/unknown causes).",
+    "recovery_strategy": "A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects)."
   }},
   "critical_frames": [
     {{
       "frame_index": 1,
       "action_state_change_description": "Key moment 1 (earlier than Key moment 2): describe the micro-action and key state change onset.",
       "causal_chain": {{
-        "causal_precondition_on_spatial": "1. ...\\n2. ...",
-        "causal_precondition_on_affordance": "1. ...\\n2. ...",
-        "causal_effect_on_spatial": "1. ...\\n2. ...",
-        "causal_effect_on_affordance": "1. ...\\n2. ..."
+        "causal_precondition_on_spatial": "A single JSON string listing DETAILED spatial preconditions TRUE AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+        "causal_precondition_on_affordance": "A single JSON string listing DETAILED affordance/state preconditions REQUIRED AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+        "causal_effect_on_spatial": "A single JSON string listing PREDICTED immediate, local spatial effects right AFTER the micro-action implied by action_state_change_description completes (short-term/local post-action prediction; not necessarily currently visible) as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+        "causal_effect_on_affordance": "A single JSON string listing PREDICTED immediate, local affordance/state effects right AFTER that micro-action completes (short-term/local post-action prediction; not necessarily currently visible) as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments)."
       }},
       "interaction": {{
         "description": "Specific functional region involved (e.g., handle, rim, edge, hinge).",
@@ -309,10 +289,10 @@ Output JSON template (fill with real values; keep keys exactly; `critical_frames
       "frame_index": 2,
       "action_state_change_description": "Key moment 2 (later than Key moment 1): describe the micro-action and key state change onset.",
       "causal_chain": {{
-        "causal_precondition_on_spatial": "1. ...\\n2. ...",
-        "causal_precondition_on_affordance": "1. ...\\n2. ...",
-        "causal_effect_on_spatial": "1. ...\\n2. ...",
-        "causal_effect_on_affordance": "1. ...\\n2. ..."
+        "causal_precondition_on_spatial": "A single JSON string listing DETAILED spatial preconditions TRUE AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+        "causal_precondition_on_affordance": "A single JSON string listing DETAILED affordance/state preconditions REQUIRED AT this key moment as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+        "causal_effect_on_spatial": "A single JSON string listing PREDICTED immediate, local spatial effects right AFTER the micro-action implied by action_state_change_description completes (short-term/local post-action prediction; not necessarily currently visible) as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments).",
+        "causal_effect_on_affordance": "A single JSON string listing PREDICTED immediate, local affordance/state effects right AFTER that micro-action completes (short-term/local post-action prediction; not necessarily currently visible) as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this key moment (avoid short, generic fragments)."
       }},
       "interaction": {{
         "description": "Specific functional region involved (edge, handle, rim, hinge, etc.).",

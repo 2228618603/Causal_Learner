@@ -65,8 +65,6 @@ _STAGE1_ALLOWED_CAUSAL_CHAIN_KEYS = {
     "causal_effect_on_affordance",
 }
 _STAGE1_ALLOWED_FAILURE_REFLECTING_KEYS = {"reason", "recovery_strategy"}
-_STAGE1_ALLOWED_SPATIAL_REL_KEYS = {"relation", "objects", "truth"}
-_STAGE1_ALLOWED_AFFORDANCE_STATE_KEYS = {"object_name", "affordance_types", "reasons"}
 _STAGE1_FORBIDDEN_KEYS = {"critical_frames", "frame_index", "interaction", "keyframe_image_path"}
 
 
@@ -109,60 +107,23 @@ def _stage1_raw_schema_errors(plan: Any) -> List[str]:
             errors.append(f"steps[{i}] contains extra keys (not allowed): {extra_step}")
 
         cc = step.get("causal_chain")
-        if isinstance(cc, dict):
+        if cc is None or not isinstance(cc, dict):
+            errors.append(f"steps[{i}].causal_chain missing/invalid (expected an object).")
+        else:
             extra_cc = sorted(set(cc.keys()) - _STAGE1_ALLOWED_CAUSAL_CHAIN_KEYS)
             if extra_cc:
                 errors.append(f"steps[{i}].causal_chain contains extra keys (not allowed): {extra_cc}")
-
             for k in (
                 "causal_precondition_on_spatial",
-                "causal_effect_on_spatial",
-            ):
-                rels = cc.get(k)
-                if isinstance(rels, list):
-                    for j, sp in enumerate(rels):
-                        if not isinstance(sp, dict):
-                            continue
-                        extra_sp = sorted(set(sp.keys()) - _STAGE1_ALLOWED_SPATIAL_REL_KEYS)
-                        if extra_sp:
-                            errors.append(
-                                f"steps[{i}].causal_chain.{k}[{j}] contains extra keys (not allowed): {extra_sp}"
-                            )
-                        rel = sp.get("relation")
-                        if not (isinstance(rel, str) and rel.strip()):
-                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].relation must be a non-empty string.")
-                        objs = sp.get("objects")
-                        if not (isinstance(objs, list) and objs and all(isinstance(o, str) and o.strip() for o in objs)):
-                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].objects must be a non-empty list of strings.")
-                        truth = sp.get("truth")
-                        if not isinstance(truth, bool):
-                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].truth must be a boolean (true/false).")
-
-            for k in (
                 "causal_precondition_on_affordance",
+                "causal_effect_on_spatial",
                 "causal_effect_on_affordance",
             ):
-                states = cc.get(k)
-                if isinstance(states, list):
-                    for j, ap in enumerate(states):
-                        if not isinstance(ap, dict):
-                            continue
-                        extra_ap = sorted(set(ap.keys()) - _STAGE1_ALLOWED_AFFORDANCE_STATE_KEYS)
-                        if extra_ap:
-                            errors.append(
-                                f"steps[{i}].causal_chain.{k}[{j}] contains extra keys (not allowed): {extra_ap}"
-                            )
-                        obj = ap.get("object_name")
-                        if not (isinstance(obj, str) and obj.strip()):
-                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].object_name must be a non-empty string.")
-                        affs = ap.get("affordance_types")
-                        if not (isinstance(affs, list) and affs and all(isinstance(a, str) and a.strip() for a in affs)):
-                            errors.append(
-                                f"steps[{i}].causal_chain.{k}[{j}].affordance_types must be a non-empty list of strings."
-                            )
-                        reasons = ap.get("reasons")
-                        if not (isinstance(reasons, str) and reasons.strip()):
-                            errors.append(f"steps[{i}].causal_chain.{k}[{j}].reasons must be a non-empty string.")
+                v = cc.get(k)
+                if not isinstance(v, str):
+                    errors.append(f"steps[{i}].causal_chain.{k} must be a non-empty string (numbered statements).")
+                elif not v.strip():
+                    errors.append(f"steps[{i}].causal_chain.{k} is empty (expected numbered statements).")
 
         fr = step.get("failure_reflecting")
         if isinstance(fr, dict):
@@ -187,31 +148,20 @@ def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
     def _nonempty_str(v: Any) -> bool:
         return isinstance(v, str) and v.strip() != ""
 
-    def _nonempty_relation_list(v: Any) -> bool:
-        if not isinstance(v, list):
+    def _nonempty_numbered_block(v: Any) -> bool:
+        if not isinstance(v, str):
             return False
-        for sp in v:
-            if not isinstance(sp, dict):
-                continue
-            rel = str(sp.get("relation", "")).strip()
-            objs = sp.get("objects")
-            if rel and isinstance(objs, list) and any(isinstance(o, str) and o.strip() for o in objs):
-                return True
-        return False
-
-    def _nonempty_affordance_list(v: Any) -> bool:
-        if not isinstance(v, list):
+        raw = v.strip().replace("\\n", "\n")
+        if not raw:
             return False
-        for ap in v:
-            if not isinstance(ap, dict):
-                continue
-            obj = str(ap.get("object_name", "")).strip()
-            affs = ap.get("affordance_types")
-            reasons = str(ap.get("reasons", "")).strip()
-            ok_affs = isinstance(affs, list) and any(isinstance(a, str) and a.strip() for a in affs)
-            if obj and ok_affs and reasons:
-                return True
-        return False
+        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+        if not lines:
+            return False
+        if not lines[0].startswith("1."):
+            return False
+        if any(not ln.endswith(".") for ln in lines):
+            return False
+        return True
 
     goal = str(draft.get("high_level_goal", "")).strip()
     if not goal:
@@ -261,42 +211,15 @@ def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
                 errors.append(f"steps[{i}].causal_chain.{k} must not reference frame indices or timestamps.")
         for k in (
             "causal_precondition_on_spatial",
-            "causal_effect_on_spatial",
-        ):
-            rels = cc.get(k)
-            if not _nonempty_relation_list(rels):
-                errors.append(f"steps[{i}].causal_chain.{k} is empty/invalid (expected >= 1 relation).")
-            if isinstance(rels, list):
-                for sp in rels:
-                    if not isinstance(sp, dict):
-                        continue
-                    if _has_disallowed_ref(sp.get("relation", "")):
-                        errors.append(f"steps[{i}].causal_chain.{k}.relation must not reference frame indices or timestamps.")
-                        break
-                    objs = sp.get("objects")
-                    if isinstance(objs, list) and any(_has_disallowed_ref(o) for o in objs):
-                        errors.append(f"steps[{i}].causal_chain.{k}.objects must not reference frame indices or timestamps.")
-                        break
-        for k in (
             "causal_precondition_on_affordance",
+            "causal_effect_on_spatial",
             "causal_effect_on_affordance",
         ):
-            states = cc.get(k)
-            if not _nonempty_affordance_list(states):
-                errors.append(f"steps[{i}].causal_chain.{k} is empty/invalid (expected >= 1 affordance state).")
-            if isinstance(states, list):
-                for ap in states:
-                    if not isinstance(ap, dict):
-                        continue
-                    if _has_disallowed_ref(ap.get("object_name", "")) or _has_disallowed_ref(ap.get("reasons", "")):
-                        errors.append(f"steps[{i}].causal_chain.{k} must not reference frame indices or timestamps.")
-                        break
-                    affs = ap.get("affordance_types")
-                    if isinstance(affs, list) and any(_has_disallowed_ref(a) for a in affs):
-                        errors.append(
-                            f"steps[{i}].causal_chain.{k}.affordance_types must not reference frame indices or timestamps."
-                        )
-                        break
+            text = cc.get(k)
+            if not _nonempty_numbered_block(text):
+                errors.append(f"steps[{i}].causal_chain.{k} is empty/invalid (expected numbered statements string).")
+            if _has_disallowed_ref(text):
+                errors.append(f"steps[{i}].causal_chain.{k} must not reference frame indices or timestamps.")
 
         cq = step.get("counterfactual_challenge_question", "")
         co = step.get("expected_challenge_outcome", "")
@@ -304,6 +227,8 @@ def _draft_hard_errors(draft: Dict[str, Any]) -> List[str]:
             errors.append(f"steps[{i}].counterfactual_challenge_question is empty.")
         if not _nonempty_str(co):
             errors.append(f"steps[{i}].expected_challenge_outcome is empty.")
+        if _nonempty_str(cq) and not str(cq).lstrip().lower().startswith("what if"):
+            errors.append(f"steps[{i}].counterfactual_challenge_question must start with 'What if ...?'.")
         if _has_disallowed_ref(cq) or _has_disallowed_ref(co):
             errors.append(f"steps[{i}] challenge fields must not reference frame indices or timestamps.")
 

@@ -548,24 +548,10 @@ def _make_minimal_selftest_dir(tmp_root: str) -> str:
                     "agent": "hands",
                     "action": "move",
                     "patient": "obj_a",
-                    "causal_precondition_on_spatial": [
-                        {"relation": "contacting", "objects": ["hands", "obj_a"], "truth": True}
-                    ],
-                    "causal_precondition_on_affordance": [
-                        {
-                            "object_name": "obj_a",
-                            "affordance_types": ["graspable"],
-                            "reasons": "The object is reachable and can be grasped.",
-                        }
-                    ],
-                    "causal_effect_on_spatial": [{"relation": "on_top_of", "objects": ["obj_a", "obj_b"], "truth": True}],
-                    "causal_effect_on_affordance": [
-                        {
-                            "object_name": "obj_a",
-                            "affordance_types": ["positioned"],
-                            "reasons": "After moving, the object ends up in the new position.",
-                        }
-                    ],
+                    "causal_precondition_on_spatial": "1. The hands are contacting obj_a.\n2. obj_a is reachable on the work surface.",
+                    "causal_precondition_on_affordance": "1. obj_a is graspable without obstruction.\n2. The intended placement region is available.",
+                    "causal_effect_on_spatial": "1. obj_a ends up on_top_of obj_b.\n2. The hands release contact with obj_a after placement.",
+                    "causal_effect_on_affordance": "1. obj_a becomes positioned_in_target_location.\n2. obj_b becomes supporting_surface_for_obj_a.",
                 },
                 "counterfactual_challenge_question": "What if obj_a is missing?",
                 "expected_challenge_outcome": "The step cannot be completed.",

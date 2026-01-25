@@ -755,52 +755,92 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
             return bool(v)
         return None
 
-    def _norm_spatial_relations(v: Any) -> List[Dict[str, Any]]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[Dict[str, Any]] = []
-        for sp in v:
-            if not isinstance(sp, dict):
+    _LEADING_LIST_MARKER_RE = re.compile(r"^\s*(?:[-*•]|\u2022)\s+")
+    _LEADING_NUMBER_RE = re.compile(r"^\s*\d+\s*[\.\)、]\s*")
+
+    def _normalize_numbered_statement_block(text: str) -> str:
+        """Normalize a multi-line text block into '1. ...' numbered statements.
+
+        - Each statement occupies one line.
+        - Lines are re-numbered sequentially starting from 1.
+        - Each numbered line ends with '.'.
+        """
+        raw = (text or "").strip()
+        if not raw:
+            return ""
+
+        # If a model output included literal "\\n" sequences, convert them into real newlines for normalization.
+        raw = raw.replace("\\n", "\n")
+        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+        if not lines:
+            lines = [raw]
+
+        normalized: List[str] = []
+        for i, line in enumerate(lines, start=1):
+            line = _LEADING_LIST_MARKER_RE.sub("", line)
+            line = _LEADING_NUMBER_RE.sub("", line)
+            line = line.strip()
+            if not line:
                 continue
-            # Normalize relation token to a short snake_case identifier (as required by prompts.py).
-            rel = _norm_identifier(sp.get("relation", ""))
-            objs = sp.get("objects")
-            if isinstance(objs, str):
-                one = _norm_identifier(objs)
-                objs_list = [one] if one else []
+            if not line.endswith("."):
+                line = f"{line}."
+            normalized.append(f"{i}. {line}")
+        return "\n".join(normalized)
+
+    def _spatial_item_to_statement(item: Any) -> str:
+        if isinstance(item, str):
+            return item.strip()
+        if isinstance(item, dict):
+            relation = _norm_identifier(item.get("relation", "")) or "unspecified_relation"
+            objects = item.get("objects", [])
+            if isinstance(objects, str):
+                objects_list = _norm_identifier_list([objects])
             else:
-                objs_list = _norm_identifier_list(objs) if isinstance(objs, list) else []
-            truth = _parse_bool(sp.get("truth"))
+                objects_list = _norm_identifier_list(objects) if isinstance(objects, list) else []
+            truth = _parse_bool(item.get("truth", True))
             if truth is None:
                 truth = True
-            if rel and objs_list:
-                out_list.append({"relation": rel, "objects": objs_list, "truth": truth})
-        return _dedupe_keep_order(
-            out_list,
-            key_fn=lambda d: (d.get("relation"), tuple(d.get("objects") or []), bool(d.get("truth"))),
-        )
+            if objects_list:
+                objs = ", ".join(objects_list)
+                return f"Relation '{relation}' {'holds' if truth else 'does not hold'} between {objs}."
+            return f"Relation '{relation}' {'holds' if truth else 'does not hold'}."
+        return str(item or "").strip()
 
-    def _norm_affordance_states(v: Any) -> List[Dict[str, Any]]:
-        if not isinstance(v, list):
-            return []
-        out_list: List[Dict[str, Any]] = []
-        for ap in v:
-            if not isinstance(ap, dict):
-                continue
-            obj = _norm_identifier(ap.get("object_name", ""))
-            affs = ap.get("affordance_types")
-            if isinstance(affs, str):
-                one = _norm_identifier(affs)
-                aff_list = [one] if one else []
+    def _affordance_item_to_statement(item: Any) -> str:
+        if isinstance(item, str):
+            return item.strip()
+        if isinstance(item, dict):
+            object_name = _norm_identifier(item.get("object_name", "")) or "unspecified_object"
+            affordance_types = item.get("affordance_types", [])
+            if isinstance(affordance_types, str):
+                affordance_list = _norm_identifier_list([affordance_types])
             else:
-                aff_list = _norm_identifier_list(affs) if isinstance(affs, list) else []
-            reasons = _norm_str(ap.get("reasons", ""))
-            if obj and aff_list and reasons:
-                out_list.append({"object_name": obj, "affordance_types": aff_list, "reasons": reasons})
-        return _dedupe_keep_order(
-            out_list,
-            key_fn=lambda d: (d.get("object_name"), tuple(d.get("affordance_types") or []), d.get("reasons")),
-        )
+                affordance_list = _norm_identifier_list(affordance_types) if isinstance(affordance_types, list) else []
+            reasons = _norm_str(item.get("reasons", ""))
+            aff = ", ".join(affordance_list) if affordance_list else "unspecified_affordance"
+            if reasons:
+                return f"The object {object_name} has affordance/state {aff}. {reasons}"
+            return f"The object {object_name} has affordance/state {aff}."
+        return str(item or "").strip()
+
+    def _normalize_causal_text(v: Any, *, kind: str) -> str:
+        """Normalize a causal_* field into a numbered statement block string.
+
+        Supports:
+        - Final schema: a single string with numbered points.
+        - Legacy schema: list/dict structured relations/affordances.
+        """
+        if isinstance(v, list):
+            if kind == "spatial":
+                statements = [_spatial_item_to_statement(x) for x in v]
+            else:
+                statements = [_affordance_item_to_statement(x) for x in v]
+            text = "\n".join(s for s in statements if str(s).strip())
+        elif isinstance(v, dict):
+            text = _spatial_item_to_statement(v) if kind == "spatial" else _affordance_item_to_statement(v)
+        else:
+            text = _norm_str(v)
+        return _normalize_numbered_statement_block(text)
 
     def _norm_causal_chain(v: Any) -> Dict[str, Any]:
         d = v if isinstance(v, dict) else {}
@@ -808,10 +848,12 @@ def normalize_draft_plan(plan: Any) -> Tuple[Dict[str, Any], List[str]]:
             "agent": _norm_identifier(d.get("agent", "")),
             "action": _norm_str(d.get("action", "")),
             "patient": _norm_identifier(d.get("patient", "")),
-            "causal_precondition_on_spatial": _norm_spatial_relations(d.get("causal_precondition_on_spatial")),
-            "causal_precondition_on_affordance": _norm_affordance_states(d.get("causal_precondition_on_affordance")),
-            "causal_effect_on_spatial": _norm_spatial_relations(d.get("causal_effect_on_spatial")),
-            "causal_effect_on_affordance": _norm_affordance_states(d.get("causal_effect_on_affordance")),
+            "causal_precondition_on_spatial": _normalize_causal_text(d.get("causal_precondition_on_spatial"), kind="spatial"),
+            "causal_precondition_on_affordance": _normalize_causal_text(
+                d.get("causal_precondition_on_affordance"), kind="affordance"
+            ),
+            "causal_effect_on_spatial": _normalize_causal_text(d.get("causal_effect_on_spatial"), kind="spatial"),
+            "causal_effect_on_affordance": _normalize_causal_text(d.get("causal_effect_on_affordance"), kind="affordance"),
         }
 
     out: Dict[str, Any] = {

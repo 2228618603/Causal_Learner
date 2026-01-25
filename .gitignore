@@ -23,6 +23,7 @@ Thumbs.db
 # Local artifacts (do not commit)
 outputs/
 checkpoints/
+e2e-data/
 
 # Local temporary outputs (do not commit)
 _tmp*/

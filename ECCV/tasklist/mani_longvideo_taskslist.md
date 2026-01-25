@@ -157,7 +157,7 @@
   - `steps[i].critical_frames[j].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
   - `steps[i].critical_frames[j].interaction.hotspot.mechanism`
 - **证据形态**：`keyframe_single`
-- **输出约束**：自由文本，但建议固定为两段（Spatial+Affordance → Effects）。
+- **输出约束**：输出为英文单句长句（不分段；建议 1 个句号，可用分号/从句/括号），必须覆盖 preconditions(spatial+affordance) → agent/action/patient → mechanism → effects(spatial+affordance)；无法从单帧直接支持的前置条件/后效写 `not directly observable`。
 
 ### Task_16_Strategic_Rationale_Justification（步骤动机/必要性解释）
 
@@ -201,16 +201,15 @@
 - **负样本**：
   - 从其它 step 抽取 affordance precondition 作为干扰项；或仅做单一扰动（替换 object_name / 替换 affordance_types）。
 
-### Task_21_Physical_Feasibility_Verification（可行性核验：三态）
+### Task_21_Physical_Feasibility_Verification_MCQ（可行性核验：四选一）
 
 - **字段（JSONPath）**：
   - `steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial`
   - `steps[i].critical_frames[j].causal_chain.causal_precondition_on_affordance`
   - 上下文：`steps[i].step_goal`
-- **证据形态**：`keyframe_single`
-- **输出约束**：三分类 `feasible / not feasible / not directly observable`。
-- **负样本**：可通过“替换 patient/tool 或翻转关键空间关系”构造 `not feasible`。
-- **与 Task_17/18/19/20 的区别**：`Task_17/18/19/20` 关注“逐条描述/选择具体前置条件条目”，本任务只做“整体可行性判别”（不要求列出/选择具体条目），更贴近执行时的可行性决策。
+- **证据形态**：`keyframe_single`（建议 step-init 关键帧 `critical_frames[0]`）
+- **输出约束**：`A/B/C/D`；每个选项需同时表达 feasibility + 1 条空间前置条件 + 1 条可供性前置条件 + 它们在该帧上的核验结果。
+- **负样本**：按“关键工具/对象缺失”或“关系反转且可核验”构造 `not feasible`。
 
 ### Task_22_Spatial_Postcondition_Description（空间后置条件：描述 postcondition）
 
@@ -268,8 +267,8 @@
   - `steps[i].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
   - `steps[i+1].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`
   - 上下文：`steps[i].step_goal`, `steps[i+1].step_goal`, `high_level_goal`
-- **证据形态**：`keyframe_single`（建议 step i 尾关键帧）
-- **输出约束**：必须引用“重合对象/affordance”作为依赖证据；无重合则不生成样本。
+- **证据形态**：`keyframe_single`（建议 step i 尾关键帧；可选追加 step i+1 首关键帧作为第二张图，写入 `meta.evidence_files=[imgA,imgB]`）
+- **输出约束**：回答 1–2 句；句式建议：“Step i 导致 X (effect)，从而满足 step i+1 需要的 Y (precondition)。”
 
 ### Task_29_Next_Action_Prediction（给定 high_level_goal + 当前 step_goal + 关键帧：预测下一步）
 
@@ -671,9 +670,18 @@ A: The person is rubbing the cucumber under running water, which immediately cle
 ### Task_15_Holistic_Causal_Chain_Analysis
 
 - **任务说明**：基于关键帧解释物理因果链：空间/可供性前置条件 → 动作与机制 → 空间/可供性后效，强调“可被证据支持的因果闭环”。
-- **字段（JSONPath）**：同 `## 2`
+- **字段（JSONPath）**：
+  - `steps[i].critical_frames[j].causal_chain.agent/action/patient`
+  - `steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial/causal_precondition_on_affordance`
+  - `steps[i].critical_frames[j].causal_chain.causal_effect_on_spatial/causal_effect_on_affordance`
+  - `steps[i].critical_frames[j].interaction.hotspot.mechanism`
 - **证据来源**：`keyframe_single`
-- **样本构造规则**：每关键帧 0–1 条；建议输出两段（setup → mechanism/effects）。
+- **样本构造规则**：
+  - 每关键帧 0–1 条；
+  - 输出为英文单句长句（不分段；建议 1 个句号，可用分号/从句/括号）；
+  - 必须覆盖：preconditions(spatial+affordance) → agent/action/patient → mechanism → effects(spatial+affordance)；
+  - 无法从单帧直接支持的前置条件/后效必须写 `not directly observable`（不要硬猜）；
+  - 推荐单句模板：With <spatial preconditions> and <affordance preconditions>, <agent> <action> on <patient>; because <hotspot mechanism>, this results in <spatial effects> and <affordance effects>, while anything not visibly supported by the frame is not directly observable.
 - **meta.fields**：`agent`, `action`, `patient`, `preconditions`, `effects`, `mechanism`
 - **范例**：
 
@@ -683,7 +691,7 @@ fields.agent = "hands"
 fields.action = "apply downward cutting force"
 fields.patient = "cucumber"
 Q: Explain the physical causal chain in this keyframe, focusing on spatial setup, affordance mechanism, and immediate effects.
-A: The cucumber is stabilized on the cutting board while the knife edge contacts it, creating a controlled cutting setup. The sharp blade concentrates force along a thin edge, exceeding the cucumber’s shear strength. As a result, the cucumber separates and a new slice is produced.
+A: With the cucumber stabilized on the cutting board and the knife edge contacting it (any internal material properties are not directly observable), the hands apply downward cutting force to the cucumber; because the sharp edge concentrates force at the hotspot to cut through the material, the cucumber separates and a new slice is produced.
 ```
 
 ### Task_16_Strategic_Rationale_Justification
@@ -795,24 +803,41 @@ Q: Which affordance precondition is the best match for executing this step?
 A (label): A
 ```
 
-### Task_21_Physical_Feasibility_Verification
+### Task_21_Physical_Feasibility_Verification_MCQ
 
-- **任务说明**：基于关键帧中的空间与可供性前置条件，判断该步骤此刻是否物理可行（可行/不可行/不可观测），并要求依据证据作答。
-- **与 Task_17/18/19/20 的区别**：`Task_17/18/19/20` 更偏“描述/选择具体前置条件条目”，本任务是对 `step_goal` 做整体可行性三态判断（允许不可观测），更贴近真实执行决策。
+- **任务说明**：在单张关键帧上做“此刻是否可执行”的物理可行性判别，并且必须**同时指出**支持该判别的 1 条空间前置条件与 1 条可供性前置条件（并给出该帧对两条条件的核验结果），从而把“可行性决策+依据”客观化为可评分四选一。
+- **判别口径（与三态一致）**：
+  - 若存在可由该帧直接核验的关键前置条件被违反 → `not feasible`
+  - 若关键前置条件无法从单帧核验（例如内部状态/被遮挡）且未出现明确违反 → `not directly observable`
+  - 关键空间与可供性前置条件均满足 → `feasible`
 - **字段（JSONPath）**：同 `## 2`
-- **证据来源**：`keyframe_single`
+- **证据来源**：`keyframe_single`（建议 step-init 关键帧 `critical_frames[0]` 以便核验 preconditions）
 - **样本构造规则**：
-  - 正样本：使用原字段；
-  - 负样本：替换 patient/tool 或反转关键空间关系（写 `meta.neg_sample=true`）。
-- **meta.fields**：`preconditions_spatial`, `preconditions_affordance`, `step_goal`, `label`
+  - 从当前 step 在该关键帧的 preconditions 中各抽 1 条：`precondition_spatial_focus` + `precondition_affordance_focus`（优先选择“可由该关键帧核验”的条目；否则直接标为 `not directly observable`）；
+  - 构造 4 个选项（A/B/C/D），每个选项须写 1–2 句自然语言，并同时表达：feasibility + 1 条 spatial precondition + 1 条 affordance precondition + 它们在该帧上的核验结果（`satisfied/violated/not directly observable`，但需用自然语言写出“可见/不可见/被违反”等）；
+  - 正确项：feasibility 与两条核验结果必须与 gold 一致。
+  - 干扰项：从其它 step 抽取 precondition，或对正确项做单一扰动（替换 `objects` / 变更 `relation` / 翻转 `truth`；替换 `object_name` / 替换 `affordance_types`；或把核验结果改成错误的 `satisfied/violated`）。
+  - **反例构造（label = `not feasible`, 推荐）**：让“关键条件被违反”在单帧上**显而易见**，优先用以下两类：
+    - **关键工具/对象缺失**：选取与当前 `step_goal` 不匹配的关键帧（来自其它 step），使该步所需的 tool/patient 在图中明显不存在；在正确选项里指出缺失并判为 `not feasible`。（例如需要 `cuttable_edge` 但画面中没有刀具）
+    - **关系反转且可核验**：保持同一关键帧，但将 `precondition_spatial_focus` 做单一扰动为“显然与画面相反”的关系（例如把 `on_top_of` 换成 `inside_`，或把 `contacting` 换成 `not_contacting` 且画面清晰可见），从而使正确答案稳定为 `not feasible`。
+  - 避免用内部状态/难以从单帧判断的 affordance（例如 locked/pressable）内部结构来做 `not feasible`，否则更合理的 label 往往会变成 `not directly observable`。
+  - **配比约束（必须）**：所有 `meta.neg_sample=true` 且 label=`not feasible` 的反例中，上述两类反例需保持 1:1：
+    - neg_type=missing_entity：关键工具/对象缺失
+    - neg_type=relation_flip：关系反转且可核验
+  - 要求严格 1:1（两类样本必须数量相等，故总反例数必须为偶数），推荐实现为“每个 step 生成 2 条反例（两类各 1 条）”，对无法满足其中一类的 step 从其它 step 补齐，直到两类样本数相等。
+  - 负样本按上述反例方式构造时写 `meta.neg_sample=true`。
+- **meta.fields**：`step_goal`, `options`, `label`, `precondition_spatial_focus`, `precondition_affordance_focus`, `neg_sample`, `neg_type`（仅当 `neg_sample=true` 时必填）
 - **范例**：
 
 ```text
 Image: <ITEM_DIR>/01_enter_the_kitchen_and_turn_on_the_light_to_illuminate_the_workspace/frame_002_ts_3.59s.jpg
-fields.step_goal = "Enter the kitchen and turn on the light to illuminate the workspace."
-fields.label = "feasible"
-Q: Is this step physically feasible now based on the visible spatial and affordance preconditions?
-A: feasible
+step_goal = "Enter the kitchen and turn on the light to illuminate the workspace."
+Q: Which option best describes whether the step is physically feasible now, and which spatial+affordance preconditions (and their statuses) justify the decision?
+  A) It is feasible now because the hand is visibly touching the light switch (spatial precondition satisfied) and the light switch provides a pressable surface (affordance precondition satisfied).
+  B) It is not feasible now because the hand is not touching the light switch (spatial precondition violated), even though the light switch still has a pressable surface (affordance precondition satisfied).
+  C) It is feasible now because a cucumber is on the cutting board (spatial precondition satisfied) and the light switch provides a pressable surface (affordance precondition satisfied).
+  D) It is feasible now because the hand is touching the light switch (spatial precondition satisfied) and the light switch has a cuttable surface (affordance precondition satisfied).
+A (label): A
 ```
 
 ### Task_22_Spatial_Postcondition_Description
@@ -943,10 +968,11 @@ A (label): {"start_frame_index": 18, "end_frame_index": 26}
 
 ### Task_28_Inter_Step_Dependency_Analysis
 
-- **任务说明**：解释跨步依赖：上一动作的后果如何满足下一步的前置条件（尽量引用重合对象/affordance 作为依赖证据）。
+- **任务说明**：解释跨步依赖：上一动作的后果如何满足下一步的前置条件，强调“effect → precondition”的可解释链接。
 - **字段（JSONPath）**：同 `## 2`
-- **证据来源**：`keyframe_single`（建议 step i 尾关键帧）
-- **样本构造规则**：仅当 effect↔precondition 有词项重合/包含时生成。
+- **证据来源**：`keyframe_single`（建议 step i 尾关键帧；可选追加 step i+1 首关键帧作为第二张图，写入 `meta.evidence_files=[imgA,imgB]`）
+- **输出约束**：回答 1–2 句，句式建议：“Step i 导致 X (effect)，从而满足 step i+1 需要的 Y (precondition)。”
+- **样本构造规则**：每个相邻 step 对 (i, i+1) 0–1 条；要求 `step_n_effects` 与 `step_next_preconditions` 均存在且可建立依赖解释；若字段缺失或无法建立依赖则跳过。
 - **meta.fields**：`step_n_goal`, `step_n_effects`, `step_next_goal`, `step_next_preconditions`
 - **范例**：
 
@@ -955,7 +981,7 @@ Image: <ITEM_DIR>/01_enter_the_kitchen_and_turn_on_the_light_to_illuminate_the_w
 fields.step_n_goal = "Enter the kitchen and turn on the light to illuminate the workspace."
 fields.step_next_goal = "Retrieve a carrot and a cucumber from the refrigerator."
 Q: How does the outcome of the previous step satisfy the preconditions for the next step?
-A: Turning on the light makes the workspace visible and safe, enabling the person to locate and access the refrigerator to retrieve the vegetables.
+A: Step 1 illuminates the workspace (effect), thereby satisfying the visibility/safety precondition needed to locate and access the refrigerator in Step 2 (precondition).
 ```
 
 ### Task_29_Next_Action_Prediction
