@@ -4,26 +4,25 @@
 """
 Generate Mani-LongVideo QA dataset from `causal_plan_with_keyframes.json`.
 
-This script converts the 33 QA-only tasks defined in:
-  ECCV/tasklist/mani_longvideo_taskslist_QA_only.md
+This script converts the QA-only tasks defined in:
+  ECCV/tasklist/mani_longvideo_taskslist_final.md (Task_01–Task_27)
 into ShareGPT-style JSONL entries, following the spirit of:
   ECCV/two_stage_old/generate_phyplan_api.py
 
 Key requirements:
-- Single type only (no TypeA/TypeB split).
-- Source of truth is `<ITEM_DIR>/causal_plan_with_keyframes.json` and its schema must align with:
-  - `ECCV/two_stage_new/mani_longvideo.py` (mani_longvideo final dataclass schema)
-  - `ECCV/three_stage/prompts.py` (three-stage Stage3 final output schema)
+- Single type only.
+- Source of truth is `<ITEM_DIR>/causal_plan_with_keyframes.json` and its schema must align with the canonical mani_longvideo
+  schema described in `ECCV/tasklist/mani_longvideo_taskslist_final.md`.
 - Each sample must declare the multimodal evidence type (4 types) and include evidence file paths.
 - Keep meta minimal (avoid redundant fields).
-- Avoid leaking filenames/frame indices/timestamps into the Q/A text (except Task_22 outputs an integer frame_index).
+- Avoid leaking filenames/frame indices/timestamps into the Q/A text.
 
 LLM two-stage rewrite (optional, recommended for better naturalness):
 - By default, the script will use an OpenAI-compatible API when `API_KEY` is set (disable via `--no-api`).
 - Control which tasks are rewritten via `--llm-tasks` (default: a small subset that benefits most).
 
 Example:
-  python ECCV/two_stage_new/generate_mani_longvideo_taskslist_qa.py --input-root <DATA_ROOT> --output-dir <OUT_ROOT> --require-videos
+  python ECCV/two_stage/generate_mani_longvideo_taskslist_qa.py --input-root <DATA_ROOT> --output-dir <OUT_ROOT> --require-videos
 """
 
 from __future__ import annotations
@@ -61,27 +60,21 @@ TASK_09 = "Task_09_State_Evolution_Description"
 TASK_10 = "Task_10_Holistic_Causal_Chain_Analysis"
 TASK_11 = "Task_11_Strategic_Rationale_Justification"
 TASK_12 = "Task_12_Spatial_Precondition_Description"
-TASK_13 = "Task_13_Spatial_Precondition_Verification_QA"
-TASK_14 = "Task_14_Affordance_Precondition_Description"
-TASK_15 = "Task_15_Affordance_Precondition_Verification_QA"
-TASK_16 = "Task_16_Physical_Feasibility_Verification"
-TASK_17 = "Task_17_Spatial_Postcondition_Description"
-TASK_18 = "Task_18_Spatial_Postcondition_Verification_QA"
-TASK_19 = "Task_19_Affordance_Postcondition_Description"
-TASK_20 = "Task_20_Affordance_Postcondition_Verification_QA"
-TASK_21 = "Task_21_Temporal_Order_Check_AB"
-TASK_22 = "Task_22_Stage2_FrameIndex_Localization_Check"
-TASK_23 = "Task_23_Inter_Step_Dependency_Analysis"
-TASK_24 = "Task_24_Next_Step_Goal_Prediction_From_Prefix"
-TASK_25 = "Task_25_Middle_Steps_Infill_From_Head_Tail"
-TASK_26 = "Task_26_Next_K_Steps_Prediction_From_Prefix_QA"
-TASK_27 = "Task_27_Next_K_Steps_Reordering_From_Prefix"
-TASK_28 = "Task_28_Failed_Planning_Flaw_Pointing"
-TASK_29 = "Task_29_Plan_Repair_From_Flaw"
-TASK_30 = "Task_30_Counterfactual_Prediction"
-TASK_31 = "Task_31_Counterfactual_Outcome_QA"
-TASK_32 = "Task_32_Failure_Recovery_Protocol"
-TASK_33 = "Task_33_Next_Step_After_Recovery_QA"
+TASK_13 = "Task_13_Affordance_Precondition_Description"
+TASK_14 = "Task_14_Physical_Feasibility_Verification_QA"
+TASK_15 = "Task_15_Spatial_Postcondition_Description"
+TASK_16 = "Task_16_Affordance_Postcondition_Description"
+TASK_17 = "Task_17_Inter_Step_Dependency_Analysis"
+TASK_18 = "Task_18_Next_Step_Goal_Prediction_From_Prefix"
+TASK_19 = "Task_19_Middle_Steps_Infill_From_Head_Tail"
+TASK_20 = "Task_20_Next_K_Steps_Prediction_From_Prefix_QA"
+TASK_21 = "Task_21_Next_K_Steps_Reordering_From_Prefix"
+TASK_22 = "Task_22_Failed_Planning_Flaw_Pointing"
+TASK_23 = "Task_23_Plan_Repair_From_Flaw"
+TASK_24 = "Task_24_Counterfactual_Prediction"
+TASK_25 = "Task_25_Counterfactual_Outcome_QA"
+TASK_26 = "Task_26_Failure_Recovery_Protocol"
+TASK_27 = "Task_27_Next_Step_After_Recovery_QA"
 
 
 ALL_TASKS: Tuple[str, ...] = (
@@ -112,12 +105,6 @@ ALL_TASKS: Tuple[str, ...] = (
     TASK_25,
     TASK_26,
     TASK_27,
-    TASK_28,
-    TASK_29,
-    TASK_30,
-    TASK_31,
-    TASK_32,
-    TASK_33,
 )
 
 
@@ -360,6 +347,7 @@ Your task is to synthesize structured data fields into high-quality, natural lan
 2. Strict Grounding: The output must be based ONLY on the provided Input Data. Do not hallucinate details.
 3. Detail & Rigor: Preserve all technical details provided in the input fields. Do not simplify if it loses precision.
 4. Professional Tone: Keep the language objective and academic. Avoid conversational fillers.
+5. Follow Constraints: Obey the task-specific constraints exactly (e.g., one sentence, no newlines, required phrases).
 
 ### Additional Constraints (for dataset safety):
 - Do NOT mention any filenames, paths, extensions, timestamps, or frame numbers.
@@ -370,7 +358,8 @@ Your task is to synthesize structured data fields into high-quality, natural lan
 """
 
 
-TWO_PARAGRAPH_TASKS = {TASK_10}
+TWO_PARAGRAPH_TASKS: set[str] = set()
+SINGLE_SENTENCE_TASKS = {TASK_10, TASK_14}
 
 
 LLM_ANSWER_PROMPTS: Dict[str, str] = {
@@ -396,10 +385,11 @@ Mechanism: {mechanism}
 Spatial Effects: {spatial_effects}
 Affordance Effects: {affordance_effects}
 
-Instruction: The user asks: "Explain the physical causal chain in this interaction, focusing on spatial setup, affordance mechanism, and immediate effects."
-Produce exactly TWO paragraphs:
-- Paragraph 1: Describe the spatial/affordance setup (preconditions) and the intended action on the patient.
-- Paragraph 2: Describe the hotspot mechanism and the immediate spatial/affordance effects.""",
+Instruction: The user asks: "Explain the physical causal chain in this keyframe, focusing on spatial setup, affordance mechanism, and immediate effects. Answer in one English sentence."
+Write ONE long English sentence (no newlines) that forms a causal loop:
+preconditions → action/interaction mechanism → immediate effects.
+If a required detail is not supported by a single keyframe or is an internal/latent property, explicitly use the exact phrase: "not directly observable".
+Do NOT use bullet points, numbering, or multiple sentences.""",
     TASK_11: """Input Data:
 High-Level Goal: {high_level_goal}
 Step Goal: {step_goal}
@@ -407,7 +397,7 @@ Rationale: {rationale}
 
 Instruction: The user asks: "Why is this step necessary for the overall goal?"
 Write a concise justification grounded in the rationale and explicitly link it to the high-level goal.""",
-    TASK_23: """Input Data:
+    TASK_17: """Input Data:
 High-Level Goal: {high_level_goal}
 Previous Step Goal: {prev_step_goal}
 Previous Step Effects: {prev_step_effects}
@@ -415,12 +405,12 @@ Next Step Goal: {next_step_goal}
 Next Step Preconditions: {next_step_preconditions}
 
 Instruction: The user asks: "How does the outcome of the previous step satisfy the preconditions for the next step?"
-Explain the dependency in a single paragraph by connecting effects to preconditions. Do not add extra steps.""",
+Explain the dependency in 1–2 sentences by connecting effects to preconditions. Do not add extra steps.""",
 }
 
 
 LLM_REASON_PROMPTS: Dict[str, str] = {
-    TASK_28: """Input Data:
+    TASK_22: """Input Data:
 High-Level Goal: {high_level_goal}
 Bad Plan Steps (proposed): {bad_plan_steps}
 Gold Plan Steps (reference): {gold_plan_steps}
@@ -429,7 +419,7 @@ Flawed Step (1-based within bad plan): {flaw_step}
 
 Instruction: Provide ONE concise sentence explaining why the flawed step is incorrect, grounded in missing preconditions or goal mismatch.
 Return ONLY the reason sentence, without labels or numbering.""",
-    TASK_32: """Input Data:
+    TASK_26: """Input Data:
 Step Goal: {step_goal}
 Failure Reason: {failure_reason}
 Recovery Strategy (must be followed): {recovery_strategy}
@@ -532,7 +522,10 @@ class TwoStageLlm:
         if not raw:
             return draft_answer
         if not two_pass:
-            return _defluff_text(_sanitize_answer(task_name, raw))
+            out = _defluff_text(_sanitize_answer(task_name, raw))
+            if task_name in SINGLE_SENTENCE_TASKS:
+                out = _enforce_single_sentence(out)
+            return out
 
         polish_user = (
             "### INPUT DATA (Ground Truth):\n"
@@ -545,7 +538,13 @@ class TwoStageLlm:
             "Do NOT mention filenames, timestamps, or frame numbers.\n"
             "Do NOT use bullet points or lists.\n"
             + (
-                "Produce exactly TWO paragraphs.\n" if task_name in TWO_PARAGRAPH_TASKS else "Produce a single paragraph.\n"
+                "Produce exactly TWO paragraphs.\n"
+                if task_name in TWO_PARAGRAPH_TASKS
+                else (
+                    "Produce exactly ONE sentence (no newlines).\n"
+                    if task_name in SINGLE_SENTENCE_TASKS
+                    else "Produce a single paragraph.\n"
+                )
             )
             + "\n### POLISHED OUTPUT:"
         )
@@ -553,7 +552,10 @@ class TwoStageLlm:
         polished = polished.strip() if isinstance(polished, str) else ""
         if not polished:
             polished = raw
-        return _defluff_text(_sanitize_answer(task_name, polished))
+        out = _defluff_text(_sanitize_answer(task_name, polished))
+        if task_name in SINGLE_SENTENCE_TASKS:
+            out = _enforce_single_sentence(out)
+        return out
 
     def generate_reason_only(self, *, task_name: str, fields: Dict[str, Any], two_pass: bool) -> str:
         prompt = LLM_REASON_PROMPTS.get(task_name)
@@ -600,12 +602,12 @@ def _apply_llm(samples: List[Sample], llm: TwoStageLlm, llm_tasks: set[str], *, 
         original_answer = s.answer
         new_answer = original_answer
         try:
-            if s.task_name == TASK_28:
-                reason = llm.generate_reason_only(task_name=TASK_28, fields=fields, two_pass=two_pass)
+            if s.task_name == TASK_22:
+                reason = llm.generate_reason_only(task_name=TASK_22, fields=fields, two_pass=two_pass)
                 if reason:
                     new_answer = f"FlawStep={fields.get('flaw_step')}; FlawType={fields.get('flaw_type')}; Reason={reason}"
-            elif s.task_name == TASK_32:
-                expl = llm.generate_reason_only(task_name=TASK_32, fields=fields, two_pass=two_pass)
+            elif s.task_name == TASK_26:
+                expl = llm.generate_reason_only(task_name=TASK_26, fields=fields, two_pass=two_pass)
                 if expl:
                     strat = str(fields.get("recovery_strategy") or "").strip()
                     if strat and not strat.endswith((".", "!", "?")):
@@ -1859,6 +1861,340 @@ def _make_task04_to_20(item_dir: str, plan: Dict[str, Any], input_root: str, rng
     return out
 
 
+_LATENT_KEYWORDS = (
+    "not directly observable",
+    "internal",
+    "inside",
+    "friction",
+    "texture",
+    "static",
+    "circuit",
+    "electrical",
+    "magnetic",
+    "chemical",
+    "temperature",
+    "pressure",
+    "material",
+    "viscos",
+    "sufficient",
+    "enough",
+)
+
+
+def _inline_clause(text: str) -> str:
+    s = _sanitize_text_single_line(text)
+    s = re.sub(r"[.?!]+\s+", "; ", s)
+    s = s.strip().strip(";")
+    s = re.sub(r"[;:,]+$", "", s).strip()
+    s = re.sub(r"[.?!]+$", "", s).strip()
+    return s
+
+
+def _needs_not_directly_observable(text: str) -> bool:
+    s = str(text or "").strip().lower()
+    if not s:
+        return False
+    if "not directly observable" in s:
+        return True
+    return any(k in s for k in _LATENT_KEYWORDS[1:])
+
+
+def _annotate_observability(text: str) -> str:
+    s = str(text or "").strip()
+    if not s:
+        return ""
+    if "not directly observable" in s.lower():
+        return s
+    if _needs_not_directly_observable(s):
+        return f"{s} (not directly observable)"
+    return s
+
+
+def _lowercase_first_alpha(text: str) -> str:
+    s = str(text or "")
+    if not s:
+        return s
+    for i, ch in enumerate(s):
+        if ch.isalpha():
+            return s[:i] + ch.lower() + s[i + 1 :]
+    return s
+
+
+def _with_definite_article(token: str) -> str:
+    s = str(token or "").strip()
+    if not s:
+        return s
+    if re.match(r"^(the|a|an)\\b", s, flags=re.IGNORECASE):
+        return s
+    return f"the {s}"
+
+
+def _enforce_single_sentence(text: str) -> str:
+    s = _sanitize_text_single_line(text)
+    if not s:
+        return s
+    punct = [m.start() for m in re.finditer(r"[.?!]", s)]
+    if len(punct) <= 1:
+        if s[-1] not in ".?!":
+            return s + "."
+        return s
+    chars = list(s)
+    for i in punct[:-1]:
+        chars[i] = ";"
+    s2 = _sanitize_text_single_line("".join(chars))
+    if s2[-1] not in ".?!":
+        s2 = s2 + "."
+    return s2
+
+
+def _make_task04_to_16(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterable[Sample]:
+    steps = _sorted_steps(plan)
+    hl = _require_str(plan, "high_level_goal")
+    source_rel = _safe_relpath(os.path.join(item_dir, "causal_plan_with_keyframes.json"), input_root)
+    if not steps:
+        return []
+
+    out: List[Sample] = []
+    for st in steps:
+        sid = int(st.get("step_id", 0) or 0)
+        step_goal = _require_str(st, "step_goal")
+        if sid <= 0 or not step_goal:
+            continue
+
+        step_cc = st.get("causal_chain") if isinstance(st.get("causal_chain"), dict) else {}
+        agent = _require_str(step_cc, "agent") if isinstance(step_cc, dict) else ""
+        patient = _require_str(step_cc, "patient") if isinstance(step_cc, dict) else ""
+        action = _require_str(step_cc, "action") if isinstance(step_cc, dict) else ""
+
+        k0 = _keyframe_for_task(item_dir, st, prefer_j=0)
+        k1 = _keyframe_for_task(item_dir, st, prefer_j=1)
+
+        # Task 04/05: early keyframe
+        if k0:
+            _, _, img0 = k0
+            if patient:
+                q = f'Context: Step goal: "{step_goal}" In this image, what is the primary patient object being acted on?'
+                out.append(Sample(TASK_04, EVIDENCE_KEYFRAME, [_safe_relpath(img0, input_root)], None, q, patient, source_rel))
+            if action:
+                q = f'Context: Step goal: "{step_goal}" What is the action phrase (causal_chain.action) in this keyframe?'
+                out.append(Sample(TASK_05, EVIDENCE_KEYFRAME, [_safe_relpath(img0, input_root)], None, q, action, source_rel))
+
+        # Task 06/07/08/09: use both keyframes when available
+        frames_for_hotspot: List[Tuple[Dict[str, Any], str]] = []
+        if k0:
+            _, cf0, img0 = k0
+            frames_for_hotspot.append((cf0, img0))
+        if k1:
+            _, cf1, img1 = k1
+            if not frames_for_hotspot or frames_for_hotspot[-1][1] != img1:
+                frames_for_hotspot.append((cf1, img1))
+
+        for cf, img in frames_for_hotspot:
+            intr = cf.get("interaction") if isinstance(cf.get("interaction"), dict) else {}
+            hotspot = intr.get("hotspot") if isinstance(intr, dict) and isinstance(intr.get("hotspot"), dict) else intr
+            aff_type = _require_str(hotspot, "affordance_type") if isinstance(hotspot, dict) else ""
+            mech = _require_str(hotspot, "mechanism") if isinstance(hotspot, dict) else ""
+            desc = _require_str(hotspot, "description") if isinstance(hotspot, dict) else ""
+            asc = _strip_key_moment_prefix(_require_str(cf, "action_state_change_description"))
+
+            if aff_type:
+                q = f'Context: Step goal: "{step_goal}" What is the affordance_type of the interaction hotspot in this image?'
+                out.append(Sample(TASK_06, EVIDENCE_KEYFRAME, [_safe_relpath(img, input_root)], None, q, aff_type, source_rel))
+            if mech:
+                q = f'Context: Step goal: "{step_goal}" Briefly describe the physical mechanism of the interaction hotspot in this image.'
+                out.append(Sample(TASK_07, EVIDENCE_KEYFRAME, [_safe_relpath(img, input_root)], None, q, mech, source_rel))
+            if desc and aff_type and mech:
+                q = f'Context: Step goal: "{step_goal}" Locate the interaction hotspot area in the image first, then describe its affordance_type and mechanism.'
+                mech_clause = _lowercase_first_alpha(_inline_clause(mech))
+                desc_clause = _lowercase_first_alpha(desc.strip().rstrip("."))
+                a = _sanitize_space(
+                    f"The hotspot is {desc_clause}."
+                    f" It affords {aff_type.strip()}, and the mechanism is that {mech_clause}."
+                )
+                out.append(
+                    Sample(
+                        TASK_08,
+                        EVIDENCE_KEYFRAME,
+                        [_safe_relpath(img, input_root)],
+                        None,
+                        q,
+                        a,
+                        source_rel,
+                        llm_fields={
+                            "step_goal": step_goal,
+                            "hotspot_description": desc.strip(),
+                            "affordance_type": aff_type.strip(),
+                            "mechanism": mech.strip(),
+                        },
+                    )
+                )
+            if asc:
+                q = f'Context: Step goal: "{step_goal}" What ongoing action is occurring, and what immediate state change does it cause?'
+                out.append(Sample(TASK_09, EVIDENCE_KEYFRAME, [_safe_relpath(img, input_root)], None, q, asc, source_rel))
+
+        # Task 10: one-sentence holistic causal chain (both keyframes when possible)
+        cfs_all = st.get("critical_frames") or []
+        if isinstance(cfs_all, list):
+            for j in (0, 1):
+                if j >= len(cfs_all) or not isinstance(cfs_all[j], dict):
+                    continue
+                cf = cfs_all[j]
+                fi = _frame_index(cf)
+                if fi is None:
+                    continue
+                img = _find_keyframe_image(item_dir, sid, fi)
+                if not img:
+                    continue
+
+                fcc = cf.get("causal_chain") if isinstance(cf.get("causal_chain"), dict) else {}
+                intr = cf.get("interaction") if isinstance(cf.get("interaction"), dict) else {}
+
+                sp_pre_full = fcc.get("causal_precondition_on_spatial") if isinstance(fcc, dict) else ""
+                af_pre_full = fcc.get("causal_precondition_on_affordance") if isinstance(fcc, dict) else ""
+                sp_eff_full = fcc.get("causal_effect_on_spatial") if isinstance(fcc, dict) else ""
+                af_eff_full = fcc.get("causal_effect_on_affordance") if isinstance(fcc, dict) else ""
+
+                sp_pre = _inline_clause(_format_spatial(sp_pre_full, max_items=1))
+                af_pre = _inline_clause(_format_affordance(af_pre_full, max_items=1))
+                sp_eff = _inline_clause(_format_spatial(sp_eff_full, max_items=1))
+                af_eff = _inline_clause(_format_affordance(af_eff_full, max_items=1))
+
+                hotspot = intr.get("hotspot") if isinstance(intr, dict) and isinstance(intr.get("hotspot"), dict) else intr
+                desc = _inline_clause(_require_str(hotspot, "description") if isinstance(hotspot, dict) else "")
+                aff_type = _inline_clause(_require_str(hotspot, "affordance_type") if isinstance(hotspot, dict) else "")
+                mech = _inline_clause(_require_str(hotspot, "mechanism") if isinstance(hotspot, dict) else "")
+
+                if not (hl and agent and action and patient and mech and (sp_pre or af_pre) and (sp_eff or af_eff)):
+                    continue
+
+                q = (
+                    f'Context: High-level goal: "{hl}" Step goal: "{step_goal}" '
+                    "Explain the physical causal chain in this keyframe, focusing on spatial setup, affordance mechanism, and immediate effects. "
+                    "Answer in one English sentence."
+                )
+
+                pre_parts = [_lowercase_first_alpha(_annotate_observability(p)) for p in (sp_pre, af_pre) if p]
+                eff_parts = [_lowercase_first_alpha(_annotate_observability(p)) for p in (sp_eff, af_eff) if p]
+                pre_clause = " and ".join([p for p in pre_parts if p])
+                eff_clause = " and ".join([p for p in eff_parts if p])
+
+                hotspot_clause = ""
+                if desc:
+                    hotspot_clause = f" at the hotspot ({desc})"
+                elif aff_type:
+                    hotspot_clause = f" at the hotspot (affordance: {aff_type})"
+
+                agent_phrase = _with_definite_article(agent)
+                patient_phrase = _with_definite_article(patient)
+                mech2 = _lowercase_first_alpha(mech)
+                a = f"When {pre_clause}, {agent_phrase} {action} {patient_phrase}{hotspot_clause}; because {mech2}, {eff_clause}."
+                a = _enforce_single_sentence(a)
+
+                out.append(
+                    Sample(
+                        TASK_10,
+                        EVIDENCE_KEYFRAME,
+                        [_safe_relpath(img, input_root)],
+                        None,
+                        q,
+                        a,
+                        source_rel,
+                        llm_fields={
+                            "high_level_goal": hl,
+                            "step_goal": step_goal,
+                            "agent": agent,
+                            "action": action,
+                            "patient": patient,
+                            "spatial_preconditions": sp_pre_full,
+                            "affordance_preconditions": af_pre_full,
+                            "hotspot_description": desc,
+                            "affordance_type": aff_type,
+                            "mechanism": mech,
+                            "spatial_effects": sp_eff_full,
+                            "affordance_effects": af_eff_full,
+                        },
+                    )
+                )
+
+        # Task 11: rationale (early keyframe)
+        rationale = _require_str(st, "rationale")
+        if k0 and hl and rationale:
+            _, _, img0 = k0
+            q = f'High-level goal: "{hl}" Step goal: "{step_goal}" Why is this step necessary for the overall goal?'
+            out.append(
+                Sample(
+                    TASK_11,
+                    EVIDENCE_KEYFRAME,
+                    [_safe_relpath(img0, input_root)],
+                    None,
+                    q,
+                    rationale,
+                    source_rel,
+                    llm_fields={"high_level_goal": hl, "step_goal": step_goal, "rationale": rationale},
+                )
+            )
+
+        # Task 12/13/14: preconditions + feasibility (early keyframe)
+        if k0:
+            _, cf0, img0 = k0
+            fcc0 = cf0.get("causal_chain") if isinstance(cf0.get("causal_chain"), dict) else {}
+            sp_pre_2 = _format_spatial(fcc0.get("causal_precondition_on_spatial"), max_items=2) if isinstance(fcc0, dict) else ""
+            af_pre_2 = _format_affordance(fcc0.get("causal_precondition_on_affordance"), max_items=2) if isinstance(fcc0, dict) else ""
+            if sp_pre_2:
+                q = f'Step goal: "{step_goal}" Describe the spatial preconditions that must hold before executing this step.'
+                out.append(Sample(TASK_12, EVIDENCE_KEYFRAME, [_safe_relpath(img0, input_root)], None, q, sp_pre_2, source_rel))
+            if af_pre_2:
+                q = f'Step goal: "{step_goal}" Describe the affordance preconditions that must hold before executing this step.'
+                out.append(Sample(TASK_13, EVIDENCE_KEYFRAME, [_safe_relpath(img0, input_root)], None, q, af_pre_2, source_rel))
+
+            sp_pre_1 = _format_spatial(fcc0.get("causal_precondition_on_spatial"), max_items=1) if isinstance(fcc0, dict) else ""
+            af_pre_1 = _format_affordance(fcc0.get("causal_precondition_on_affordance"), max_items=1) if isinstance(fcc0, dict) else ""
+            if sp_pre_1 and af_pre_1:
+                sp_clause = _lowercase_first_alpha(_inline_clause(sp_pre_1))
+                af_clause = _lowercase_first_alpha(_inline_clause(af_pre_1))
+                sp_status = "satisfied"
+                if _needs_not_directly_observable(sp_clause):
+                    sp_status = "not directly observable"
+                af_status = "not directly observable" if _needs_not_directly_observable(af_clause) else "satisfied"
+                prefix = "It is feasible now" if af_status == "satisfied" else "It is likely feasible now"
+                a = (
+                    f"{prefix} because {sp_clause} (spatial precondition {sp_status}) and "
+                    f"{af_clause} (affordance precondition {af_status})."
+                )
+                a = _enforce_single_sentence(a)
+                q = (
+                    f'Step goal: "{step_goal}" Is this step physically feasible now? Answer in one English sentence, and justify the decision '
+                    "by stating one spatial precondition and one affordance precondition, and whether each is satisfied/violated/not directly "
+                    "observable in this frame."
+                )
+                out.append(Sample(TASK_14, EVIDENCE_KEYFRAME, [_safe_relpath(img0, input_root)], None, q, a, source_rel))
+
+        # Task 15/16: postconditions (late keyframe)
+        if k1:
+            _, cf1, img1 = k1
+            fcc1 = cf1.get("causal_chain") if isinstance(cf1.get("causal_chain"), dict) else {}
+            sp_post = _format_spatial(fcc1.get("causal_effect_on_spatial"), max_items=2) if isinstance(fcc1, dict) else ""
+            af_post = _format_affordance(fcc1.get("causal_effect_on_affordance"), max_items=2) if isinstance(fcc1, dict) else ""
+            if sp_post:
+                q = f'Step goal: "{step_goal}" Describe the spatial postconditions that should hold after completing this step.'
+                out.append(
+                    Sample(
+                        TASK_15,
+                        EVIDENCE_KEYFRAME,
+                        [_safe_relpath(img1, input_root)],
+                        None,
+                        q,
+                        _sanitize_space(_annotate_observability(sp_post)),
+                        source_rel,
+                    )
+                )
+            if af_post:
+                q = f'Step goal: "{step_goal}" Describe the affordance postconditions that should hold after completing this step.'
+                out.append(Sample(TASK_16, EVIDENCE_KEYFRAME, [_safe_relpath(img1, input_root)], None, q, _sanitize_space(_annotate_observability(af_post)), source_rel))
+
+    return out
+
+
 def _make_task21(item_dir: str, plan: Dict[str, Any], input_root: str, rng: random.Random) -> Optional[Sample]:
     steps = _sorted_steps(plan)
     hl = _require_str(plan, "high_level_goal")
@@ -1966,7 +2302,7 @@ def _make_task22(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterab
     return out
 
 
-def _make_task23(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterable[Sample]:
+def _make_task17(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterable[Sample]:
     hl = _require_str(plan, "high_level_goal")
     steps = _sorted_steps(plan)
     if len(steps) < 2:
@@ -2025,7 +2361,7 @@ def _make_task23(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterab
         a = _sanitize_space(a)
         out.append(
             Sample(
-                TASK_23,
+                TASK_17,
                 EVIDENCE_KEYFRAME,
                 [_safe_relpath(img, input_root)],
                 None,
@@ -2044,7 +2380,7 @@ def _make_task23(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterab
     return out
 
 
-def _make_task24(item_dir: str, plan: Dict[str, Any], input_root: str, *, require_video: bool) -> Iterable[Sample]:
+def _make_task18(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterable[Sample]:
     hl = _require_str(plan, "high_level_goal")
     steps = _sorted_steps(plan)
     if len(steps) < 2:
@@ -2060,25 +2396,15 @@ def _make_task24(item_dir: str, plan: Dict[str, Any], input_root: str, *, requir
         if sid0 <= 0 or not sg0 or not sg1:
             continue
         video = _resolve_video_prefix(item_dir, sid0)
-        if require_video and not video:
+        if not video:
             continue
-        if video:
-            q = f'Context: High-level goal: "{hl}" Last completed step (in this prefix): "{sg0}" What is the next step goal?'
-            evidence_type = EVIDENCE_PREFIX
-            images: List[str] = []
-            video_rel = _safe_relpath(video, input_root)
-        else:
-            k1 = _keyframe_for_task(item_dir, s0, prefer_j=1)
-            if not k1:
-                continue
-            _, _, thumb = k1
-            q = f'Context: High-level goal: "{hl}" Last completed step: "{sg0}" Based on the current observation, what is the next step goal?'
-            evidence_type = EVIDENCE_KEYFRAME
-            images = [_safe_relpath(thumb, input_root)]
-            video_rel = None
+        q = f'Context: High-level goal: "{hl}" Last completed step (in this prefix): "{sg0}" What is the next step goal?'
+        evidence_type = EVIDENCE_PREFIX
+        images = []
+        video_rel = _safe_relpath(video, input_root)
         out.append(
             Sample(
-                TASK_24,
+                TASK_18,
                 evidence_type,
                 images,
                 video_rel,
@@ -2090,7 +2416,7 @@ def _make_task24(item_dir: str, plan: Dict[str, Any], input_root: str, *, requir
     return out
 
 
-def _make_task25(item_dir: str, plan: Dict[str, Any], input_root: str, head: int, tail: int) -> Optional[Sample]:
+def _make_task19(item_dir: str, plan: Dict[str, Any], input_root: str, head: int, tail: int) -> Optional[Sample]:
     hl = _require_str(plan, "high_level_goal")
     steps = _sorted_steps(plan)
     if len(steps) < 3 or not hl:
@@ -2106,7 +2432,7 @@ def _make_task25(item_dir: str, plan: Dict[str, Any], input_root: str, head: int
     q = f'High-level goal: "{hl}" Based on the beginning/end glimpses of the video, infer the missing middle steps in order.'
     source_rel = _safe_relpath(os.path.join(item_dir, "causal_plan_with_keyframes.json"), input_root)
     return Sample(
-        task_name=TASK_25,
+        task_name=TASK_19,
         evidence_type=EVIDENCE_UNIFORM,
         image=[_safe_relpath(p, input_root) for p in imgs],
         video=None,
@@ -2116,7 +2442,7 @@ def _make_task25(item_dir: str, plan: Dict[str, Any], input_root: str, head: int
     )
 
 
-def _make_task26_27(item_dir: str, plan: Dict[str, Any], input_root: str, *, require_video: bool, rng: random.Random) -> Iterable[Sample]:
+def _make_task20_21(item_dir: str, plan: Dict[str, Any], input_root: str, rng: random.Random) -> Iterable[Sample]:
     hl = _require_str(plan, "high_level_goal")
     steps = _sorted_steps(plan)
     if len(steps) < 2 or not hl:
@@ -2139,36 +2465,24 @@ def _make_task26_27(item_dir: str, plan: Dict[str, Any], input_root: str, *, req
     if len(gold) < 1:
         return []
     video = _resolve_video_prefix(item_dir, prefix_end_step)
-    if require_video and not video:
+    if not video:
         return []
     last_completed_goal = str(prefix_step.get("step_goal", "")).strip()
     answer = " ".join([f"{j+1}) {sg}" for j, sg in enumerate(gold)])
 
-    if video:
-        images: List[str] = []
-        video_rel = _safe_relpath(video, input_root)
-        q26 = (
-            f'Context: High-level goal: "{hl}" Last completed step (in this prefix): "{last_completed_goal}" '
-            f"Based on this prefix, predict the next K={len(gold)} step goals in order."
-        )
-    else:
-        k1 = _keyframe_for_task(item_dir, prefix_step, prefer_j=1) or _keyframe_for_task(item_dir, prefix_step, prefer_j=0)
-        if not k1:
-            return []
-        _, _, thumb = k1
-        images = [_safe_relpath(thumb, input_root)]
-        video_rel = None
-        q26 = (
-            f'Context: High-level goal: "{hl}" Last completed step: "{last_completed_goal}" '
-            f"Based on the current observation, predict the next K={len(gold)} step goals in order."
-        )
+    images: List[str] = []
+    video_rel = _safe_relpath(video, input_root)
+    q20 = (
+        f'Context: High-level goal: "{hl}" Last completed step (in this prefix): "{last_completed_goal}" '
+        f"Based on this prefix, predict the next K={len(gold)} step goals in order."
+    )
     out.append(
         Sample(
-            TASK_26,
-            EVIDENCE_PREFIX if video else EVIDENCE_KEYFRAME,
+            TASK_20,
+            EVIDENCE_PREFIX,
             images,
             video_rel,
-            q26,
+            q20,
             _sanitize_space(answer),
             source_rel,
         )
@@ -2176,25 +2490,18 @@ def _make_task26_27(item_dir: str, plan: Dict[str, Any], input_root: str, *, req
 
     shuffled = list(gold)
     rng.shuffle(shuffled)
-    if video:
-        images2: List[str] = []
-        q27 = (
-            f'Context: High-level goal: "{hl}" Last completed step (in this prefix): "{last_completed_goal}" '
-            f"Reorder the shuffled candidate steps {json.dumps(shuffled)} into the most plausible next-step sequence."
-        )
-    else:
-        images2 = images
-        q27 = (
-            f'Context: High-level goal: "{hl}" Last completed step: "{last_completed_goal}" '
-            f"Reorder the shuffled candidate steps {json.dumps(shuffled)} into the most plausible next-step sequence."
-        )
+    images2: List[str] = []
+    q21 = (
+        f'Context: High-level goal: "{hl}" Last completed step (in this prefix): "{last_completed_goal}" '
+        f"Reorder the shuffled candidate steps {json.dumps(shuffled)} into the most plausible next-step sequence."
+    )
     out.append(
         Sample(
-            TASK_27,
-            EVIDENCE_PREFIX if video else EVIDENCE_KEYFRAME,
+            TASK_21,
+            EVIDENCE_PREFIX,
             images2,
             video_rel,
-            q27,
+            q21,
             _sanitize_space(answer),
             source_rel,
         )
@@ -2202,15 +2509,18 @@ def _make_task26_27(item_dir: str, plan: Dict[str, Any], input_root: str, *, req
     return out
 
 
-def _make_task28_29(item_dir: str, plan: Dict[str, Any], input_root: str, *, require_video: bool, rng: random.Random) -> Iterable[Sample]:
+def _make_task22_23(item_dir: str, plan: Dict[str, Any], input_root: str, rng: random.Random) -> Iterable[Sample]:
     hl = _require_str(plan, "high_level_goal")
     steps = _sorted_steps(plan)
     if len(steps) < 4 or not hl:
         return []
     source_rel = _safe_relpath(os.path.join(item_dir, "causal_plan_with_keyframes.json"), input_root)
 
-    # Choose a prefix_end_step i near the beginning to ensure future window exists.
-    i_idx = min(1, len(steps) - 3)
+    # Choose a prefix_end_step i near the beginning so that at least K=3 future steps exist.
+    max_prefix_idx = min(2, len(steps) - 4)
+    if max_prefix_idx < 0:
+        return []
+    i_idx = rng.randrange(0, max_prefix_idx + 1)
     prefix_step = steps[i_idx]
     prefix_end_step = int(prefix_step.get("step_id", 0) or 0)
     if prefix_end_step <= 0:
@@ -2238,49 +2548,29 @@ def _make_task28_29(item_dir: str, plan: Dict[str, Any], input_root: str, *, req
         reason = "This step does not contribute to achieving the high-level goal and prematurely terminates the plan."
 
     video = _resolve_video_prefix(item_dir, prefix_end_step)
-    if require_video and not video:
+    if not video:
         return []
-    if video:
-        video_rel = _safe_relpath(video, input_root)
-        img_rel: List[str] = []
-    else:
-        video_rel = None
-        k1 = _keyframe_for_task(item_dir, prefix_step, prefer_j=1) or _keyframe_for_task(item_dir, prefix_step, prefer_j=0)
-        if not k1:
-            return []
-        _, _, thumb = k1
-        img_rel = [_safe_relpath(thumb, input_root)]
+    video_rel = _safe_relpath(video, input_root)
+    img_rel: List[str] = []
 
     bad_steps_inline = " ".join([f'{i+1}) "{s}"' for i, s in enumerate(bad)])
     gold_steps_inline = " ".join([f'{i+1}) "{s}"' for i, s in enumerate(gold)])
-    if video:
-        q29 = (
-            f'Context: High-level goal: "{hl}" Based on this prefix, the following bad_plan_steps are proposed as the next steps: '
-            f"{bad_steps_inline} Identify the flaw in the bad plan."
-        )
-    else:
-        q29 = (
-            f'Context: High-level goal: "{hl}" Based on the current observation, the following bad_plan_steps are proposed as the next steps: '
-            f"{bad_steps_inline} Identify the flaw in the bad plan."
-        )
+    q29 = (
+        f'Context: High-level goal: "{hl}" Based on this prefix, the following bad_plan_steps are proposed as the next steps: '
+        f"{bad_steps_inline} Identify the flaw in the bad plan."
+    )
     a29 = f"FlawStep={flaw_pos+1}; FlawType={flaw_type}; Reason={reason}"
 
-    if video:
-        q30 = (
-            f'Context: High-level goal: "{hl}" Based on this prefix, bad_plan_steps are proposed as the next steps: '
-            f"{bad_steps_inline} Repair the plan by outputting the corrected {len(gold)}-step sequence."
-        )
-    else:
-        q30 = (
-            f'Context: High-level goal: "{hl}" Based on the current observation, bad_plan_steps are proposed as the next steps: '
-            f"{bad_steps_inline} Repair the plan by outputting the corrected {len(gold)}-step sequence."
-        )
+    q30 = (
+        f'Context: High-level goal: "{hl}" Based on this prefix, bad_plan_steps are proposed as the next steps: '
+        f"{bad_steps_inline} Repair the plan by outputting the corrected {len(gold)}-step sequence."
+    )
     a30 = " ".join([f'{i+1}) "{s}"' for i, s in enumerate(gold)])
 
     return [
         Sample(
-            TASK_28,
-            EVIDENCE_PREFIX if video else EVIDENCE_KEYFRAME,
+            TASK_22,
+            EVIDENCE_PREFIX,
             img_rel,
             video_rel,
             q29,
@@ -2294,7 +2584,7 @@ def _make_task28_29(item_dir: str, plan: Dict[str, Any], input_root: str, *, req
                 "flaw_step": flaw_pos + 1,
             },
         ),
-        Sample(TASK_29, EVIDENCE_PREFIX if video else EVIDENCE_KEYFRAME, img_rel, video_rel, q30, a30, source_rel),
+        Sample(TASK_23, EVIDENCE_PREFIX, img_rel, video_rel, q30, a30, source_rel),
     ]
 
 
@@ -2311,7 +2601,7 @@ def _counterfactual_clause(question: str) -> str:
     return s
 
 
-def _make_task30_33(item_dir: str, plan: Dict[str, Any], input_root: str, *, require_video: bool) -> Iterable[Sample]:
+def _make_task24_27(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterable[Sample]:
     steps = _sorted_steps(plan)
     hl = _require_str(plan, "high_level_goal")
     source_rel = _safe_relpath(os.path.join(item_dir, "causal_plan_with_keyframes.json"), input_root)
@@ -2327,60 +2617,59 @@ def _make_task30_33(item_dir: str, plan: Dict[str, Any], input_root: str, *, req
         q_cf = _require_str(st, "counterfactual_challenge_question")
         a_cf = _require_str(st, "expected_challenge_outcome")
         if q_cf and a_cf and img_rel:
-            q30 = (
+            q24 = (
                 f'Context: Step goal: "{step_goal}" Counterfactual: {q_cf} '
                 "From a spatial & affordance perspective, what would likely happen? "
                 "Only predict the outcome; do not propose any recovery actions."
             )
-            out.append(Sample(TASK_30, EVIDENCE_KEYFRAME, img_rel, None, q30, a_cf, source_rel))
-            # Shorter outcome for Task_31: first sentence when possible.
-            a31 = a_cf.split(".")[0].strip()
-            if a31:
-                a31 = a31 + "."
+            out.append(Sample(TASK_24, EVIDENCE_KEYFRAME, img_rel, None, q24, a_cf, source_rel))
+            # Shorter outcome for Task_25: first sentence when possible.
+            a25 = a_cf.split(".")[0].strip()
+            if a25:
+                a25 = a25 + "."
             clause = _counterfactual_clause(q_cf) or q_cf.strip().rstrip("?")
-            q31 = (
+            q25 = (
                 f'Context: Step goal: "{step_goal}" What is the most likely outcome if {clause}? '
                 "Answer with a short outcome prediction grounded in spatial setup and affordance, and do not propose any recovery actions."
             )
-            out.append(Sample(TASK_31, EVIDENCE_KEYFRAME, img_rel, None, q31, a31 or a_cf, source_rel))
+            out.append(Sample(TASK_25, EVIDENCE_KEYFRAME, img_rel, None, q25, a25 or a_cf, source_rel))
 
         fr = st.get("failure_reflecting") if isinstance(st.get("failure_reflecting"), dict) else {}
         reason = _require_str(fr, "reason") if isinstance(fr, dict) else ""
         strat = _require_str(fr, "recovery_strategy") if isinstance(fr, dict) else ""
         if reason and strat:
             if img_rel:
-                q32 = (
+                q26 = (
                     f'Context: Step goal: "{step_goal}" Failure reason: "{reason}" '
                     "What is a plausible recovery strategy? Explain briefly using spatial stability and affordance/mechanism."
                 )
-                a32 = _sanitize_space(
-                    f"{strat} This works because it directly mitigates the failure cause by restoring the required spatial setup or relevant affordance conditions."
+                a26 = _sanitize_space(
+                    f"{strat} This helps because it directly addresses the failure reason by restoring spatial stability and enabling the relevant affordance/mechanism to work as intended."
                 )
                 out.append(
                     Sample(
-                        TASK_32,
+                        TASK_26,
                         EVIDENCE_KEYFRAME,
                         img_rel,
                         None,
-                        q32,
-                        a32,
+                        q26,
+                        a26,
                         source_rel,
                         llm_fields={"step_goal": step_goal, "failure_reason": reason, "recovery_strategy": strat},
                     )
                 )
 
-            video = _resolve_video_prefix(item_dir, sid)
-            if require_video and not video:
+            if sid <= 1:
                 continue
-            q33 = (
+            video = _resolve_video_prefix(item_dir, sid - 1)
+            if not video:
+                continue
+            q27 = (
                 f'Context: High-level goal: "{hl}" Failure reason: "{reason}" Recovery strategy: "{strat}" '
                 "After applying the recovery strategy, what is the most appropriate next step? Answer as a single step_goal."
             )
             # Default label: retry current step_goal
-            if video:
-                out.append(Sample(TASK_33, EVIDENCE_PREFIX, [], _safe_relpath(video, input_root), q33, step_goal, source_rel))
-            elif img_rel:
-                out.append(Sample(TASK_33, EVIDENCE_KEYFRAME, img_rel, None, q33, step_goal, source_rel))
+            out.append(Sample(TASK_27, EVIDENCE_PREFIX, [], _safe_relpath(video, input_root), q27, step_goal, source_rel))
 
     return out
 
@@ -2415,29 +2704,40 @@ def generate_samples_for_item(
             out.append(s)
     if TASK_03 in enabled_tasks:
         out.extend(_make_task03(item_dir, plan, input_root, require_video=require_videos))
-    if any(t in enabled_tasks for t in (TASK_04, TASK_05, TASK_06, TASK_07, TASK_08, TASK_09, TASK_10, TASK_11, TASK_12, TASK_13, TASK_14, TASK_15, TASK_16, TASK_17, TASK_18, TASK_19, TASK_20)):
-        out.extend(_make_task04_to_20(item_dir, plan, input_root, rng=rng))
-        out = [s for s in out if s.task_name in enabled_tasks or s.task_name in (TASK_04, TASK_05, TASK_06, TASK_07, TASK_08, TASK_09, TASK_10, TASK_11, TASK_12, TASK_13, TASK_14, TASK_15, TASK_16, TASK_17, TASK_18, TASK_19, TASK_20)]
-    if TASK_21 in enabled_tasks:
-        s = _make_task21(item_dir, plan, input_root, rng=rng)
+    if any(
+        t in enabled_tasks
+        for t in (
+            TASK_04,
+            TASK_05,
+            TASK_06,
+            TASK_07,
+            TASK_08,
+            TASK_09,
+            TASK_10,
+            TASK_11,
+            TASK_12,
+            TASK_13,
+            TASK_14,
+            TASK_15,
+            TASK_16,
+        )
+    ):
+        out.extend(_make_task04_to_16(item_dir, plan, input_root))
+        out = [s for s in out if s.task_name in enabled_tasks]
+    if TASK_17 in enabled_tasks:
+        out.extend(_make_task17(item_dir, plan, input_root))
+    if TASK_18 in enabled_tasks:
+        out.extend(_make_task18(item_dir, plan, input_root))
+    if TASK_19 in enabled_tasks:
+        s = _make_task19(item_dir, plan, input_root, head=head, tail=tail)
         if s:
             out.append(s)
-    if enable_task22 and TASK_22 in enabled_tasks:
-        out.extend(_make_task22(item_dir, plan, input_root))
-    if TASK_23 in enabled_tasks:
-        out.extend(_make_task23(item_dir, plan, input_root))
-    if TASK_24 in enabled_tasks:
-        out.extend(_make_task24(item_dir, plan, input_root, require_video=require_videos))
-    if TASK_25 in enabled_tasks:
-        s = _make_task25(item_dir, plan, input_root, head=head, tail=tail)
-        if s:
-            out.append(s)
-    if TASK_26 in enabled_tasks or TASK_27 in enabled_tasks:
-        out.extend(_make_task26_27(item_dir, plan, input_root, require_video=require_videos, rng=rng))
-    if TASK_28 in enabled_tasks or TASK_29 in enabled_tasks:
-        out.extend(_make_task28_29(item_dir, plan, input_root, require_video=require_videos, rng=rng))
-    if any(t in enabled_tasks for t in (TASK_30, TASK_31, TASK_32, TASK_33)):
-        out.extend(_make_task30_33(item_dir, plan, input_root, require_video=require_videos))
+    if TASK_20 in enabled_tasks or TASK_21 in enabled_tasks:
+        out.extend(_make_task20_21(item_dir, plan, input_root, rng=rng))
+    if TASK_22 in enabled_tasks or TASK_23 in enabled_tasks:
+        out.extend(_make_task22_23(item_dir, plan, input_root, rng=rng))
+    if any(t in enabled_tasks for t in (TASK_24, TASK_25, TASK_26, TASK_27)):
+        out.extend(_make_task24_27(item_dir, plan, input_root))
 
     # Final text leak check.
     final: List[Sample] = []
@@ -2449,8 +2749,10 @@ def generate_samples_for_item(
         if not images and not video:
             continue
         if _has_frame_leak(s.question) or _has_frame_leak(s.answer):
-            # Task_22 answer is an integer frame_index and is allowed; it won't trigger by default.
             continue
+        answer = _sanitize_space(s.answer)
+        if s.task_name in SINGLE_SENTENCE_TASKS:
+            answer = _enforce_single_sentence(answer)
         final.append(
             Sample(
                 task_name=s.task_name,
@@ -2458,7 +2760,7 @@ def generate_samples_for_item(
                 image=images,
                 video=video,
                 question=_sanitize_space(s.question),
-                answer=_sanitize_space(s.answer),
+                answer=answer,
                 source_path=s.source_path,
                 llm_fields=s.llm_fields,
             )
@@ -2467,16 +2769,26 @@ def generate_samples_for_item(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate Mani-LongVideo 33-task QA dataset from causal_plan_with_keyframes.json (final schema).")
+    parser = argparse.ArgumentParser(
+        description="Generate Mani-LongVideo Task_01–Task_27 QA dataset from causal_plan_with_keyframes.json (final schema)."
+    )
     parser.add_argument("--input-root", required=True, help="Dataset root containing many item dirs with causal_plan_with_keyframes.json.")
     parser.add_argument("--output-dir", required=True, help="Output root directory (will create one folder per task with data.jsonl).")
     parser.add_argument("--limit", type=int, default=0, help="Process at most N item dirs (0 = no limit).")
-    parser.add_argument("--tasks", nargs="*", default=list(ALL_TASKS), help="Subset of task names to generate (default: all 33).")
+    parser.add_argument("--tasks", nargs="*", default=list(ALL_TASKS), help="Subset of task names to generate (default: all Task_01–Task_27).")
     parser.add_argument("--uniform-k", type=int, default=8, help="Number of uniform frames for images_uniform_scene tasks (default: 8).")
-    parser.add_argument("--head", type=int, default=4, help="Head frames for Task_25 (default: 4).")
-    parser.add_argument("--tail", type=int, default=4, help="Tail frames for Task_25 (default: 4).")
-    parser.add_argument("--require-videos", action="store_true", help="If set, skip video_clip/video_prefix tasks when mp4 is missing (recommended).")
-    parser.add_argument("--enable-task22", action="store_true", help="Enable Task_22 (heavy: uses full sampled frame pool).")
+    parser.add_argument("--head", type=int, default=4, help="Head frames for Task_19 (default: 4).")
+    parser.add_argument("--tail", type=int, default=4, help="Tail frames for Task_19 (default: 4).")
+    parser.add_argument(
+        "--require-videos",
+        action="store_true",
+        help="If set, require video_clip assets for Task_03 (skip keyframe fallback); video_prefix tasks always require mp4.",
+    )
+    parser.add_argument(
+        "--enable-task22",
+        action="store_true",
+        help="Deprecated (ignored). Task_22 is controlled via --tasks.",
+    )
     parser.add_argument("--strict-schema", action="store_true", help="Fail fast if causal_plan_with_keyframes.json violates the final schema (recommended).")
     parser.add_argument("--no-api", action="store_true", help="Disable OpenAI-compatible API two-stage rewriting; keep deterministic answers.")
     parser.add_argument("--llm-tasks", nargs="*", default=list(DEFAULT_LLM_TASKS), help="Tasks to rewrite/polish via API (default: a small subset).")
