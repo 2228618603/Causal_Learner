@@ -1,5 +1,7 @@
 # Qwen3-VL
 
+> Monorepo note: in this repository, Qwen3-VL lives under `Qwen-PC/Qwen3-VL/`. For the training framework and utils used by this monorepo, see `../qwen-vl-finetune/` and `../qwen-vl-utils/`.
+
 
 <p align="center">
     <img src="https://qianwen-res.oss-accelerate.aliyuncs.com/Qwen3-VL/qwen3vllogo.png" width="400"/>

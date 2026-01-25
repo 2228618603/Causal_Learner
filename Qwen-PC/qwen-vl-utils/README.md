@@ -58,7 +58,7 @@ from qwen_vl_utils import process_vision_info
 
 # You can set the maximum tokens for a video through the environment variable VIDEO_MAX_PIXELS
 # based on the maximum tokens that the model can accept. 
-# export VIDEO_MAX_PIXELS = 32000 * 28 * 28 * 0.9
+# export VIDEO_MAX_PIXELS=22579200  # = 32000 * 28 * 28 * 0.9
 
 
 # You can directly insert a local file path, a URL, or a base64-encoded image into the position where you want in the text.

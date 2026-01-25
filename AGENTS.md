@@ -6,9 +6,12 @@
   - `qwen-vl-utils/`: installable Python package (`src/qwen_vl_utils/`).
   - `qwen-vl-finetune/`: training framework and scripts (`qwenvl/train/`).
   - `PointLLM/`: point-cloud LLM subproject.
+  - `Qwen3-VL/`: upstream/reference snapshot for baseline alignment.
 - `ECCV/`: script-driven dataset generation + long-video pipeline (see `ECCV/AGENTS.md`).
   - `three_stage/`: 3-stage generation pipeline + validators and docs.
-  - `causal_spafa_plan_dataset*/`, `generated_plans_output_*`: generated artifacts; treat as outputs, not source.
+  - `two_stage/`: legacy 2-stage generators + post-processing helpers.
+  - `three_stage/causal_spafa_plan_dataset_long/`, `causal_spafa_plan_dataset*/`, `generated_plans_output_*`: generated artifacts; treat as outputs, not source.
+- `e2e-data/`: end-to-end fixtures and generated artifacts; treat as outputs, not source.
 
 ## Coding Style & Naming Conventions
 

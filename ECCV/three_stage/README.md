@@ -2,8 +2,8 @@
 
 本目录提供一套**独立**的三阶段长视频数据生成管线（VLM + 严格 JSON 校验）。
 
-完整规范与细节说明见：[`THREE_STAGE_PIPELINE_WITH_EXAMPLES.md`](THREE_STAGE_PIPELINE_WITH_EXAMPLES.md)。
-从零跑通指南（含 prompt/校验对齐核验清单）见：同上。
+规范与细节说明以本 README 为准；更完整的命令示例见：`../three_stage_pipeline_command.txt` 与 `../run_three_stage_pipeline.sh`。
+参数说明可直接运行：`python3 pipeline.py -h`（或在 repo 根目录运行 `python3 ECCV/three_stage/pipeline.py -h`）。
 
 Present case（schema 示例输出）：[`causal_plan_with_keyframes.json`](causal_plan_with_keyframes.json)（仅用于展示；真实运行产物位于 `<output_root>/<video_id>/causal_plan_with_keyframes.json`）。
 

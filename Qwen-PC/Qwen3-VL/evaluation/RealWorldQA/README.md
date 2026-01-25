@@ -80,6 +80,12 @@ ${DATA_DIR}/
 
 ## Quick Start
 
+From the repo root:
+
+```bash
+cd Qwen-PC/Qwen3-VL/evaluation/RealWorldQA
+```
+
 ### 1. Inference
 
 Run inference on the RealWorldQA dataset using an instruct model:
@@ -91,7 +97,7 @@ bash infer_instruct.sh
 Or customize the inference:
 
 ```bash
-python run_realworldqa.py infer \
+python3 run_realworldqa.py infer \
     --model-path /path/to/Qwen3-VL-Instruct \
     --data-dir /path/to/data \
     --dataset RealWorldQA \
@@ -121,7 +127,7 @@ bash eval_instruct.sh
 Or customize the evaluation:
 
 ```bash
-python run_realworldqa.py eval \
+python3 run_realworldqa.py eval \
     --data-dir /path/to/data \
     --input-file results/predictions.jsonl \
     --output-file results/evaluation.csv \
@@ -317,7 +323,7 @@ ls common_utils.py dataset_utils.py eval_utils.py run_realworldqa.py
 Modify resolution parameters in the inference command:
 
 ```bash
-python run_realworldqa.py infer \
+python3 run_realworldqa.py infer \
     --min-pixels 393216      # 512×28×28
     --max-pixels 1003520     # 1280×28×28
     ...
@@ -328,7 +334,7 @@ python run_realworldqa.py infer \
 Use rule-based extraction only (faster, no API calls):
 
 ```bash
-python run_realworldqa.py eval \
+python3 run_realworldqa.py eval \
     --input-file results/predictions.jsonl \
     --output-file results/evaluation.csv
     # No --eval-model specified
@@ -339,7 +345,7 @@ python run_realworldqa.py eval \
 Process only first N samples for testing:
 
 ```bash
-DEBUG_SAMPLE_SIZE=10 python run_realworldqa.py infer ...
+DEBUG_SAMPLE_SIZE=10 python3 run_realworldqa.py infer ...
 ```
 
 ## Citation

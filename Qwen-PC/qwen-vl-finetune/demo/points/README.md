@@ -9,5 +9,8 @@ Restore the original `.ply` after cloning:
 ```bash
 cd Qwen-PC/qwen-vl-finetune/demo/points
 gzip -dk scene0000_01_vh_clean.ply.gz
+# If your gzip doesn't support `-k`, use:
+#   gunzip -k scene0000_01_vh_clean.ply.gz
+# or (will remove the .gz):
+#   gzip -d scene0000_01_vh_clean.ply.gz
 ```
-

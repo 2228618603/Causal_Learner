@@ -75,6 +75,12 @@ The ODinW dataset requires a specific directory structure:
 
 ## Quick Start
 
+From the repo root:
+
+```bash
+cd Qwen-PC/Qwen3-VL/evaluation/ODinW-13
+```
+
 ### 1. Inference
 
 Run inference on the ODinW dataset using an instruct model:
@@ -86,7 +92,7 @@ bash infer_instruct.sh
 Or customize the inference:
 
 ```bash
-python run_odinw.py infer \
+python3 run_odinw.py infer \
     --model-path /path/to/Qwen3-VL-Instruct \
     --data-dir /path/to/odinw_data \
     --output-file results/odinw_predictions.jsonl \
@@ -115,7 +121,7 @@ bash eval_instruct.sh
 Or customize the evaluation:
 
 ```bash
-python run_odinw.py eval \
+python3 run_odinw.py eval \
     --data-dir /path/to/odinw_data \
     --input-file results/odinw_predictions.jsonl \
     --output-file results/odinw_eval_results.json

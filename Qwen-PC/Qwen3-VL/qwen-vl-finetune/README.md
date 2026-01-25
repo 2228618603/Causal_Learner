@@ -1,6 +1,6 @@
 # QwenVL Training Framework
 
-This repository provides a training framework for Qwen VL models. The are two steps to use our repo:
+This repository provides a training framework for Qwen VL models. There are two steps to use our repo:
 
 1. Customize your dataset: downloading data, implement the config
 2. Modify training scripts: 
@@ -20,16 +20,16 @@ The `qwenvl` directory contains the following components:
 - `rope2d.py`: Provide RoPE implementation
 
 ### `tools`
-- `process_bbox.ipynb`: Convert bbox into QwenVL format. If you have grounding data, please refer this file to tranform your data.
+- `process_bbox.ipynb`: Convert bbox into QwenVL format. If you have grounding data, please refer this file to transform your data.
 - `pack_data.py`: Pack data into even length buckets.
 
 ## Requirements
 
-You could use follow version of packages:
+You could use the following package versions:
 
 - `torch==2.6.0`
 - `torchvision==0.21.0`
-- `transformers==4.57.0.dev0`
+- `transformers>=4.57.0`
 - `deepspeed==0.17.1`
 - `flash_attn==2.7.4.post1`
 - `triton==3.2.0`
@@ -114,7 +114,7 @@ The customized data should have the format like:
         },
         {
             "from": "gpt",
-            "value": "{\n"bbox_2d": [135, 114, 1016, 672]\n}"
+            "value": "{\"bbox_2d\": [135, 114, 1016, 672]}"
         }
     ]
 }
@@ -219,6 +219,8 @@ configs = data_list(dataset_names)
 
 To train a model:
 
+Run from the `qwen-vl-finetune/` directory so `qwenvl/train/train_qwen.py` resolves correctly.
+
 ```bash
 #!/bin/bash
 # Complete QwenVL Training Launch Script with Full Parameter Documentation
@@ -233,7 +235,7 @@ NPROC_PER_NODE=$(nvidia-smi --list-gpus | wc -l)  # Automatically detects availa
 # ======================
 # Path Configuration
 # ======================
-MODEL_PATH="/path/to/Qwen2.5-VL-3B-Instruct"  # [ModelArguments] Pretrained model path
+MODEL_PATH="/path/to/Qwen3-VL-8B-Instruct"  # e.g., Qwen3-VL-8B-Instruct / Qwen2.5-VL-3B-Instruct
 OUTPUT_DIR="./checkpoints"                   # Directory for saving checkpoints
 CACHE_DIR="./cache"                          # [TrainingArguments] Cache directory for models
 
@@ -245,64 +247,46 @@ DATASETS="your_dataset%100"                  # [DataArguments] Dataset with samp
 # ======================
 # Training Hyperparameters
 # ======================
-torchrun --nproc_per_node=$NPROC_PER_NODE \
-         --master_addr=$MASTER_ADDR \
-         --master_port=$MASTER_PORT \
-         qwenvl/train/train_qwen.py \
-         # Core Arguments
-         --model_name_or_path $MODEL_PATH \  # [ModelArguments] Model identifier
-         --tune_mm_llm True \                # [TrainingArguments] Train LLM or not
-         --tune_mm_vision False \            # [TrainingArguments] Train VIT or not
-         --tune_mm_mlp False \               # [TrainingArguments] Train MLP or not
-         --dataset_use $DATASETS \           # [DataArguments] Dataset specification
-         --output_dir $OUTPUT_DIR \          # Output directory for checkpoints
-         --cache_dir $CACHE_DIR \            # [TrainingArguments] Model cache location
-         
-         # Precision & Memory
-         --bf16 \                            # Use bfloat16 precision (Ampere+ GPUs)
-         --per_device_train_batch_size 4 \   # Batch size per GPU
-         --gradient_accumulation_steps 4 \   # Effective batch size multiplier
-         
-         # Learning Rate Configuration
-         --learning_rate 2e-7 \              # Base learning rate
-         --mm_projector_lr 1e-5 \            # [TrainingArguments] Projector-specific LR
-         --vision_tower_lr 1e-6 \            # [TrainingArguments] Vision encoder LR
-         --optim adamw_torch \               # [TrainingArguments] Optimizer selection
-         
-         # Sequence Configuration
-         --model_max_length 4096 \           # [TrainingArguments] Max sequence length
-         --data_flatten True \               # [DataArguments] Concatenate batch sequences
-         --data_packing True \               # [DataArguments] Using packing data
-         
-         # Image Processing
-         --max_pixels 576\*28\*28 \               # [DataArguments] Max image pixels (H*W) for image
-         --min_pixels 16\*28\*28 \                # [DataArguments] Min image pixels for image
-         # Video Processing
-         --video_fps 2 \                          # [DataArguments] video fps
-         --video_max_frames 8 \                   # [DataArguments] Max frames per video
-         --video_min_frames 4 \                   # [DataArguments] Min frames per video
-         --video_max_pixels 1664\*28\*28 \        # [DataArguments] Max pixels per video
-         --video_min_pixels 256\*28\*28 \         # [DataArguments] Min pixels per video
-         
-         # Training Schedule
-         --num_train_epochs 3 \              # Total training epochs
-         --warmup_ratio 0.03 \               # LR warmup proportion
-         --lr_scheduler_type "cosine" \      # Learning rate schedule
-         --weight_decay 0.01 \               # L2 regularization strength
-         
-         # Logging & Checkpoints
-         --logging_steps 10 \               # Log metrics interval
-         --save_steps 500 \                 # Checkpoint save interval
-         --save_total_limit 3 \             # Max checkpoints to keep
-
-         # Lora Config
-         --lora_enable True \                 # [TrainingArguments] Enable LoRA
-         --lora_r 8 \                         # [TrainingArguments] LoRA r
-         --lora_alpha 16 \                    # [TrainingArguments] LoRA alpha 
-         --lora_dropout 0.0 \                # [TrainingArguments] LoRA dropout
-
-         # Advanced Options
-         --deepspeed zero3.json \           # DeepSpeed configuration
+torchrun --nproc_per_node="$NPROC_PER_NODE" \
+  --master_addr="$MASTER_ADDR" \
+  --master_port="$MASTER_PORT" \
+  qwenvl/train/train_qwen.py \
+  --model_name_or_path "$MODEL_PATH" \
+  --tune_mm_llm True \
+  --tune_mm_vision False \
+  --tune_mm_mlp False \
+  --dataset_use "$DATASETS" \
+  --output_dir "$OUTPUT_DIR" \
+  --cache_dir "$CACHE_DIR" \
+  --bf16 \
+  --per_device_train_batch_size 4 \
+  --gradient_accumulation_steps 4 \
+  --learning_rate 2e-7 \
+  --mm_projector_lr 1e-5 \
+  --vision_tower_lr 1e-6 \
+  --optim adamw_torch \
+  --model_max_length 4096 \
+  --data_flatten True \
+  --data_packing True \
+  --max_pixels 576\*28\*28 \
+  --min_pixels 16\*28\*28 \
+  --video_fps 2 \
+  --video_max_frames 8 \
+  --video_min_frames 4 \
+  --video_max_pixels 1664\*28\*28 \
+  --video_min_pixels 256\*28\*28 \
+  --num_train_epochs 3 \
+  --warmup_ratio 0.03 \
+  --lr_scheduler_type cosine \
+  --weight_decay 0.01 \
+  --logging_steps 10 \
+  --save_steps 500 \
+  --save_total_limit 3 \
+  --lora_enable True \
+  --lora_r 8 \
+  --lora_alpha 16 \
+  --lora_dropout 0.0 \
+  --deepspeed scripts/zero3.json
 ```
 
 The script accepts arguments in three categories:
@@ -312,7 +296,6 @@ The script accepts arguments in three categories:
    - `data_packing` requires preprocess with `tools/pack_data.py`
    - Training hyperparameters, the suggested learning rate is from 1e-6 to 2e-7
    - Training resolution is critical for the model performances, hence `--max_pixels` and `--min_pixels` should be properly set
-   - Training with Qwen2.5-VL-32B model, you should have 8 80G GPU refering to `scripts/sft_32b.sh`
-   - `"_attn_implementation": "flash_attention_2",` could be add in the config.json of the model to use flash attention.
+   - For large models (e.g., 32B-class), plan for multi-GPU/large VRAM; see example launchers under `scripts/`.
+   - `"_attn_implementation": "flash_attention_2",` can be added to `config.json` to use flash attention.
    - The Qwen3VL MoE model does not support DeepSpeed with ZeRO-3. Additionally, Hugging Face’s official implementation does not include support for load balancing loss currently.
-

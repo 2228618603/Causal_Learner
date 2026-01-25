@@ -63,6 +63,12 @@ export MIT_SPIDER_URL="your-api-endpoint"
 
 ## Quick Start
 
+From the repo root:
+
+```bash
+cd Qwen-PC/Qwen3-VL/evaluation/MathVision
+```
+
 ### 1. Inference
 
 Run inference on MathVision dataset using an instruct model:
@@ -74,7 +80,7 @@ bash infer_instruct.sh
 Or customize the inference:
 
 ```bash
-python run_mathv.py infer \
+python3 run_mathv.py infer \
     --model-path /path/to/Qwen3-VL-Instruct \
     --data-dir /path/to/data \
     --dataset MathVision \
@@ -104,7 +110,7 @@ bash eval_instruct.sh
 Or customize the evaluation:
 
 ```bash
-python run_mathv.py eval \
+python3 run_mathv.py eval \
     --data-dir /path/to/data \
     --input-file results/predictions.jsonl \
     --output-file results/evaluation.csv \
@@ -322,7 +328,7 @@ The evaluation uses in-context examples defined in `eval_utils.py`:
 Use `--num-samples` for quick testing:
 
 ```bash
-python run_mathv.py infer \
+python3 run_mathv.py infer \
     --model-path /path/to/model \
     --data-dir /path/to/data \
     --dataset MathVision \
@@ -335,7 +341,7 @@ python run_mathv.py infer \
 Enable debug mode for detailed logs:
 
 ```bash
-DEBUG=true python run_mathv.py eval ...
+DEBUG=true python3 run_mathv.py eval ...
 ```
 
 This processes only the first 5 samples in single-threaded mode.

@@ -108,10 +108,14 @@ We test our codes under the following environment:
 - Transformers 4.28.0.dev(transformers.git@cae78c46)
 
 To start: 
-1. Clone this repository.
+1. Enter the project directory.
 ```bash
-git clone git@github.com:OpenRobotLab/PointLLM.git
-cd PointLLM
+# Monorepo (this repository)
+cd Qwen-PC/PointLLM
+
+# Standalone
+# git clone git@github.com:OpenRobotLab/PointLLM.git
+# cd PointLLM
 ```
 2. Install packages
 ```bash
@@ -135,7 +139,7 @@ tar -xvf Objaverse_660K_8192_npy.tar.gz
 ```
 3. In `PointLLM` folder, create a folder `data` and create a soft link to the uncompressed file in the directory.
 ```bash
-cd PointLLM
+cd Qwen-PC/PointLLM
 mkdir data
 ln -s /path/to/8192_npy data/objaverse_data
 ```
@@ -170,7 +174,7 @@ PointLLM_7B_v1.1_init](https://huggingface.co/RunsenXu/PointLLM_7B_v1.1_init/tre
 #### Start Training
 1. For stage-1 training, simply run:
 ```bash
-cd PointLLM
+cd Qwen-PC/PointLLM
 scripts/PointLLM_train_stage1.sh
 ```
 2. After stage-1 training, start stage-2 training:
@@ -206,8 +210,8 @@ Usually, you do not have to care about the following contents. They are only for
 1. The trained model checkpoints are available [here](https://huggingface.co/RunsenXu) (including different versions of PointLLM). 
 2. Run the following command to launch a chatbot using the `torch.float32` data type for chatting about 3D models of Objaverse. The model checkpoints will be downloaded automatically. You can also manually download the model checkpoints and specify their paths. Here is an example:
 ```bash
-cd PointLLM
-PYTHONPATH=$PWD python pointllm/eval/PointLLM_chat.py --model_name RunsenXu/PointLLM_7B_v1.2 --data_name data/objaverse_data --torch_dtype float32
+cd Qwen-PC/PointLLM
+PYTHONPATH=$PWD python3 pointllm/eval/PointLLM_chat.py --model_name RunsenXu/PointLLM_7B_v1.2 --data_name data/objaverse_data --torch_dtype float32
 ```
 3. You can also easily modify the codes for using point clouds other than those from Objaverse, as long as the point clouds input to the model have dimensions (N, 6), where the first three dimensions are `xyz` and the last three dimensions are `rgb` (in [0, 1] range). You may sample the point clouds to have 8192 points, as our model is trained on such point clouds.
 4. The following table shows GPU requirements for different models and data types. We recommend using `torch.bfloat16` if applicable, which is used in the experiments in our paper.
@@ -222,8 +226,8 @@ PYTHONPATH=$PWD python pointllm/eval/PointLLM_chat.py --model_name RunsenXu/Poin
 ### Gradio Demo
 1. We provide the codes for our online Gradio demo. You can run the following commands to launch the demo locally for chatting and visualization.
 ```bash
-cd PointLLM
-PYTHONPATH=$PWD python pointllm/eval/chat_gradio.py --model_name RunsenXu/PointLLM_7B_v1.2 --data_path data/objaverse_data
+cd Qwen-PC/PointLLM
+PYTHONPATH=$PWD python3 pointllm/eval/chat_gradio.py --model_name RunsenXu/PointLLM_7B_v1.2 --data_path data/objaverse_data
 ```
 2. Kind remind: if you want to release the demo in public, please refer to https://www.gradio.app/guides/sharing-your-app#security-and-file-access.
 
@@ -232,17 +236,17 @@ PYTHONPATH=$PWD python pointllm/eval/chat_gradio.py --model_name RunsenXu/PointL
 1. Run the following commands to infer the results.
 2. Different commands for inferencing on different benchmarks (PointLLM_7B_v1.2 as an example):
 ```bash
-cd PointLLM
+cd Qwen-PC/PointLLM
 export PYTHONPATH=$PWD
 
 # Open Vocabulary Classification on Objaverse
-python pointllm/eval/eval_objaverse.py --model_name RunsenXu/PointLLM_7B_v1.2 --task_type classification --prompt_index 0 # or --prompt_index 1
+python3 pointllm/eval/eval_objaverse.py --model_name RunsenXu/PointLLM_7B_v1.2 --task_type classification --prompt_index 0 # or --prompt_index 1
 
 # Object captioning on Objaverse
-python pointllm/eval/eval_objaverse.py --model_name RunsenXu/PointLLM_7B_v1.2 --task_type captioning --prompt_index 2
+python3 pointllm/eval/eval_objaverse.py --model_name RunsenXu/PointLLM_7B_v1.2 --task_type captioning --prompt_index 2
 
 # Close-set Zero-shot Classification on ModelNet40
-python pointllm/eval/eval_modelnet_cls.py --model_name RunsenXu/PointLLM_7B_v1.2 --prompt_index 0 # or --prompt_index 1
+python3 pointllm/eval/eval_modelnet_cls.py --model_name RunsenXu/PointLLM_7B_v1.2 --prompt_index 0 # or --prompt_index 1
 ```
 3. Please check the default command-line arguments of these two scripts. You can specify different prompts, data paths, and other parameters. 
 4. After inferencing, the results will be saved in `{model_name}/evaluation` as a dict with the following format:
@@ -264,18 +268,18 @@ python pointllm/eval/eval_modelnet_cls.py --model_name RunsenXu/PointLLM_7B_v1.2
 1. Get your OpenAI API key at [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys).
 2. Run the following commands to evaluate the model outputs in parallel with ChatGPT/GPT-4 (which cost approximately $1.5 to $2.2 USD).
 ```bash
-cd PointLLM
+cd Qwen-PC/PointLLM
 export PYTHONPATH=$PWD
 export OPENAI_API_KEY=sk-****
 
 # Open Vocabulary Classification on Objaverse
-python pointllm/eval/evaluator.py --results_path /path/to/model_output --model_type gpt-4-0613 --eval_type open-free-form-classification --parallel --num_workers 15
+python3 pointllm/eval/evaluator.py --results_path /path/to/model_output --model_type gpt-4-0613 --eval_type open-free-form-classification --parallel --num_workers 15
 
 # Object captioning on Objaverse
-python pointllm/eval/evaluator.py --results_path /path/to/model_output --model_type gpt-4-0613 --eval_type object-captioning --parallel --num_workers 15
+python3 pointllm/eval/evaluator.py --results_path /path/to/model_output --model_type gpt-4-0613 --eval_type object-captioning --parallel --num_workers 15
 
 # Close-set Zero-shot Classification on ModelNet40
-python pointllm/eval/evaluator.py --results_path /path/to/model_output --model_type gpt-3.5-turbo-0613 --eval_type modelnet-close-set-classification --parallel --num_workers 15
+python3 pointllm/eval/evaluator.py --results_path /path/to/model_output --model_type gpt-3.5-turbo-0613 --eval_type modelnet-close-set-classification --parallel --num_workers 15
 ```
 3. The evaluation script supports interruption and resumption. You can interrupt the evaluation process at any time by using `Ctrl+C`. This will save the temporary results. If an error occurs during the evaluation, the script will also save the current state. You can resume the evaluation from where it left off by running the same command again.
 4. The evaluation results will be saved in `{model_name}/evaluation` as another dict.
@@ -295,13 +299,13 @@ Some of the metrics are explained as follows:
 ```
 5. <b>Open-Step Evaluation.</b> You can also start evaluation immediately after inferencing by passing the `--start_eval` flag and specifying the `--gpt_type`. For example:
 ```bash
-python pointllm/eval/eval_objaverse.py --model_name RunsenXu/PointLLM_7B_v1.2 --task_type classification --prompt_index 0 --start_eval --gpt_type gpt-4-0613
+python3 pointllm/eval/eval_objaverse.py --model_name RunsenXu/PointLLM_7B_v1.2 --task_type classification --prompt_index 0 --start_eval --gpt_type gpt-4-0613
 ```
 
 #### Traditional Metric Evaluation
 1. For the object captioning task, run the following command to evaluate model outputs with traditional metrics including BLEU, ROUGE, METEOR, Sentence-BERT, and SimCSE.
 ```bash
-python pointllm/eval/traditional_evaluator.py --results_path /path/to/model_captioning_output
+python3 pointllm/eval/traditional_evaluator.py --results_path /path/to/model_captioning_output
 ```
 2. Note that we recommend not using BLEU, ROUGE, and METEOR for evaluation as they favor short captions and fall short of capturing semantic accuracy and diversity.
 

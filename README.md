@@ -1,9 +1,10 @@
 # Causal_Learner
 
-本仓库是一个多模块工作区，围绕“长视频 → 结构化步骤/因果计划数据 → 多模态模型训练/研究”组织，主要包含两部分：
+本仓库是一个多模块工作区，围绕“长视频 → 结构化步骤/因果计划数据 → 多模态模型训练/研究”组织，主要包含两部分源码模块，并额外包含一个 `e2e-data/` 目录用于端到端样例/运行产物：
 
 - `ECCV/`：面向长视频/多模态监督的数据生成与三阶段流水线（脚本、规范文档、校验工具与产出目录）。
 - `Qwen-PC/`：多模态训练工作区，包含 Qwen3‑VL 相关代码、微调框架，以及点云方向的 `PointLLM` 子项目。
+- `e2e-data/`：端到端样例与流水线运行产物（可能包含大量图片/片段等大文件），默认视为输出而非源码。
 
 更细的开发/贡献约定见根目录 `AGENTS.md`，以及子目录 `ECCV/AGENTS.md`、`Qwen-PC/AGENTS.md`。
 
@@ -20,12 +21,12 @@
   - `stage3_refine_and_keyframes.py`：对每个 step clip 重新采样帧并补全关键帧/证据等字段。
   - `validate_three_stage_output.py`：输出一致性校验（尤其是不同 frame manifest 的索引空间）。
   - `common.py` / `prompts.py`：公共逻辑与提示词模板。
-- `ECCV/two_satge_old/mani_*video*.py`、`ECCV/two_satge_old/nav_*`、`ECCV/two_satge_old/generate_*api*.py`：旧版（两阶段）相关脚本入口。
-- `ECCV/two_satge_old/mani_longvideo_tasks_plan_final.md`：旧版（两阶段）任务定义与数据规则说明文档。
+- `ECCV/two_stage/`：旧版（两阶段）相关脚本入口（生成与后处理）。
+- `ECCV/tasklist/mani_longvideo_taskslist_final.md`：旧版（两阶段）任务定义与数据规则说明文档（Task_01–Task_30）。
 
 **产出目录（默认视为运行产物）**
 
-- `ECCV/causal_spafa_plan_dataset*/`、`ECCV/generated_plans_output_*`：生成的数据、帧、片段与中间日志；除非明确发布数据集，一般不建议将大规模产出物长期纳入版本控制。
+- `ECCV/three_stage/causal_spafa_plan_dataset_long/`、`ECCV/causal_spafa_plan_dataset*/`、`ECCV/generated_plans_output_*`：生成的数据、帧、片段与中间日志；除非明确发布数据集，一般不建议将大规模产出物长期纳入版本控制。
 
 ## Qwen-PC/：多模态训练与点云子项目
 

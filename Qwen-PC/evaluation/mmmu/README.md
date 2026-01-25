@@ -21,10 +21,14 @@ This script provides tools to run inference using a Qwen3-VL model on the MMMU d
 
 ## Setup
 
-1.  **Clone the Repository:**
+1.  **Enter the Directory:**
     ```bash
+    # Monorepo (this repository)
+    cd Qwen-PC/evaluation/mmmu
+
+    # Standalone
     # git clone <repository_url>
-    # cd <repository_directory>
+    # cd <repository_directory>/evaluation/mmmu
     ```
 
 2.  **Install Dependencies:**
@@ -58,7 +62,7 @@ This mode runs the Qwen3-VL model on the specified MMMU dataset split and saves 
 **Command Structure:**
 
 ```bash
-python run_mmmu.py infer \
+python3 run_mmmu.py infer \
     --model-path <Path_to_your_QwenVL_model> \
     --data-dir <Path_to_save_mmmu_data> \
     --dataset <Dataset_Split_Name> \
@@ -78,7 +82,7 @@ python run_mmmu.py infer \
 
 *   **Standard Inference:**
     ```bash
-    python run_mmmu.py infer \
+    python3 run_mmmu.py infer \
         --model-path /path/to/Qwen3-VL-8B-Instruct \
         --data-dir /data/mmmu \
         --dataset MMMU_DEV_VAL \
@@ -87,7 +91,7 @@ python run_mmmu.py infer \
 
 *   **Inference with Chain-of-Thought:**
     ```bash
-    python run_mmmu.py infer \
+    python3 run_mmmu.py infer \
         --model-path /path/to/Qwen3-VL-8B-Instruct \
         --data-dir /data/mmmu \
         --dataset MMMU_DEV_VAL \
@@ -102,7 +106,7 @@ This mode takes the inference results (`.jsonl` file) and evaluates them against
 **Command Structure:**
 
 ```bash
-python run_mmmu.py eval \
+python3 run_mmmu.py eval \
     --data-dir <Path_to_save_mmmu_data> \
     --input-file <Path_to_inference_results.jsonl> \
     --output-file <Path_to_save_evaluation_results.csv> \
@@ -127,7 +131,7 @@ python run_mmmu.py eval \
 *   **Evaluation using DashScope (GPT-3.5 Turbo):**
     *(Ensure `CHATGPT_DASHSCOPE_API_KEY` and `DASHSCOPE_API_BASE` are set)*
     ```bash
-    python run_mmmu.py eval \
+    python3 run_mmmu.py eval \
         --data-dir /data/mmmu \
         --input-file results/mmmu_dev_val_predictions.jsonl \
         --output-file results/mmmu_dev_val_evaluation.csv \
@@ -140,7 +144,7 @@ python run_mmmu.py eval \
 *   **Evaluation using MIT API (GPT-4):**
     *(Ensure `MIT_SPIDER_TOKEN` and `MIT_SPIDER_URL` are set)*
     ```bash
-    python run_mmmu.py eval \
+    python3 run_mmmu.py eval \
         --data-dir /data/mmmu \
         --input-file results/mmmu_dev_val_predictions_cot.jsonl \
         --output-file results/mmmu_dev_val_evaluation_cot_gpt4.csv \

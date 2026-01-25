@@ -17,12 +17,12 @@
 
 - Install core runtime deps: `pip install "transformers>=4.57.0" torch torchvision gradio`
 - Develop on utils package: `pip install -e qwen-vl-utils`
-- 2D finetune: `python qwen-vl-finetune/qwenvl/train/train_qwen.py --model_name_or_path <ckpt> --dataset_use <name> --output_dir outputs/run`
-- 3D finetune: `python qwen-vl-finetune/qwenvl/train/train_qwen_pointcloud.py --model <ckpt> --train-file <abs>.jsonl --output-dir outputs/pc`
-- Run web demo (HF): `python web_demo_mm.py --backend hf -c <checkpoint-or-hf-id>`
-- Run web demo (vLLM): `python web_demo_mm.py --backend vllm -c <checkpoint-or-hf-id>` (requires `vllm` + `qwen-vl-utils`)
+- 2D finetune: `python3 qwen-vl-finetune/qwenvl/train/train_qwen.py --model_name_or_path <ckpt> --dataset_use <name> --output_dir outputs/run`
+- 3D finetune: `python3 qwen-vl-finetune/qwenvl/train/train_qwen_pointcloud.py --model <ckpt> --train-file <abs>.jsonl --output-dir outputs/pc`
+- Run web demo (HF): `python3 web_demo_mm.py --backend hf -c <checkpoint-or-hf-id>`
+- Run web demo (vLLM): `python3 web_demo_mm.py --backend vllm -c <checkpoint-or-hf-id>` (requires `vllm` + `qwen-vl-utils`)
 - Docker web demo: `bash docker/docker_web_demo.sh -c /path/to/checkpoint --port 8901`
-- MMMU evaluation: `cd evaluation/mmmu && pip install -r requirements.txt` then `python run_mmmu.py infer ...`
+- MMMU evaluation: `cd evaluation/mmmu && pip install -r requirements.txt` then `python3 run_mmmu.py infer ...`
 
 ## Coding Style & Naming Conventions
 
