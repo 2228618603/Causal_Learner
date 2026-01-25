@@ -13,6 +13,7 @@ Key requirements:
 - Single type only.
 - Source of truth is `<ITEM_DIR>/causal_plan_with_keyframes.json` and its schema must align with the canonical mani_longvideo
   schema described in `ECCV/tasklist/mani_longvideo_taskslist_final.md`.
+- Strict final-schema validation is enabled by default (disable via `--no-strict-schema` only if you know you need legacy tolerance).
 - Each sample must declare the multimodal evidence type (4 types) and include evidence file paths.
 - Keep meta minimal (avoid redundant fields).
 - Avoid leaking filenames/frame indices/timestamps into the Q/A text.
@@ -418,6 +419,7 @@ Flaw Type: {flaw_type}
 Flawed Step (1-based within bad plan): {flaw_step}
 
 Instruction: Provide ONE concise sentence explaining why the flawed step is incorrect, grounded in missing preconditions or goal mismatch.
+Be specific: name the missing/out-of-order prerequisite step(s) when possible using the provided plan steps.
 Return ONLY the reason sentence, without labels or numbering.""",
     TASK_26: """Input Data:
 Step Goal: {step_goal}
@@ -425,6 +427,7 @@ Failure Reason: {failure_reason}
 Recovery Strategy (must be followed): {recovery_strategy}
 
 Instruction: Explain briefly (1-2 sentences) why the recovery strategy helps, grounded in spatial stability and affordance/mechanism.
+Explicitly connect the Failure Reason to what spatial/affordance condition the strategy restores.
 Return ONLY the explanation text (do NOT restate the recovery strategy).""",
 }
 
@@ -646,111 +649,166 @@ def _validate_final_plan_schema(plan: Dict[str, Any], *, source: str, strict: bo
     problems: List[str] = []
 
     def _add(msg: str) -> None:
-        if len(problems) < 50:
+        if len(problems) < 80:
             problems.append(msg)
 
-    hl = plan.get("high_level_goal")
+    def _is_int(v: Any) -> bool:
+        return isinstance(v, int) and not isinstance(v, bool)
+
+    def _check_exact_keys(obj: Any, *, allowed: set[str], path: str) -> None:
+        if not strict or not isinstance(obj, dict):
+            return
+        extra = sorted([k for k in obj.keys() if k not in allowed])
+        if extra:
+            _add(f"{path} has extra keys: {extra}")
+        missing = sorted([k for k in allowed if k not in obj])
+        if missing:
+            _add(f"{path} missing keys: {missing}")
+
+    def _require_obj(obj: Any, path: str) -> Dict[str, Any]:
+        if not isinstance(obj, dict):
+            _add(f"{path} must be an object")
+            return {}
+        return obj
+
+    def _require_list(obj: Any, path: str) -> List[Any]:
+        if not isinstance(obj, list):
+            _add(f"{path} must be a list")
+            return []
+        return obj
+
+    def _require_str_field(d: Dict[str, Any], key: str, path: str) -> str:
+        if strict and key not in d:
+            _add(f"{path}.{key} missing")
+            return ""
+        v = d.get(key)
+        if key in d and not isinstance(v, str):
+            _add(f"{path}.{key} must be a string")
+            return ""
+        return v.strip() if isinstance(v, str) else ""
+
+    plan_obj = _require_obj(plan, "top")
+    _check_exact_keys(plan_obj, allowed={"high_level_goal", "steps"}, path="top")
+
+    hl = plan_obj.get("high_level_goal")
     if not isinstance(hl, str):
         _add("top.high_level_goal must be a string")
-    steps = plan.get("steps")
-    if not isinstance(steps, list):
-        _add("top.steps must be a list")
-        steps = []
 
-    for idx, st in enumerate([s for s in (steps or []) if isinstance(s, dict)]):
+    steps = _require_list(plan_obj.get("steps"), "top.steps")
+
+    allowed_step_keys = {
+        "step_id",
+        "step_goal",
+        "rationale",
+        "causal_chain",
+        "counterfactual_challenge_question",
+        "expected_challenge_outcome",
+        "failure_reflecting",
+        "critical_frames",
+    }
+    allowed_step_cc_keys = {
+        "agent",
+        "action",
+        "patient",
+        "causal_precondition_on_spatial",
+        "causal_precondition_on_affordance",
+        "causal_effect_on_spatial",
+        "causal_effect_on_affordance",
+    }
+    allowed_failure_keys = {"reason", "recovery_strategy"}
+    allowed_cf_keys = {"frame_index", "action_state_change_description", "causal_chain", "interaction"}
+    allowed_frame_cc_keys = {
+        "causal_precondition_on_spatial",
+        "causal_precondition_on_affordance",
+        "causal_effect_on_spatial",
+        "causal_effect_on_affordance",
+    }
+    allowed_interaction_keys = {"description", "affordance_type", "mechanism"}
+
+    step_ids: List[int] = []
+    for idx, st_any in enumerate(steps):
+        path = f"steps[{idx}]"
+        if not isinstance(st_any, dict):
+            _add(f"{path} must be an object")
+            continue
+        st = st_any
+        _check_exact_keys(st, allowed=allowed_step_keys, path=path)
+
         sid = st.get("step_id")
-        if not isinstance(sid, int):
-            try:
-                int(sid)
-            except Exception:
-                _add(f"steps[{idx}].step_id must be int")
-        for k in ("step_goal", "rationale", "counterfactual_challenge_question", "expected_challenge_outcome"):
-            if strict and k not in st:
-                _add(f"steps[{idx}].{k} missing")
-            if k in st and not isinstance(st.get(k), str):
-                _add(f"steps[{idx}].{k} must be a string")
-
-        cc = st.get("causal_chain")
-        if not isinstance(cc, dict):
-            _add(f"steps[{idx}].causal_chain must be an object")
-            cc = {}
-        for k in (
-            "agent",
-            "action",
-            "patient",
-            "causal_precondition_on_spatial",
-            "causal_precondition_on_affordance",
-            "causal_effect_on_spatial",
-            "causal_effect_on_affordance",
-        ):
-            if strict and k not in cc:
-                _add(f"steps[{idx}].causal_chain.{k} missing")
-            if k in cc and not isinstance(cc.get(k), str):
-                _add(f"steps[{idx}].causal_chain.{k} must be a string (final schema)")
-
-        fr = st.get("failure_reflecting")
-        if not isinstance(fr, dict):
-            _add(f"steps[{idx}].failure_reflecting must be an object")
+        if not _is_int(sid):
+            _add(f"{path}.step_id must be int")
         else:
-            for k in ("reason", "recovery_strategy"):
-                if strict and k not in fr:
-                    _add(f"steps[{idx}].failure_reflecting.{k} missing")
-                if k in fr and not isinstance(fr.get(k), str):
-                    _add(f"steps[{idx}].failure_reflecting.{k} must be a string")
+            if int(sid) <= 0:
+                _add(f"{path}.step_id must be >= 1")
+            step_ids.append(int(sid))
+
+        _require_str_field(st, "step_goal", path)
+        _require_str_field(st, "rationale", path)
+        q_cf = _require_str_field(st, "counterfactual_challenge_question", path)
+        _require_str_field(st, "expected_challenge_outcome", path)
+        if strict and q_cf and not re.match(r"^\s*What\s+if\b", q_cf, flags=re.IGNORECASE):
+            _add(f"{path}.counterfactual_challenge_question must start with 'What if'")
+
+        cc = _require_obj(st.get("causal_chain"), f"{path}.causal_chain")
+        _check_exact_keys(cc, allowed=allowed_step_cc_keys, path=f"{path}.causal_chain")
+        for k in sorted(allowed_step_cc_keys):
+            _require_str_field(cc, k, f"{path}.causal_chain")
+
+        fr = _require_obj(st.get("failure_reflecting"), f"{path}.failure_reflecting")
+        _check_exact_keys(fr, allowed=allowed_failure_keys, path=f"{path}.failure_reflecting")
+        for k in sorted(allowed_failure_keys):
+            _require_str_field(fr, k, f"{path}.failure_reflecting")
 
         cfs = st.get("critical_frames")
         if not isinstance(cfs, list):
-            _add(f"steps[{idx}].critical_frames must be a list")
+            _add(f"{path}.critical_frames must be a list")
             continue
         if strict and len(cfs) != 2:
-            _add(f"steps[{idx}].critical_frames must have length 2 (got {len(cfs)})")
+            _add(f"{path}.critical_frames must have length 2 (got {len(cfs)})")
 
-        for j, cf in enumerate([c for c in cfs if isinstance(c, dict)]):
+        fi0: Optional[int] = None
+        fi1: Optional[int] = None
+        for j, cf_any in enumerate(cfs):
+            cf_path = f"{path}.critical_frames[{j}]"
+            if not isinstance(cf_any, dict):
+                _add(f"{cf_path} must be an object")
+                continue
+            cf = cf_any
+            _check_exact_keys(cf, allowed=allowed_cf_keys, path=cf_path)
+
             fi = cf.get("frame_index")
-            if fi is not None:
-                try:
-                    int(fi)
-                except Exception:
-                    _add(f"steps[{idx}].critical_frames[{j}].frame_index must be int")
-            elif strict:
-                _add(f"steps[{idx}].critical_frames[{j}].frame_index missing")
-            if strict and "action_state_change_description" not in cf:
-                _add(f"steps[{idx}].critical_frames[{j}].action_state_change_description missing")
-            if "action_state_change_description" in cf and not isinstance(cf.get("action_state_change_description"), str):
-                _add(f"steps[{idx}].critical_frames[{j}].action_state_change_description must be a string")
-
-            fcc = cf.get("causal_chain")
-            if not isinstance(fcc, dict):
-                _add(f"steps[{idx}].critical_frames[{j}].causal_chain must be an object")
+            if not _is_int(fi):
+                _add(f"{cf_path}.frame_index must be int")
             else:
-                for k in ("agent", "action", "patient"):
-                    if k in fcc:
-                        _add(f"steps[{idx}].critical_frames[{j}].causal_chain must not include {k} (final schema)")
-                for k in (
-                    "causal_precondition_on_spatial",
-                    "causal_precondition_on_affordance",
-                    "causal_effect_on_spatial",
-                    "causal_effect_on_affordance",
-                ):
-                    if strict and k not in fcc:
-                        _add(f"steps[{idx}].critical_frames[{j}].causal_chain.{k} missing")
-                    if k in fcc and not isinstance(fcc.get(k), str):
-                        _add(f"steps[{idx}].critical_frames[{j}].causal_chain.{k} must be a string (final schema)")
+                if int(fi) <= 0:
+                    _add(f"{cf_path}.frame_index must be >= 1")
+                if j == 0:
+                    fi0 = int(fi)
+                elif j == 1:
+                    fi1 = int(fi)
 
-            intr = cf.get("interaction")
-            if not isinstance(intr, dict):
-                _add(f"steps[{idx}].critical_frames[{j}].interaction must be an object")
-            else:
-                if "hotspot" in intr:
-                    _add(f"steps[{idx}].critical_frames[{j}].interaction must not nest hotspot (final schema)")
-                for k in ("tools", "materials"):
-                    if k in intr:
-                        _add(f"steps[{idx}].critical_frames[{j}].interaction must not include {k} (final schema)")
-                for k in ("description", "affordance_type", "mechanism"):
-                    if strict and k not in intr:
-                        _add(f"steps[{idx}].critical_frames[{j}].interaction.{k} missing")
-                    if k in intr and not isinstance(intr.get(k), str):
-                        _add(f"steps[{idx}].critical_frames[{j}].interaction.{k} must be a string")
+            _require_str_field(cf, "action_state_change_description", cf_path)
+
+            fcc = _require_obj(cf.get("causal_chain"), f"{cf_path}.causal_chain")
+            _check_exact_keys(fcc, allowed=allowed_frame_cc_keys, path=f"{cf_path}.causal_chain")
+            for k in sorted(allowed_frame_cc_keys):
+                _require_str_field(fcc, k, f"{cf_path}.causal_chain")
+
+            intr = _require_obj(cf.get("interaction"), f"{cf_path}.interaction")
+            _check_exact_keys(intr, allowed=allowed_interaction_keys, path=f"{cf_path}.interaction")
+            for k in sorted(allowed_interaction_keys):
+                _require_str_field(intr, k, f"{cf_path}.interaction")
+
+        if strict and fi0 is not None and fi1 is not None:
+            if fi0 == fi1:
+                _add(f"{path}.critical_frames frame_index must be distinct (got {fi0} and {fi1})")
+            if fi0 > fi1:
+                _add(f"{path}.critical_frames must be in increasing time order (frame_index {fi0} then {fi1})")
+
+    if strict and step_ids:
+        dup = sorted({sid for sid in step_ids if step_ids.count(sid) > 1})
+        if dup:
+            _add(f"steps.step_id must be unique (duplicates: {dup})")
 
     if problems:
         raise ValueError(f"Final schema validation failed: source={source} problems=" + " | ".join(problems[:10]))
@@ -975,9 +1033,22 @@ def _list_item_dirs(root: str) -> List[str]:
 
 
 def _list_sampled_frames(item_dir: str) -> List[str]:
-    d = os.path.join(item_dir, "sampled_frames")
-    paths = glob.glob(os.path.join(d, "sample_*_ts_*.jpg"))
-    return sorted(paths)
+    dirs = [
+        os.path.join(item_dir, "sampled_frames"),
+        os.path.join(item_dir, "stage1", "sampled_frames"),
+    ]
+    patterns = [
+        "sample_*.jpg",
+        "sample_*.jpeg",
+        "sample_*.png",
+    ]
+    for d in dirs:
+        paths: List[str] = []
+        for pat in patterns:
+            paths.extend(glob.glob(os.path.join(d, pat)))
+        if paths:
+            return sorted(paths)
+    return []
 
 
 def _pick_uniform(frames: Sequence[str], k: int) -> List[str]:
@@ -1033,15 +1104,46 @@ def _resolve_video_clip(item_dir: str, step_id: int) -> Optional[str]:
     for p in cands:
         if os.path.exists(p):
             return p
+
+    # Three-stage fallback: `stage2/step_segments.json` (preferred) or `stage2/step_clips/stepXX_*.mp4`.
+    seg_path = os.path.join(item_dir, "stage2", "step_segments.json")
+    if os.path.exists(seg_path):
+        try:
+            seg_json = _read_json(seg_path)
+            segments = seg_json.get("segments", [])
+            if isinstance(segments, list):
+                for seg in segments:
+                    if not isinstance(seg, dict):
+                        continue
+                    sid = seg.get("step_id")
+                    try:
+                        sid_int = int(sid)
+                    except Exception:
+                        continue
+                    if sid_int != int(step_id):
+                        continue
+                    clip_rel = seg.get("clip_relpath")
+                    if isinstance(clip_rel, str) and clip_rel.strip():
+                        cand = os.path.join(item_dir, "stage2", clip_rel.strip())
+                        if os.path.exists(cand):
+                            return cand
+        except Exception:
+            pass
+
+    clips_dir = os.path.join(item_dir, "stage2", "step_clips")
+    if os.path.isdir(clips_dir):
+        matches = sorted(glob.glob(os.path.join(clips_dir, f"step{step_id:02d}_*.mp4")))
+        if matches:
+            return matches[0]
     return None
 
 
 def _find_keyframe_image(item_dir: str, step_id: int, frame_index: int) -> Optional[str]:
     step_prefix = os.path.join(item_dir, f"{step_id:02d}_*")
-    pats = [
-        os.path.join(step_prefix, f"frame_{frame_index:03d}_ts_*.jpg"),
-        os.path.join(step_prefix, f"frame_{frame_index:03d}_*.jpg"),
-    ]
+    pats: List[str] = []
+    for ext in ("jpg", "jpeg", "png"):
+        pats.append(os.path.join(step_prefix, f"frame_{frame_index:03d}_ts_*.{ext}"))
+        pats.append(os.path.join(step_prefix, f"frame_{frame_index:03d}_*.{ext}"))
     for pat in pats:
         matches = sorted(glob.glob(pat))
         if matches:
@@ -2138,8 +2240,8 @@ def _make_task04_to_16(item_dir: str, plan: Dict[str, Any], input_root: str) -> 
         if k0:
             _, cf0, img0 = k0
             fcc0 = cf0.get("causal_chain") if isinstance(cf0.get("causal_chain"), dict) else {}
-            sp_pre_2 = _format_spatial(fcc0.get("causal_precondition_on_spatial"), max_items=2) if isinstance(fcc0, dict) else ""
-            af_pre_2 = _format_affordance(fcc0.get("causal_precondition_on_affordance"), max_items=2) if isinstance(fcc0, dict) else ""
+            sp_pre_2 = _format_spatial(fcc0.get("causal_precondition_on_spatial"), max_items=1) if isinstance(fcc0, dict) else ""
+            af_pre_2 = _format_affordance(fcc0.get("causal_precondition_on_affordance"), max_items=1) if isinstance(fcc0, dict) else ""
             if sp_pre_2:
                 q = f'Step goal: "{step_goal}" Describe the spatial preconditions that must hold before executing this step.'
                 out.append(Sample(TASK_12, EVIDENCE_KEYFRAME, [_safe_relpath(img0, input_root)], None, q, sp_pre_2, source_rel))
@@ -2173,8 +2275,8 @@ def _make_task04_to_16(item_dir: str, plan: Dict[str, Any], input_root: str) -> 
         if k1:
             _, cf1, img1 = k1
             fcc1 = cf1.get("causal_chain") if isinstance(cf1.get("causal_chain"), dict) else {}
-            sp_post = _format_spatial(fcc1.get("causal_effect_on_spatial"), max_items=2) if isinstance(fcc1, dict) else ""
-            af_post = _format_affordance(fcc1.get("causal_effect_on_affordance"), max_items=2) if isinstance(fcc1, dict) else ""
+            sp_post = _format_spatial(fcc1.get("causal_effect_on_spatial"), max_items=1) if isinstance(fcc1, dict) else ""
+            af_post = _format_affordance(fcc1.get("causal_effect_on_affordance"), max_items=1) if isinstance(fcc1, dict) else ""
             if sp_post:
                 q = f'Step goal: "{step_goal}" Describe the spatial postconditions that should hold after completing this step.'
                 out.append(
@@ -2192,113 +2294,6 @@ def _make_task04_to_16(item_dir: str, plan: Dict[str, Any], input_root: str) -> 
                 q = f'Step goal: "{step_goal}" Describe the affordance postconditions that should hold after completing this step.'
                 out.append(Sample(TASK_16, EVIDENCE_KEYFRAME, [_safe_relpath(img1, input_root)], None, q, _sanitize_space(_annotate_observability(af_post)), source_rel))
 
-    return out
-
-
-def _make_task21(item_dir: str, plan: Dict[str, Any], input_root: str, rng: random.Random) -> Optional[Sample]:
-    steps = _sorted_steps(plan)
-    hl = _require_str(plan, "high_level_goal")
-    if len(steps) < 2:
-        return None
-    # Build a pool of (step_id, j, cf, img, ts, event_text)
-    pool: List[Tuple[int, int, str, float, str]] = []
-    for st in steps:
-        sid = int(st.get("step_id", 0) or 0)
-        cfs = st.get("critical_frames") or []
-        if sid <= 0 or not isinstance(cfs, list):
-            continue
-        for j in (0, 1):
-            if j >= len(cfs) or not isinstance(cfs[j], dict):
-                continue
-            cf = cfs[j]
-            fi = _frame_index(cf)
-            if fi is None:
-                continue
-            img = _find_keyframe_image(item_dir, sid, fi)
-            if not img:
-                continue
-            ts = _parse_timestamp_from_path(img)
-            if ts is None:
-                continue
-            event = _strip_key_moment_prefix(_require_str(cf, "action_state_change_description"))
-            if not event:
-                continue
-            pool.append((sid, j, img, ts, event))
-    if len(pool) < 2:
-        return None
-    rng.shuffle(pool)
-    a = pool[0]
-    b = next((x for x in pool[1:] if x[3] != a[3]), None)
-    if not b:
-        return None
-    earlier = a[4] if a[3] < b[3] else b[4]
-    q = (
-        "Two images are provided in order: Image A then Image B. "
-        f'Context: High-level goal: "{hl}" Event A (for Image A): "{a[4]}" Event B (for Image B): "{b[4]}" '
-        "Which event happens earlier in the video? Answer with the earlier event description verbatim."
-    )
-    source_rel = _safe_relpath(os.path.join(item_dir, "causal_plan_with_keyframes.json"), input_root)
-    return Sample(
-        task_name=TASK_21,
-        evidence_type=EVIDENCE_KEYFRAME,
-        image=[_safe_relpath(a[2], input_root), _safe_relpath(b[2], input_root)],
-        video=None,
-        question=q,
-        answer=earlier,
-        source_path=source_rel,
-    )
-
-
-def _make_task22(item_dir: str, plan: Dict[str, Any], input_root: str) -> Iterable[Sample]:
-    sampled = _list_sampled_frames(item_dir)
-    if not sampled:
-        return []
-    steps = _sorted_steps(plan)
-    source_rel = _safe_relpath(os.path.join(item_dir, "causal_plan_with_keyframes.json"), input_root)
-    out: List[Sample] = []
-    for st in steps:
-        sid = int(st.get("step_id", 0) or 0)
-        step_goal = _require_str(st, "step_goal")
-        cfs = st.get("critical_frames") or []
-        if sid <= 0 or not step_goal or not isinstance(cfs, list):
-            continue
-        for j in (0, 1):
-            if j >= len(cfs) or not isinstance(cfs[j], dict):
-                continue
-            cf = cfs[j]
-            fi = _frame_index(cf)
-            if fi is None:
-                continue
-            desc = _strip_key_moment_prefix(_require_str(cf, "action_state_change_description"))
-            if not desc:
-                continue
-            intr = cf.get("interaction") if isinstance(cf.get("interaction"), dict) else {}
-            hotspot_obj = intr.get("hotspot") if isinstance(intr, dict) and isinstance(intr.get("hotspot"), dict) else intr
-            hotspot = _require_str(hotspot_obj, "description") if isinstance(hotspot_obj, dict) else ""
-            aff_type = _require_str(hotspot_obj, "affordance_type") if isinstance(hotspot_obj, dict) else ""
-            mech = _require_str(hotspot_obj, "mechanism") if isinstance(hotspot_obj, dict) else ""
-            fcc = cf.get("causal_chain") if isinstance(cf.get("causal_chain"), dict) else {}
-            sp_pre = _format_spatial(fcc.get("causal_precondition_on_spatial"), max_items=1) if isinstance(fcc, dict) else ""
-            af_pre = _format_affordance(fcc.get("causal_precondition_on_affordance"), max_items=1) if isinstance(fcc, dict) else ""
-            q = (
-                f'Context: Step goal: "{step_goal}" Critical frame description: "{desc}" '
-                f'Hotspot: "{hotspot}" Affordance type: "{aff_type}" Mechanism: "{mech}" '
-                f'Spatial/Affordance preconditions (optional): "{sp_pre} {af_pre}" '
-                "The images are provided in chronological order, and the 1-based frame_index corresponds to the image position in this list. "
-                "What is the frame_index that best matches this moment? Answer with an integer."
-            )
-            a = str(fi)
-            out.append(
-                Sample(
-                    task_name=TASK_22,
-                    evidence_type=EVIDENCE_UNIFORM,
-                    image=[_safe_relpath(p, input_root) for p in sampled],
-                    video=None,
-                    question=q,
-                    answer=a,
-                    source_path=source_rel,
-                )
-            )
     return out
 
 
@@ -2541,7 +2536,11 @@ def _make_task22_23(item_dir: str, plan: Dict[str, Any], input_root: str, rng: r
     if later_pool:
         bad[flaw_pos] = later_pool[0]
         flaw_type = "precondition_missing"
-        reason = "This step is introduced too early and requires preconditions that have not been established by the preceding steps."
+        flawed = str(bad[flaw_pos]).strip().strip('"').rstrip(".").strip()
+        missing = str(gold[flaw_pos]).strip().strip('"').rstrip(".").strip()
+        reason = (
+            f'You cannot "{flawed}" before completing "{missing}" because the prerequisite spatial/affordance setup has not been established yet.'
+        )
     else:
         bad[flaw_pos] = "Leave the workspace and stop."
         flaw_type = "goal_mismatch"
@@ -2643,9 +2642,29 @@ def _make_task24_27(item_dir: str, plan: Dict[str, Any], input_root: str) -> Ite
                     f'Context: Step goal: "{step_goal}" Failure reason: "{reason}" '
                     "What is a plausible recovery strategy? Explain briefly using spatial stability and affordance/mechanism."
                 )
-                a26 = _sanitize_space(
-                    f"{strat} This helps because it directly addresses the failure reason by restoring spatial stability and enabling the relevant affordance/mechanism to work as intended."
-                )
+                strategy = strat.strip()
+                if strategy and not strategy.endswith((".", "!", "?")):
+                    strategy = strategy + "."
+
+                markers = ("because", "so that", "to ", "prevent", "avoid", "by ", "thereby", "which ")
+                strategy_lower = strategy.lower()
+                ignore = set(_STOPWORDS) | set(_GENERIC_OBJECT_TOKENS) | {"step", "goal"}
+
+                def _keywords(text: str) -> set[str]:
+                    toks = re.findall(r"[a-zA-Z]+", str(text or "").lower())
+                    return {t for t in toks if len(t) >= 4 and t not in ignore}
+
+                needs_expl = False
+                if not any(m in strategy_lower for m in markers):
+                    overlap = _keywords(reason) & _keywords(strategy)
+                    needs_expl = not bool(overlap)
+                if needs_expl:
+                    reason_inline = reason.strip().rstrip(".!?").strip()
+                    a26 = _sanitize_space(
+                        f"{strategy} This directly addresses the stated failure ({reason_inline}) by restoring the necessary spatial stability/alignment and enabling the intended affordance/mechanism."
+                    )
+                else:
+                    a26 = strategy
                 out.append(
                     Sample(
                         TASK_26,
@@ -2789,7 +2808,20 @@ def main() -> None:
         action="store_true",
         help="Deprecated (ignored). Task_22 is controlled via --tasks.",
     )
-    parser.add_argument("--strict-schema", action="store_true", help="Fail fast if causal_plan_with_keyframes.json violates the final schema (recommended).")
+    schema_group = parser.add_mutually_exclusive_group()
+    schema_group.add_argument(
+        "--strict-schema",
+        dest="strict_schema",
+        action="store_true",
+        help="Enable strict final-schema validation for causal_plan_with_keyframes.json (default).",
+    )
+    schema_group.add_argument(
+        "--no-strict-schema",
+        dest="strict_schema",
+        action="store_false",
+        help="Disable strict schema validation (legacy/unsafe).",
+    )
+    parser.set_defaults(strict_schema=True)
     parser.add_argument("--no-api", action="store_true", help="Disable OpenAI-compatible API two-stage rewriting; keep deterministic answers.")
     parser.add_argument("--llm-tasks", nargs="*", default=list(DEFAULT_LLM_TASKS), help="Tasks to rewrite/polish via API (default: a small subset).")
     parser.add_argument("--llm-max-tokens", type=int, default=0, help="Override MAX_TOKENS for API calls (0 uses env/default).")
