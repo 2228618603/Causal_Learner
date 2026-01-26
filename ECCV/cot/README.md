@@ -41,4 +41,6 @@ python3 ECCV/cot/validate_cot_dataset.py \
   --strict
 ```
 
+> 说明：默认会根据 `meta.source_path` 回读三阶段产物并重算 required anchors，要求 `<think>` 内逐字包含且顺序一致；如需关闭该检查可加 `--no-anchor-check`。
+
 更多参数见：`python3 ECCV/cot/generate_cot_dataset_api.py -h` / `python3 ECCV/cot/validate_cot_dataset.py -h`。

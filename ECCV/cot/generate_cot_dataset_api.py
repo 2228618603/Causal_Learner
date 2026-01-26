@@ -717,7 +717,7 @@ def _prompt_task_20(high_level_goal: str, prefix_end_step_goal: str, k: int) -> 
 
 
 def _prompt_task_21(high_level_goal: str, prefix_end_step_goal: str, presented_steps: Sequence[str]) -> str:
-    cand = json.dumps(list(presented_steps), ensure_ascii=False)
+    cand = _format_plan_steps_inline(presented_steps, quote=True)
     return _to_single_line(
         f'Context: High-level goal: "{high_level_goal}" Last completed step (in this prefix): "{prefix_end_step_goal}" '
         f"Reorder the shuffled candidate steps {cand} into the most plausible next-step sequence."
@@ -728,7 +728,8 @@ def _prompt_task_22(high_level_goal: str, prefix_end_step_goal: str, bad_plan_st
     bad_str = _format_plan_steps_inline(bad_plan_steps, quote=True)
     return _to_single_line(
         f'Context: High-level goal: "{high_level_goal}" Last completed step (in this prefix): "{prefix_end_step_goal}" '
-        f"Based on this prefix, the following bad_plan_steps are proposed as the next steps: {bad_str} Identify the flaw in the bad plan."
+        f"Based on this prefix, the following bad_plan_steps are proposed as the next steps: {bad_str} "
+        "Identify the flaw in the bad plan. Answer as: FlawStep=<int>; FlawType=<type>; Reason=<one sentence>."
     )
 
 
@@ -761,7 +762,7 @@ def _prompt_task_25(step_goal: str, counterfactual_q: str) -> str:
 def _prompt_task_26(step_goal: str, failure_reason: str) -> str:
     return _to_single_line(
         f'Context: Step goal: "{step_goal}" Failure reason: "{_to_single_line(failure_reason)}" '
-        "What is a plausible recovery strategy? Explain briefly using spatial stability and affordance/mechanism."
+        "What is a plausible recovery strategy? Answer with the recovery strategy only."
     )
 
 
@@ -798,9 +799,19 @@ def _validate_api_payload(payload: Any, *, answer_block: Optional[str], required
         errors.append("CoT reasoning inside <think> must be non-empty.")
     if "\n" in reasoning_body or "\r" in reasoning_body:
         errors.append("CoT reasoning must be a single paragraph (no newlines) inside <think>.")
+    # Required anchors must appear verbatim AND in the same order as listed.
+    cursor = 0
     for a in required_anchors:
-        if a and a not in reasoning_body:
-            errors.append(f"CoT reasoning must include this exact sentence verbatim: {a}")
+        if not a:
+            continue
+        pos = reasoning_body.find(a, cursor)
+        if pos < 0:
+            if reasoning_body.find(a) >= 0:
+                errors.append(f"Required anchor sentences must appear in order; out-of-order anchor: {a}")
+            else:
+                errors.append(f"CoT reasoning must include this exact sentence verbatim: {a}")
+        else:
+            cursor = pos + len(a)
 
     tail = assistant_text[close_idx + len("</think>") :]
     if tail.startswith("\r\n"):
@@ -880,7 +891,18 @@ def _call_api_with_retries(
         last_errors = _validate_api_payload(payload, answer_block=sample.answer_block, required_anchors=sample.required_anchors)
         if last_errors:
             continue
-        return str(payload.get("assistant_text", "")).rstrip() + "\n", []
+        # Canonicalize formatting: enforce exactly one newline after </think> and end with newline.
+        raw_text = str(payload.get("assistant_text", "")).rstrip()
+        close_idx = raw_text.find("</think>")
+        if close_idx != -1:
+            head = raw_text[: close_idx + len("</think>")]
+            tail = raw_text[close_idx + len("</think>") :]
+            if tail.startswith("\r\n"):
+                tail = tail[2:]
+            elif tail.startswith("\n") or tail.startswith("\r"):
+                tail = tail[1:]
+            raw_text = head + "\n" + tail
+        return raw_text.rstrip() + "\n", []
     return None, last_errors
 
 
@@ -1337,6 +1359,7 @@ def generate_base_samples_for_video(
                         fields={
                             "high_level_goal": high_level_goal,
                             "prefix_end_step": completed_step_id,
+                            "prefix_end_step_goal": completed_prefix_goal,
                             "K": k,
                             "presented_steps": presented,
                             "gold_next_k_step_goals": gold_goals,

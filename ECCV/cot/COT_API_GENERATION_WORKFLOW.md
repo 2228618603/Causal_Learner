@@ -391,7 +391,7 @@ type CotEntry = {
 - 必须是 JSON object 且只能包含 `assistant_text`
 - `assistant_text` 必须以 `<think>` 开头，且包含 `</think>`
 - `<think>...</think>` 内必须是**单段落**（禁止 `\\n`/`\\r`）
-- `<think>` 内必须包含全部 required anchors（逐字匹配）
+- `<think>` 内必须包含全部 required anchors（逐字匹配），并且**按给定顺序出现**
 - `</think>` 后的 Answer 必须与 `answer_block` **完全一致**（允许末尾换行差异）
 - 对话文本禁止泄漏：`frame_### / sample_### / ts_... / .jpg/.mp4 / Frame 12 / Image 12` 等
 
@@ -406,7 +406,9 @@ type CotEntry = {
 - human 必须是**单行**，且不得包含 `fields.` 字样
 - assistant 必须符合 `<think>...</think>` + answer
 - `<think>` 内必须显式体现既定 CoT 风格标记：`Spatially,` / `Functionally,` / `After the action, ...` / `A likely failure is that ...` / `If that happens, ...`
+- 默认会根据 `meta.source_path` 回读三阶段产物并重算 required anchors，要求 `<think>` 内逐字包含且顺序一致（可用 `--no-anchor-check` 关闭）
 - 对每个 task，答案必须与 `meta.fields` 一致（如 `Task_18` 必须等于 `meta.fields.next_step_goal`；`Task_22` 必须等于 `meta.fields.label`；`Task_27` 必须等于 `meta.fields.gold_next_step_goal`；列表任务必须与对应的 `meta.fields.*_steps` 一致）
+- `id` 必须是有效的 UUID 字符串；`meta.evidence_files`（若存在）必须严格等于 `image + (video)` 的路径序列
 - `--strict` 会检查 `image/video/source_path` 指向的文件是否存在
 
 ---
