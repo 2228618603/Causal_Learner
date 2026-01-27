@@ -55,6 +55,10 @@ class ScriptConfig:
     RESIZE_DIMENSION: Tuple[int, int] = None  # e.g., (1280, 720) or None
     # JPEG_QUALITY: int = 100
     JPEG_QUALITY: int = 100
+    # --- Planning Constraints ---
+    # Desired step count for Stage 1 plan (inclusive). Controls granularity and avoids fragmented numbering.
+    PLAN_MIN_STEPS: int = int(os.environ.get("PLAN_MIN_STEPS", "4"))
+    PLAN_MAX_STEPS: int = int(os.environ.get("PLAN_MAX_STEPS", "7"))
     # --- Script Behavior ---
     VERBOSE_LOGGING: bool = True
     # Overlay frame index/timestamp onto images sent to the API to avoid off-by-one confusion
@@ -471,30 +475,37 @@ system_prompt = """
 You are a highly advanced AI acting as a Physical Interaction Analyst and Causal Planner. Your primary mission is to deconstruct observed actions in video frames into their fundamental causal, spatial, and affordance-based physical principles.
 You must analyze key moments from a continuous action sequence to produce a hierarchical task plan. This plan must explain not just *what* happened, but precisely *how* and *why* it is happening from a physical standpoint by inferring the dynamics implied within each key moment.
 Your output MUST be a single, syntactically flawless JSON object. The level of detail and adherence to the causal schema is paramount.
+CRITICAL: Your plan MUST cover the entire video timeline from the first provided frame to the last provided frame; do not omit late-stage events.
 """
 
-def create_planning_user_prompt(num_frames: int, image_dimensions: Tuple[int, int]) -> str:
+def create_planning_user_prompt(
+    num_frames: int,
+    image_dimensions: Tuple[int, int],
+    *,
+    min_steps: int,
+    max_steps: int,
+) -> str:
     """Generates the full, detailed user prompt for the LMM API call."""
     return f"""
 You are a world-class AI, a doctorate-level expert in physics, robotics, and cognitive science, acting as a **Physical Interaction Analyst and Causal Planner**. Your primary mission is to deconstruct observed human actions from video frames into their most fundamental causal, kinetic, and physical principles. You must think step-by-step with extreme precision, logical rigor, and unwavering adherence to the specified JSON schema. Your output is not just a description; it is a scientific annotation.
 
-Analyze the provided {num_frames} frames, which are uniformly sampled from a continuous video of a task. Your task is to reverse-engineer the high-level goal and generate a deeply detailed, **hierarchical causal plan**. This plan must be broken down into a reasonable number of fine-grained, logical steps.
+Analyze the provided {num_frames} frames, which are uniformly sampled from a continuous video of a task. Your task is to reverse-engineer the high-level goal and generate a deeply detailed, **hierarchical causal plan**. This plan MUST be broken down into a moderate number of medium-grained, logical steps (**between {min_steps} and {max_steps} steps inclusive**).
 
 Treat the frames as the ONLY source of truth. Use conservative language when uncertain and prefer generic object naming (e.g., "container", "bottle", "tool") over guessing brands or invisible states.
 
 Your response MUST be a single, syntactically flawless JSON object. No extra text, no apologies, no explanations outside of the JSON structure. The JSON validity is a critical, non-negotiable part of the task.
 
-**Detailed JSON Schema to Follow (output strict JSON; keep keys exactly; Stage 1 MUST omit `critical_frames[*].frame_index` and Stage 2 will add it):**
+**Detailed JSON Schema to Follow (output strict JSON; keep keys exactly; MUST omit `critical_frames[*].frame_index`:**
 {{
     "high_level_goal": "One comprehensive English sentence describing the overall goal and intended final outcome of the entire video (final world state; do NOT list steps; do NOT mention frames/images/timestamps).",
     "steps": [
         {{
             "step_id": 1,
-            "step_goal": "One concise English sentence describing the intended outcome of this step as a single atomic action (avoid 'and/then'; no multi-action conjunctions; no frame/time references).",
-            "rationale": "1–2 grounded sentences explaining WHY this step is necessary: (a) what macro physical/spatial/affordance preconditions it assumes across the entire step, and (b) what macro effects it establishes across the entire step that enable later steps. Do NOT just restate step_goal.",
+            "step_goal": "One English sentence describing the intended intermediate world-state outcome of this step as a single coherent phase (avoid listing multiple independent actions; no frame/time references).",
+            "rationale": "Grounded sentences explaining WHY this step is necessary: (a) what macro physical/spatial/affordance preconditions it assumes across the entire step, and (b) what macro effects it establishes across the entire step that enable later steps. Do NOT just restate step_goal.",
             "causal_chain": {{
                 "agent": "Primary force/controller for the whole step (prefer body part like 'hands'/'left_hand'/'right_hand'; use tool part only if it is clearly the direct force applicator). Use one stable identifier and keep it consistent within the step.",
-                "action": "Concise physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.",
+                "action": "Physical verb phrase for the whole step (include mechanism when possible: push/pull/rotate/tilt/insert/press). Avoid vague verbs like 'do'/'move'.",
                 "patient": "Primary acted-on object identifier in snake_case. Keep naming consistent across all fields (do not rename the same object).",
                 "causal_precondition_on_spatial": "A single JSON string listing MACRO spatial preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
                 "causal_precondition_on_affordance": "A single JSON string listing MACRO affordance/state preconditions for the ENTIRE step as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (avoid short, generic fragments).",
@@ -502,7 +513,7 @@ Your response MUST be a single, syntactically flawless JSON object. No extra tex
                 "causal_effect_on_affordance": "A single JSON string listing MACRO affordance/state effects AFTER the ENTIRE step completes as numbered points. Formatting rules: (1) Use lines numbered '1. ', '2. ', ...; (2) do NOT put raw newlines inside a JSON string; instead separate points using the escaped sequence '\\n' inside the string; (3) each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory); (4) each numbered line MUST be a complete, objective English statement tightly tied to this step (resulting functional/state changes; avoid short, generic fragments)."
             }},
             "counterfactual_challenge_question": "One realistic counterfactual what-if question that could disrupt this step due to physics/constraints, grounded in the scene. Start with 'What if ...?'. This field is ONLY about a counterfactual disruption; do NOT mix in non-counterfactual failure analysis. Do NOT mention frames/images/timestamps.",
-            "expected_challenge_outcome": "Predicted physical outcome if that counterfactual challenge occurs (specific failure/deviation), in one concise English sentence (no frame/time references).",
+            "expected_challenge_outcome": "Predicted physical outcome if that counterfactual challenge occurs (specific failure/deviation), in one English sentence (no frame/time references).",
             "failure_reflecting": {{
                 "reason": "Most plausible real (non-counterfactual) failure mode for this step (physical/interaction reason), grounded in what is visible and the mechanism (avoid invisible/unknown causes).",
                 "recovery_strategy": "A concrete, physically plausible recovery action that would still achieve the step_goal (do not introduce new unseen tools/objects)."
@@ -519,7 +530,7 @@ Your response MUST be a single, syntactically flawless JSON object. No extra tex
                     "interaction": {{
                         "description": "Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded. NOTE: Do NOT output tools/materials/hotspot; interaction MUST contain ONLY description/affordance_type/mechanism.",
                         "affordance_type": "One snake_case token describing this region's functional role (e.g., grasp_point, pressing_surface, contact_surface).",
-                        "mechanism": "Brief physical mechanism: how interaction at this region achieves the micro-action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
+                        "mechanism": "Physical mechanism: how interaction at this region achieves the micro-action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
                     }}
                 }},
                 {{
@@ -533,7 +544,7 @@ Your response MUST be a single, syntactically flawless JSON object. No extra tex
                     "interaction": {{
                         "description": "Specific functional region involved (e.g., handle, rim, edge, hinge); keep it concrete and visually grounded. NOTE: Do NOT output tools/materials/hotspot; interaction MUST contain ONLY description/affordance_type/mechanism.",
                         "affordance_type": "One snake_case token describing this region's functional role (e.g., grasp_point, pressing_surface, contact_surface).",
-                        "mechanism": "Brief physical mechanism: how interaction at this region achieves the micro-action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
+                        "mechanism": "Physical mechanism: how interaction at this region achieves the micro-action (force/torque transfer, friction, leverage, flow, etc.), grounded in what is visible."
                     }}
                 }}
             ]
@@ -548,22 +559,25 @@ Your response MUST be a single, syntactically flawless JSON object. No extra tex
 3.  **Focus on the Key Moment:** In each `critical_frames[*]`, `causal_chain.causal_precondition_on_spatial` and `causal_chain.causal_precondition_on_affordance` MUST comprehensively describe the state of the world TRUE AT that specific key moment. In each `critical_frames[*]`, `causal_chain.causal_effect_on_spatial` and `causal_chain.causal_effect_on_affordance` MUST describe the PREDICTED immediate, local post-action effects right after the micro-action implied by `action_state_change_description` completes (short-term/local; not necessarily currently visible).
 4.  **Key Moments & Exactly Two Critical Frames:** Each `step` MUST contain exactly 2 `critical_frames`, ordered in time (Key moment 1 earlier than Key moment 2). These are the two most causally important, visually anchorable, representative moments within the step (NOT limited to initiation/completion).
 5.  **Infer Dynamics from a Snapshot:** Your descriptions must infer motion, force, and consequence from a single, static key frame.
-6.  **Complete All Fields:** Ensure every single textual field in the schema is filled with a meaningful and accurate value (except `critical_frames[*].frame_index`, which is selected in Stage 2).
+6.  **Complete All Fields:** Ensure every single textual field in the schema is filled with a meaningful and accurate value.
 7.  **Critical Frames :** In this Stage 1 planning phase, DO NOT include any image references or frame indices in the JSON. In particular, OMIT `critical_frames[*].frame_index` and do NOT output `keyframe_image_path` anywhere. Only provide the textual fields for each `critical_frames[*]` entry (`action_state_change_description`, `causal_chain`, `interaction`). Frame selection happens later in Stage 2, where `frame_index` is 1-based in [1, {num_frames}].
-8.  **Grounding & Non‑Hallucination:** Base all facts strictly on what is visible in the provided frames. Do not invent objects, brands, or states that are not visually supported. If uncertain, use generic terms (e.g., "container", "bottle").
-9.  **Consistency Requirement:** Use consistent object names across steps and frames (e.g., do not switch between "pan" and "tray" unless you are sure they are different). Prefer a stable canonical name.
-10. **JSON Structure is Paramount:** Adhere strictly to the schema. In each `critical_frames[*]`, `interaction` is a sibling of `causal_chain`. `interaction` MUST contain ONLY `description`, `affordance_type`, and `mechanism` (do NOT output tools/materials/hotspot and do NOT nest a `hotspot` object). In each `critical_frames[*]`, `causal_chain` MUST contain ONLY the 4 textual fields (`causal_precondition_on_spatial`, `causal_precondition_on_affordance`, `causal_effect_on_spatial`, `causal_effect_on_affordance`) and MUST NOT include `agent`/`action`/`patient`.
-11. **Causal Text Formatting is Mandatory:** For every `causal_*` field (both step-level and frame-level), output a single JSON string with numbered points using `1. ...`, `2. ...`, etc. Separate points inside the string using the escaped sequence `\\n` (no raw newlines inside a JSON string). Each numbered line may contain multiple sentences, but the last character of EACH numbered line MUST be '.' (mandatory). Avoid overly short or generic fragments; each line must be a complete, objective statement tightly tied to the current step or key moment.
-12. **High requirements for planning:** The overall plan must be detailed and comprehensive, representing all events implied by the frames. Each sub-step must be specific and detailed.
-13. **Step with fine granularity:** If a frame implies multiple micro-events, split them into separate sub-steps. Each step should be precise, not a broad summary.
-14. **The completeness of the plan and the detail of the sub-plans:** It is essential to ensure that the planning and labeling is a comprehensive plan encompassing all provided images. The sub-steps should be detailed, thorough, and logically structured, so that when combined, they present a complete plan comprised of all images.
-15. **Principle of Visual Anchorability:** While you are not selecting frames now, every critical_frame you describe must correspond to a visually distinct and unambiguous moment. Your descriptions should be "anchor-able" to a plausible visual snapshot. Do not describe events that are inherently invisible or highly ambiguous from a third-person perspective.
+8.  **Grounding & Non‑Hallucination:** Base all facts strictly on what is visible in the provided frames. Do not invent objects, brands, or states that are not visually supported. If uncertain, use generic terms.
+9.  **Consistency Requirement:** Use consistent object names across steps and frames. Prefer a stable canonical name.
+10. **JSON Structure is Paramount:** Adhere strictly to the schema.
+11. **Causal Text Formatting is Mandatory:** For every `causal_*` field (both step-level and frame-level), output a single JSON string with numbered points using `1. ...`, `2. ...`, etc. Separate points inside the string using the escaped sequence `\\n` (no raw newlines inside a JSON string). Avoid overly short or generic fragments; each line must be a complete, objective statement tightly tied to the current step or key moment.
+12. **Step count & numbering (STRICT):** You MUST output between {min_steps} and {max_steps} steps (inclusive). `step_id` MUST be consecutive integers starting at 1 with NO gaps (1..N). Before finalizing, self-check that the number of steps is within range and the numbering is contiguous.
+13. **Balanced step granularity:** Avoid over-splitting into tiny micro-steps. If the video implies many micro-actions, MERGE adjacent micro-actions into a single step when they belong to the same phase and do not create a new stable intermediate world state. Each step should represent a coherent, contiguous phase (early → middle → late) and the steps should be roughly balanced in temporal coverage (avoid one step being extremely short while another spans most of the sequence).
+14. **Hard full-video coverage constraint (NON-NEGOTIABLE):** The ordered `steps` MUST collectively cover the ENTIRE timeline of all {num_frames} images (early → middle → late), including what happens in the FINAL portion of the video. Do NOT compress the whole plan into only the early/middle frames; later steps MUST reflect later-video events. The plan MUST NOT end early: the LAST step MUST include and reflect the last frames. Do NOT invent an "achieved final state" if the video ends mid-action; describe the last observed state and any visible ongoing action.
+15. **Coverage audit (MANDATORY):** Before finalizing your JSON, internally verify that every meaningful action/state change visible across the {num_frames} frames is assigned to exactly one step. If any late-frame events or final outcomes are missing, REVISE step boundaries and merge/summarize earlier content as needed — but still keep the step count within {min_steps}..{max_steps}.
+16. **Key moments must be meaningful:** Ensure every described `critical_frames[*]` corresponds to a visually distinct, high-value moment within its step (a decisive micro-action or discriminative state transition). Do NOT choose key moments just to "cover" early/late frames. For the LAST step, Key moment 2 should represent the most informative late-stage moment within that step (the clearest decisive micro-action, transition, or stable outcome state that best characterizes the step). If the outcome persists across many frames, it may be satisfied by the earliest frame where the state first becomes true and stable (not necessarily the last frame of the video). Crucially, write each key moment so it can be matched to a SINGLE sampled frame: include discriminative, visibly checkable cues (contact/containment/open-closed/alignment/posture intent) and avoid hidden-state claims or vague timing language.
+17. **Principle of Visual Anchorability:** While you are not selecting frames now, every critical_frame you describe must correspond to a visually distinct and unambiguous moment. Your descriptions should be "anchor-able" to a plausible visual snapshot (a single image) with concrete, visible evidence. Do not describe events that are inherently invisible or highly ambiguous from a third-person perspective.
 ---
 
 TEMPORAL ALIGNMENT REQUIREMENTS (DO NOT IGNORE):
 1) The ordering of your `steps` MUST strictly follow the chronological order of the {num_frames} frames as provided (earliest frames first, latest frames last).
 2) Do NOT reorder events out of time; ensure that earlier events described in earlier frames appear in earlier steps.
 3) Within each step, maintain descriptions consistent with the earlier-to-later progression implied by the frames.
+4) Do NOT end the plan early: the final step(s) MUST explicitly account for what happens in the last frames and conclude at the true final state of the video.
 
 Now, based on the uniformly sampled frames I have provided from a continuous video, and adhering strictly to all constraints (including temporal alignment) and the highest standards of quality, generate the complete and detailed JSON output for this video.
 """
@@ -737,7 +751,7 @@ def _normalize_frame_causal_chain(causal_chain: Any) -> Dict[str, Any]:
     }
 
 
-def _normalize_plan_schema(plan: Any) -> Dict[str, Any]:
+def _normalize_plan_schema(plan: Any, *, min_steps: int = 4, max_steps: int = 7) -> Dict[str, Any]:
     """Normalize a plan dict into the latest schema while preserving semantics.
 
     This makes Stage 2 robust to legacy/partially-noncompliant Stage 1 outputs and
@@ -745,6 +759,10 @@ def _normalize_plan_schema(plan: Any) -> Dict[str, Any]:
     """
     if not isinstance(plan, dict):
         raise ValueError("Plan must be a JSON object.")
+    if min_steps < 1:
+        raise ValueError(f"min_steps must be >= 1, got {min_steps}.")
+    if max_steps < min_steps:
+        raise ValueError(f"max_steps must be >= min_steps, got min_steps={min_steps}, max_steps={max_steps}.")
 
     high_level_goal = str(plan.get("high_level_goal", "")).strip()
     if not high_level_goal:
@@ -756,21 +774,13 @@ def _normalize_plan_schema(plan: Any) -> Dict[str, Any]:
         raise ValueError("'steps' must be a list.")
 
     normalized_steps: List[Dict[str, Any]] = []
-    seen_step_ids: set[int] = set()
     for raw_step in steps:
         if not isinstance(raw_step, dict):
             continue
 
-        raw_step_id = raw_step.get("step_id", 0)
-        try:
-            step_id = int(raw_step_id)
-        except Exception:
-            step_id = 0
-        if step_id <= 0:
-            raise ValueError(f"Invalid step_id={raw_step_id!r}. step_id must be a positive integer (>= 1).")
-        if step_id in seen_step_ids:
-            raise ValueError(f"Duplicate step_id detected: {step_id}. step_id values must be unique.")
-        seen_step_ids.add(step_id)
+        # Canonicalize step_id to be contiguous (1..N) in list order. This avoids
+        # fragmented numbering like 1,2,3,7 and stabilizes downstream Stage 2.
+        step_id = len(normalized_steps) + 1
 
         step_goal = str(raw_step.get("step_goal", "")).strip()
         rationale = str(raw_step.get("rationale", "")).strip()
@@ -918,6 +928,11 @@ def _normalize_plan_schema(plan: Any) -> Dict[str, Any]:
     if not normalized_steps:
         raise ValueError("No valid steps found in plan.")
 
+    if not (min_steps <= len(normalized_steps) <= max_steps):
+        raise ValueError(
+            f"Plan must contain between {min_steps} and {max_steps} steps (inclusive), got {len(normalized_steps)}."
+        )
+
     return {"high_level_goal": high_level_goal, "steps": normalized_steps}
 
 
@@ -947,10 +962,14 @@ def _create_frame_selection_prompt(plan_json_str: str, num_frames: int) -> str:
     The model must pick indices in [1, num_frames] for each critical frame per step (1-based),
     based on the provided textual annotations. Output must be strict JSON.
     """
+    head_window = max(3, (num_frames + 9) // 10)  # ~first 10% (min 3 frames)
+    head_end = min(num_frames, head_window)
+    tail_window = max(3, (num_frames + 9) // 10)  # ~last 10% (min 3 frames)
+    tail_start = max(1, num_frames - tail_window + 1)
     return f"""
 You are an expert vision-time alignment assistant. Your task is to select, with maximal accuracy, the single best-matching frame index for each `critical_frames` entry in a provided plan. You are given: (1) a set of {num_frames} uniformly sampled images from a single video in chronological order, and (2) a detailed JSON plan with rich annotations per step and per critical frame.
 
-Treat the frames as the ONLY source of truth. If the plan text conflicts with visual evidence, still select the closest plausible frame, but never select indices that contradict the image (missing required objects/contact) when an alternative exists.
+Treat the frames as the ONLY source of truth. Your PRIMARY goal is exact visual alignment: the selected `frame_index` for each `critical_frames[*]` MUST make that critical frame's textual description TRUE at that moment. Do NOT "reinterpret" the text; pick the frame that matches it. If the plan text conflicts with visual evidence, select the closest plausible frame, but never select indices that contradict the image (missing required objects/contact) when an alternative exists.
 
 Match Criteria (apply all rigorously):
 - Treat each critical frame's fields as conjunctive constraints:
@@ -959,22 +978,28 @@ Match Criteria (apply all rigorously):
   - `critical_frames[*].interaction` contains ONLY `description` / `affordance_type` / `mechanism`; the chosen image should match the described functional region and the implied physical mechanism.
 - `critical_frames[*].causal_chain.causal_effect_on_spatial` and `critical_frames[*].causal_chain.causal_effect_on_affordance` are predicted immediate/local post-action effects after the micro-action completes; they may NOT be visible yet. Use them only as a plausibility and temporal-consistency check, not as a hard visual constraint.
 - Prefer frames that best satisfy the preconditions AND most clearly depict the micro-action itself (clear contact, pose, alignment, and intent).
-- If multiple frames plausibly match, choose the one with the strongest overall alignment. If ties remain, choose the earliest index that does not violate any other constraint.
+- If multiple frames plausibly match, choose the one with the strongest overall alignment. If ties remain, break ties by **key-moment fidelity** (not by being early/late): pick the frame where the described micro-action/state-change is most visually evident and discriminative (clear contact, posture intent, open/closed cue, insertion depth, deformation, flow onset, etc.), and avoid idle/paused frames if a more informative transition frame exists.
 - Within a step containing multiple critical frames, enforce STRICTLY increasing indices (Key moment 1 frame_index < Key moment 2 frame_index). The two selected frames MUST be different.
-- Across steps, respect macro-temporal order: earlier steps should correspond to earlier indices when plausible.
+- Across steps, enforce macro-temporal order: earlier steps MUST correspond to earlier indices, and later steps MUST NOT be assigned earlier indices than earlier steps unless absolutely unavoidable due to near-identical frames.
+- Do NOT optimize indices for global "coverage". The step partition must cover the full video, but keyframes are for the most causally important, visually anchorable moments within each step.
+
+Alignment self-test (do silently):
+- If you showed ONLY the selected image to a human and gave them the `critical_frames[*]` text, would they agree it matches (objects, contact, action, and state) without hand-waving? If not, reject that candidate and choose another.
+- Never choose a frame that matches only the step broadly but does NOT match the specific critical frame description (avoid generic "close enough" picks).
 
 Required Procedure (do not skip):
 1) Systematically scan all {num_frames} images to identify candidate indices per critical frame.
 2) For each candidate, check every listed precondition point for visual plausibility, and verify the micro-action cues and interaction region are consistent.
 3) Use the predicted post-action effects only as a plausibility check to break ties (e.g., whether the next immediate state change is physically consistent with the scene).
-4) Select the index with maximal constraint satisfaction; break ties by earliest index.
+4) Select the index with maximal constraint satisfaction; break ties by key-moment fidelity (most discriminative action/state-change evidence) while preserving step temporal order.
 
 Internal QA (proofreading) — perform silently before output:
 - Pre-filter: Disqualify frames missing required objects or blatant contradictions (e.g., door must be open/closed, contact required but absent).
 - Constraint checklist: For each remaining candidate, tick off each numbered precondition point (spatial + affordance/state) as satisfied/unsatisfied, and check interaction region/mechanism plausibility.
 - Causal alignment: Verify dynamic cues consistent with the micro-action described in `action_state_change_description` (e.g., grasp vs. lift vs. insert) using posture, relative motion hints, and context.
+- Hard alignment gate: Reject any candidate that contradicts the `action_state_change_description`, ANY required precondition point, or the `interaction` description/mechanism when a better-aligned alternative exists. Do NOT accept "close enough" matches.
 - Consistency pass: Ensure indices within a step are strictly increasing (Key moment 1 < Key moment 2); across steps, prefer earlier indices for earlier steps. If a violation is detected, re-evaluate candidates to restore temporal consistency.
-- Final sanity pass: If two candidates are near-equal, prefer the one satisfying more constraints; if still tied, choose the earliest index.
+- Final sanity pass: If two candidates are near-equal, prefer the one satisfying more constraints; if still tied, choose the one with clearer action evidence and less ambiguity (avoid idle/paused frames).
 
 Strictness:
 - Do not rewrite or alter any text from the plan.
@@ -1137,19 +1162,17 @@ def process_single_video(video_file_path: str):
         # 1) First call: generate plan JSON only (no keyframe images/paths and no frame_index)
         print("\n>>> [INFO] Building API request payload (Stage 1: plan only)...")
         try:
-            user_prompt = create_planning_user_prompt(len(sampled_frames), original_dims)
+            stage1_min_steps = int(getattr(PLANNING_CONFIG, "PLAN_MIN_STEPS", 4))
+            stage1_max_steps = int(getattr(PLANNING_CONFIG, "PLAN_MAX_STEPS", 7))
+
             # Stage 1 should avoid any frame index/timestamp artifacts in inputs to reduce the chance
             # of the model echoing them in text fields (which is forbidden by schema).
-            user_content = [{"type": "text", "text": user_prompt}] + build_api_content(
+            stage1_frames_content = build_api_content(
                 sampled_frames,
                 embed_index=False,
                 include_manifest=False,
                 include_frame_labels=False,
             )
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
-            ]
             print(f">>> [SUCCESS] API payload built with {len(sampled_frames)} frames.")
         except Exception as e:
             print(f"!!! [FATAL] Failed to build API request: {e}")
@@ -1161,9 +1184,39 @@ def process_single_video(video_file_path: str):
         raw_stage1_path = os.path.join(video_output_folder, "stage1_raw_response.txt")
         last_err: Optional[Exception] = None
         last_content: str = ""
+        retry_exact_steps: Optional[int] = None
 
         for attempt in range(1, stage1_retries + 1):
             try:
+                retry_prefix = ""
+                if attempt > 1:
+                    if retry_exact_steps is not None:
+                        retry_prefix = (
+                            f"RETRY NOTICE (attempt {attempt}/{stage1_retries}): "
+                            f"Your previous output violated the step-count constraint. "
+                            f"On this retry, output EXACTLY {retry_exact_steps} steps, and ensure step_id is "
+                            f"contiguous 1..{retry_exact_steps} with NO gaps.\n\n"
+                        )
+                    else:
+                        retry_prefix = (
+                            f"RETRY NOTICE (attempt {attempt}/{stage1_retries}): "
+                            "Your previous output failed schema validation. "
+                            "Re-check all constraints (strict JSON only; no frame/time references; each step has "
+                            "exactly 2 critical_frames; step count and numbering constraints).\n\n"
+                        )
+
+                user_prompt = retry_prefix + create_planning_user_prompt(
+                    len(sampled_frames),
+                    original_dims,
+                    min_steps=stage1_min_steps,
+                    max_steps=stage1_max_steps,
+                )
+                user_content = [{"type": "text", "text": user_prompt}] + stage1_frames_content
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ]
+
                 print(
                     f"\n>>> [INFO] Sending request to model '{PLANNING_CONFIG.MODEL_NAME}' (Stage 1) "
                     f"attempt {attempt}/{stage1_retries}..."
@@ -1203,7 +1256,9 @@ def process_single_video(video_file_path: str):
                 plan_data = json.loads(clean_json_string)
 
                 normalized_plan = _normalize_plan_schema(
-                    {"high_level_goal": plan_data.get("high_level_goal"), "steps": plan_data.get("steps")}
+                    {"high_level_goal": plan_data.get("high_level_goal"), "steps": plan_data.get("steps")},
+                    min_steps=stage1_min_steps,
+                    max_steps=stage1_max_steps,
                 )
                 high_level_goal = normalized_plan.get("high_level_goal", "No Goal Provided")
                 steps_data = normalized_plan.get("steps", [])
@@ -1236,6 +1291,15 @@ def process_single_video(video_file_path: str):
                 break
             except (json.JSONDecodeError, ValueError, RuntimeError) as e:
                 last_err = e
+                retry_exact_steps = None
+                if isinstance(e, ValueError) and "Plan must contain between" in str(e):
+                    raw_steps = plan_data.get("steps") if isinstance(locals().get("plan_data"), dict) else None
+                    raw_step_count = len(raw_steps) if isinstance(raw_steps, list) else None
+                    if raw_step_count is not None:
+                        if raw_step_count > stage1_max_steps:
+                            retry_exact_steps = stage1_max_steps
+                        elif raw_step_count < stage1_min_steps:
+                            retry_exact_steps = stage1_min_steps
                 if attempt >= stage1_retries:
                     break
                 delay = stage1_base_delay * (2 ** (attempt - 1))
@@ -1269,7 +1333,11 @@ def process_single_video(video_file_path: str):
         try:
             with open(stage1_path, 'r', encoding='utf-8') as f:
                 filtered_plan = json.load(f)
-            filtered_plan = _normalize_plan_schema(filtered_plan)
+            filtered_plan = _normalize_plan_schema(
+                filtered_plan,
+                min_steps=int(getattr(PLANNING_CONFIG, "PLAN_MIN_STEPS", 4)),
+                max_steps=int(getattr(PLANNING_CONFIG, "PLAN_MAX_STEPS", 7)),
+            )
             high_level_goal = filtered_plan.get("high_level_goal", "No Goal Provided")
             steps_data = filtered_plan.get("steps", [])
             print(f"\n>>> [INFO] Resume mode: Loaded existing Stage 1 plan from: {stage1_path}")

@@ -78,18 +78,9 @@ A: Prepare for cooking by turning on the light, gathering vegetables and tools, 
 - **字段（JSONPath）**：
   - `high_level_goal`
   - 候选池（用于构造 options/label）：
-    - `steps[*].step_goal`
-    - `steps[*].causal_chain.agent`
-    - `steps[*].causal_chain.action`
-    - `steps[*].causal_chain.patient`
-    - `steps[*].causal_chain.causal_precondition_on_spatial`
-    - `steps[*].causal_chain.causal_precondition_on_affordance`
-    - `steps[*].causal_chain.causal_effect_on_spatial`
-    - `steps[*].causal_chain.causal_effect_on_affordance`
-    - `steps[*].critical_frames[*].interaction.description`
-    - `steps[*].critical_frames[*].interaction.affordance_type`
-    - `steps[*].critical_frames[*].interaction.mechanism`
-    - `steps[*].critical_frames[*].action_state_change_description`
+    - `steps[*].step_goal`（抽取名词短语）
+    - `steps[*].causal_chain.patient`（主受体对象）
+    - `steps[*].critical_frames[*].interaction.description`（热点交互部位/区域描述里出现的对象）
 - **Multimodal_input 类型（四类）**：`images_uniform_scene`
 - **范例**：
 
@@ -184,10 +175,8 @@ A: Pressing transfers force to an internal toggle mechanism to complete a circui
 
 - **任务说明**：在单张关键帧中定位交互热点（hotspot），并描述其可供性类别与物理机制（为什么这个区域“能被这样用”）。
 - **字段（JSONPath）**：
-  - `steps[i].step_goal`（上下文）
-  - `steps[i].critical_frames[j].interaction.description`
-  - `steps[i].critical_frames[j].interaction.affordance_type`
-  - `steps[i].critical_frames[j].interaction.mechanism`
+  - 上下文：`steps[i].step_goal`
+  - label：`steps[i].critical_frames[j].interaction.description`, `steps[i].critical_frames[j].interaction.affordance_type`, `steps[i].critical_frames[j].interaction.mechanism`
 - **Multimodal_input 类型（四类）**：`keyframe_single`
 - **范例**：
 
@@ -216,30 +205,26 @@ A: The person is rubbing the cucumber under running water, which immediately cle
 
 ### Task_10_Holistic_Causal_Chain_Analysis（原始 Task_15_Holistic_Causal_Chain_Analysis：关键帧物理因果链解释）
 
-- **任务说明**：基于关键帧解释物理因果链：空间/可供性前置条件 → 动作与机制 → 空间/可供性后效，强调“可被证据支持的因果闭环”。答案需为英文单句长句（不分段），并在无法从单帧直接支持时写 `not directly observable`。
+- **任务说明**：基于关键帧解释物理因果链：空间/可供性前置条件 → 动作与机制 → 空间/可供性后效，强调“可被证据支持的因果闭环”。答案需为英文单句长句（不分段）。
 - **字段（JSONPath）**：
-  - `high_level_goal`（上下文）
-  - `steps[i].step_goal`（上下文）
-  - `steps[i].critical_frames[j].causal_chain.agent/action/patient`
-  - `steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial`
-  - `steps[i].critical_frames[j].causal_chain.causal_precondition_on_affordance`
-  - `steps[i].critical_frames[j].causal_chain.causal_effect_on_spatial`
-  - `steps[i].critical_frames[j].causal_chain.causal_effect_on_affordance`
-  - `steps[i].critical_frames[j].interaction.hotspot.mechanism`
+  - 上下文：`steps[i].step_goal`（必给），`high_level_goal`（可选）
+  - label 组合（不应作为 prompt context 提供）：`steps[i].causal_chain.agent/action/patient` + `steps[i].critical_frames[j].causal_chain`（4 个 causal_* 字段） + `steps[i].critical_frames[j].interaction.mechanism`
 - **Multimodal_input 类型（四类）**：`keyframe_single`
 - **范例**：
 
 ```text
 Multimodal_input:
 - keyframe_single(step_id=07, frame_index=039): <ITEM_DIR>/07_slice_the_cucumber_into_circular_pieces_on_the_cutting_board/frame_039_ts_136.79s.jpg
-Q: Context: High-level goal: "Prepare for cooking by turning on the light, gathering vegetables and tools, washing the vegetables, and chopping them on a cutting board." Step goal: "Slice the cucumber into circular pieces on the cutting board." Explain the physical causal chain in this keyframe, focusing on spatial setup, affordance mechanism, and immediate effects. Answer in one English sentence.
+Q: Context: Step goal: "Slice the cucumber into circular pieces on the cutting board." Explain the physical causal chain in this keyframe, focusing on spatial setup, affordance mechanism, and immediate effects. Answer in one English sentence.
 A: With the cucumber stabilized on the cutting board and the knife edge contacting it (any internal material properties are not directly observable), the hands apply downward cutting force to the cucumber; because the sharp edge concentrates force at the hotspot to cut through the material, the cucumber separates and a new slice is produced.
 ```
 
 ### Task_11_Strategic_Rationale_Justification（原始 Task_16_Strategic_Rationale_Justification：步骤动机/必要性解释）
 
 - **任务说明**：解释该步骤为什么必要、如何支撑整体目标（从“动机/必要性”的因果角度给出简短说明）。
-- **字段（JSONPath）**：`steps[i].rationale`（可附 `high_level_goal`, `step_goal`）
+- **字段（JSONPath）**：
+  - 上下文：`high_level_goal`（必给），`steps[i].step_goal`（必给）
+  - label：`steps[i].rationale`
 - **Multimodal_input 类型（四类）**：`keyframe_single`
 - **范例**：
 
@@ -253,7 +238,9 @@ A: It provides sufficient lighting so later navigation and object manipulation c
 ### Task_12_Spatial_Precondition_Description（原始 Task_17_Spatial_Precondition_Description：空间前置条件：描述 precondition）
 
 - **任务说明**：基于**早关键帧**（`critical_frames[0]`），输出该关键帧对应的空间前置条件描述（来自 frame-level `causal_chain.causal_precondition_on_spatial`），用于训练“precondition 表达与对齐”。
-- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.causal_precondition_on_spatial`
+- **字段（JSONPath）**：
+  - 上下文：`steps[i].step_goal`
+  - label：`steps[i].critical_frames[0].causal_chain.causal_precondition_on_spatial`
 - **Multimodal_input 类型（四类）**：`keyframe_single`
 - **范例**：
 
@@ -267,7 +254,9 @@ A: The hand should be contacting the light_switch so it can apply force to toggl
 ### Task_13_Affordance_Precondition_Description（原始 Task_19_Affordance_Precondition_Description：可供性前置条件：描述 precondition）
 
 - **任务说明**：基于**早关键帧**，用自然语言描述该关键时刻对应的可供性/状态前置条件（frame-level `causal_precondition_on_affordance`），可选简述 reasons，用于训练 affordance precondition 的表达。
-- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.causal_precondition_on_affordance`
+- **字段（JSONPath）**：
+  - 上下文：`steps[i].step_goal`
+  - label：`steps[i].critical_frames[0].causal_chain.causal_precondition_on_affordance`
 - **Multimodal_input 类型（四类）**：`keyframe_single`
 - **范例**：
 
@@ -299,7 +288,9 @@ A: It is feasible now because the hand is visibly touching the light switch (spa
 ### Task_15_Spatial_Postcondition_Description（原始 Task_22_Spatial_Postcondition_Description：空间后置条件：描述 postcondition）
 
 - **任务说明**：基于**晚关键帧**（`critical_frames[1]`），用自然语言描述该步导致的空间后置条件（postconditions on spatial），并对不可从证据判断的后置条件显式标注不可观测。
-- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.causal_effect_on_spatial`
+- **字段（JSONPath）**：
+  - 上下文：`steps[i].step_goal`
+  - label：`steps[i].critical_frames[1].causal_chain.causal_effect_on_spatial`
 - **Multimodal_input 类型（四类）**：`keyframe_single`
 - **范例**：
 
@@ -313,7 +304,9 @@ A: The cucumber should be on_top_of the countertop after it is placed there.
 ### Task_16_Affordance_Postcondition_Description（原始 Task_24_Affordance_Postcondition_Description：可供性后置条件：描述 postcondition）
 
 - **任务说明**：基于**晚关键帧**，用自然语言描述该步导致的可供性后置条件（postconditions on affordance），并对不可从证据判断的后置条件显式标注不可观测。
-- **字段（JSONPath）**：`steps[i].critical_frames[j].causal_chain.causal_effect_on_affordance`
+- **字段（JSONPath）**：
+  - 上下文：`steps[i].step_goal`
+  - label：`steps[i].critical_frames[1].causal_chain.causal_effect_on_affordance`
 - **Multimodal_input 类型（四类）**：`keyframe_single`
 - **范例**：
 
@@ -349,9 +342,9 @@ A: Step 1 illuminates the workspace (effect), thereby satisfying the visibility/
 
 - **任务说明**：基于视频前缀预测下一步 `step_goal`（严格只输出下一步），用于训练长时序“前缀→下一步”的规划能力。
 - **字段（JSONPath）**：
-  - `high_level_goal`（上下文）
-  - `steps[i].step_goal`（上下文，可选）
-  - label：`steps[i+1].step_goal`
+  - 上下文：`high_level_goal`
+  - 上下文：`steps[i].step_goal`（前缀最后完成的 step_goal；必给）
+  - label：`steps[i+1].step_goal`（下一步）
 - **Multimodal_input 类型（四类）**：`video_prefix`
 - **范例**：
 
@@ -366,9 +359,8 @@ A: Gather a cutting board and a knife and place them on the countertop.
 
 - **任务说明**：给定视频头尾证据与整体目标，补全中间缺失的步骤序列（按顺序输出），用于训练长时序“补全/插值”规划能力。
 - **字段（JSONPath）**：
-  - `high_level_goal`
-  - `steps[*].step_id`
-  - `steps[*].step_goal`
+  - 上下文：`high_level_goal`
+  - label：`steps[*].step_goal`（按顺序输出缺失的中间步骤子序列）
 - **Multimodal_input 类型（四类）**：`images_uniform_scene`（head-tail 子集）
 - **范例**：
 
@@ -383,8 +375,8 @@ A: 1) Retrieve the vegetables from the refrigerator. 2) Gather a cutting board a
 
 - **任务说明**：给定视频前缀与 `high_level_goal`，预测接下来 `K` 个 `step_goal`（按时间顺序输出），用于训练未来多步规划能力。
 - **字段（JSONPath）**：
-  - `high_level_goal`（上下文）
-  - `steps[i].step_goal`（上下文，可选）
+  - 上下文：`high_level_goal`
+  - 上下文：`steps[i].step_goal`（前缀最后完成的 step_goal；必给）
   - label：`steps[i+1:i+K].step_goal`
 - **Multimodal_input 类型（四类）**：`video_prefix`
 - **范例**：
@@ -396,45 +388,7 @@ Q: Context: High-level goal: "Prepare for cooking by turning on the light, gathe
 A: 1) Retrieve a carrot and a cucumber from the refrigerator. 2) Gather a cutting board and a knife and place them on the countertop. 3) Wash the cucumber and carrot under running water and place them on the countertop.
 ```
 
-### Task_21_Next_K_Steps_Reordering_From_Prefix（原始 Task_34_Next_K_Steps_Reordering_From_Prefix：未来 K 步重排）
-
-- **任务说明**：给定前缀与一组被打乱的未来候选步骤，要求重排为最合理的时间顺序（输出序列），用于训练多步规划与顺序推断。
-- **字段（JSONPath）**：
-  - `high_level_goal`（上下文）
-  - `steps[i].step_goal`（上下文，可选）
-  - label：`steps[i+1:i+K].step_goal`
-- **Multimodal_input 类型（四类）**：`video_prefix`
-- **范例**：
-
-```text
-Multimodal_input:
-- video_prefix(prefix_end_step=01): <ITEM_DIR>/cumulative_last_frame_segments/segment_start_to_step01_last.mp4
-Q: Context: High-level goal: "Prepare for cooking by turning on the light, gathering vegetables and tools, washing the vegetables, and chopping them." Last completed step (in this prefix): "Enter the kitchen and turn on the light to illuminate the workspace." Reorder the shuffled candidate steps ["Wash the cucumber and carrot under running water and place them on the countertop.", "Retrieve a carrot and a cucumber from the refrigerator.", "Gather a cutting board and a knife and place them on the countertop."] into the most plausible next-step sequence.
-A: 1) Retrieve a carrot and a cucumber from the refrigerator. 2) Gather a cutting board and a knife and place them on the countertop. 3) Wash the cucumber and carrot under running water and place them on the countertop.
-```
-
-### Task_22_Failed_Planning_Flaw_Pointing（原始 Task_35_Failed_Planning_Flaw_Pointing：规划缺陷定位：单一扰动）
-
-- **任务说明**：对一个含“单一错误”的坏计划进行缺陷定位：指出错误步骤、错误类型并给出一句话理由，强调可自动评分与可归因。
-- **字段（JSONPath）**：
-  - `high_level_goal`
-  - `steps[*].step_goal`
-  - 可选（用于构造“依赖违反”）：
-    - `steps[*].causal_chain.causal_precondition_on_spatial`
-    - `steps[*].causal_chain.causal_precondition_on_affordance`
-    - `steps[*].causal_chain.causal_effect_on_spatial`
-    - `steps[*].causal_chain.causal_effect_on_affordance`
-- **Multimodal_input 类型（四类）**：`video_prefix`
-- **范例**：
-
-```text
-Multimodal_input:
-- video_prefix(prefix_end_step=02): <ITEM_DIR>/cumulative_last_frame_segments/segment_start_to_step02_last.mp4
-Q: Context: High-level goal: "Prepare for cooking by turning on the light, gathering vegetables and tools, washing the vegetables, and chopping them on a cutting board." Based on this prefix, the following bad_plan_steps are proposed as the next steps: 1) "Slice the cucumber on the cutting board." 2) "Open the refrigerator and retrieve a carrot." 3) "Wash the vegetables under running water." Identify the flaw in the bad plan.
-A: FlawStep=1; FlawType=precondition_missing; Reason=You cannot slice the cucumber before retrieving it and preparing the cutting board and knife.
-```
-
-### Task_23_Plan_Repair_From_Flaw（原始 Task_36_Plan_Repair_From_Flaw：坏计划修复：输出纠正后的计划）
+### Task_22_Plan_Repair_From_Flaw（原始 Task_36_Plan_Repair_From_Flaw：坏计划修复：输出纠正后的计划）
 
 - **任务说明**：给定视频前缀与一个“只含单一扰动”的坏计划（bad_plan），输出纠正后的正确计划序列，用于训练失败反思中的“纠错→重规划”能力（Task_28 的后续闭环）。
 - **字段来源**：Task_28 生成的 `bad_plan_steps` 与 gold `steps[i+1:i+K].step_goal`
@@ -448,7 +402,7 @@ Q: Context: High-level goal: "Prepare for cooking by turning on the light, gathe
 A: 1) "Wash the cucumber and carrot under running water and place them on the countertop." 2) "Gather a cutting board and a knife and place them on the countertop." 3) "Slice the cucumber into circular pieces on the cutting board."
 ```
 
-### Task_24_Counterfactual_Prediction（原始 Task_37_Counterfactual_Prediction：反事实挑战与结果；自由文本）
+### Task_23_Counterfactual_Prediction（原始 Task_37_Counterfactual_Prediction：反事实挑战与结果；自由文本）
 
 - **任务说明**：给定该步骤的反事实挑战问题（what-if），从 **spatial + affordance** 角度预测物理后果（自由文本）。只做结果预测，不提出任何恢复/修复策略。
 - **字段（JSONPath）**：`steps[i].step_goal`, `steps[i].counterfactual_challenge_question`, `steps[i].expected_challenge_outcome`
@@ -462,7 +416,7 @@ Q: Context: Step goal: "Slice the cucumber into circular pieces on the cutting b
 A: The board might slide under the applied cutting force, making the cutting setup unstable and increasing the risk of the knife slipping.
 ```
 
-### Task_25_Counterfactual_Outcome_QA（原始 Task_38_Counterfactual_Outcome_MCQ：反事实结果四选一；客观化 Task_37）
+### Task_24_Counterfactual_Outcome_QA（原始 Task_38_Counterfactual_Outcome_MCQ：反事实结果四选一；客观化 Task_37）
 
 - **任务说明**：给定反事实挑战问题（what-if），从 **spatial + affordance** 角度生成最可能的 `expected_challenge_outcome`（QA 短回答）。只做结果预测，不提出任何恢复/修复策略。
 - **字段（JSONPath）**：
@@ -479,7 +433,7 @@ Q: Context: Step goal: "Slice the cucumber into circular pieces on the cutting b
 A: The board may slide when cutting force is applied, making the knife motion unstable because the low-friction contact cannot resist lateral forces.
 ```
 
-### Task_26_Failure_Recovery_Protocol（原始 Task_39_Failure_Recovery_Protocol：失败模式与恢复策略；自由文本 + Task_40_Recovery_Strategy_MCQ：恢复策略四选一；客观化 Task_39）
+### Task_25_Failure_Recovery_Protocol（原始 Task_39_Failure_Recovery_Protocol：失败模式与恢复策略；自由文本 + Task_40_Recovery_Strategy_MCQ：恢复策略四选一；客观化 Task_39）
 
 - **任务说明**：围绕该步骤可能出现的失败原因，给出可执行的恢复策略（自由文本），并从 **spatial + affordance** 角度说明其有效性。
 - **字段（JSONPath）**：`steps[i].step_goal`, `steps[i].failure_reflecting.reason`, `steps[i].failure_reflecting.recovery_strategy`
@@ -492,7 +446,7 @@ Multimodal_input:
 Q: Context: Step goal: "Slice the cucumber into circular pieces on the cutting board." Failure reason: "The cucumber rolls during cutting because it is not stabilized." What is a plausible recovery strategy? Explain briefly using spatial stability and affordance/mechanism.
 A: Cut a flat side to prevent rolling, then stabilize it with the non-cutting hand while slicing.
 ```
-### Task_27_Next_Step_After_Recovery_QA（原始 Task_42_Next_Step_After_Recovery：失败驱动重规划：恢复后下一步选择）
+### Task_26_Next_Step_After_Recovery_QA（原始 Task_42_Next_Step_After_Recovery：失败驱动重规划：恢复后下一步选择）
 
 - **任务说明**：失败驱动重规划：给定失败原因与恢复策略，输出“恢复之后最合适的下一步要做什么”（用 1 句 `step_goal` 表达），形成失败反思闭环。
 - **字段来源**：
